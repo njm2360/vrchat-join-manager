@@ -4,7 +4,14 @@ import aiosqlite
 from fastapi import APIRouter, Depends, Query
 
 from db import get_db
-from models import EventOut, LocationOut, PlayerOut, SessionOut, TimelinePoint
+from models import (
+    EventOut,
+    LocationOut,
+    PlayerListOut,
+    PlayerOut,
+    SessionOut,
+    TimelinePoint,
+)
 from repositories import locations as repo
 
 router = APIRouter()
@@ -22,7 +29,9 @@ async def get_locations(
     return await repo.get_locations(db, start, end, order, limit, offset)
 
 
-@router.get("/api/locations/{location_id:path}/presence", response_model=list[SessionOut])
+@router.get(
+    "/api/locations/{location_id:path}/presence", response_model=list[SessionOut]
+)
 async def get_presence(
     location_id: str,
     at: datetime = Query(..., description="この時刻に在席していたプレイヤーを返す"),
@@ -37,6 +46,19 @@ async def get_location_players(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerOut]:
     return await repo.get_location_players(db, location_id)
+
+
+@router.get(
+    "/api/locations/{location_id:path}/visitors", response_model=list[PlayerListOut]
+)
+async def get_location_visitors(
+    location_id: str,
+    order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> list[PlayerListOut]:
+    return await repo.get_location_visitors(db, location_id, order, limit, offset)
 
 
 @router.get(
@@ -62,10 +84,14 @@ async def get_location_events(
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
-    return await repo.get_location_events(db, location_id, start, end, order, limit, offset)
+    return await repo.get_location_events(
+        db, location_id, start, end, order, limit, offset
+    )
 
 
-@router.get("/api/locations/{location_id:path}/sessions", response_model=list[SessionOut])
+@router.get(
+    "/api/locations/{location_id:path}/sessions", response_model=list[SessionOut]
+)
 async def get_location_sessions(
     location_id: str,
     start: datetime | None = Query(default=None),
@@ -75,4 +101,6 @@ async def get_location_sessions(
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[SessionOut]:
-    return await repo.get_location_sessions(db, location_id, start, end, order, limit, offset)
+    return await repo.get_location_sessions(
+        db, location_id, start, end, order, limit, offset
+    )

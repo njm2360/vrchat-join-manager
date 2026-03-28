@@ -56,11 +56,26 @@ class LocationOut(BaseModel):
     last_seen: UtcDatetime
 
 
+class WorldOut(BaseModel):
+    world_id: str
+    first_seen: UtcDatetime
+    last_seen: UtcDatetime
+    session_count: int
+
+
 class PlayerOut(BaseModel):
     user_id: str
     display_name: str
     internal_id: int | None
     join_ts: UtcDatetime
+    join_count: int
+
+
+class PlayerListOut(BaseModel):
+    user_id: str
+    display_name: str
+    first_seen: UtcDatetime
+    last_seen: UtcDatetime
     join_count: int
 
 

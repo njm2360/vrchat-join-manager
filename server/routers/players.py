@@ -4,10 +4,21 @@ import aiosqlite
 from fastapi import APIRouter, Depends, Query
 
 from db import get_db
-from models import EventOut, PlayerSessionOut
+from models import EventOut, PlayerListOut, PlayerSessionOut
 from repositories import players as repo
 
 router = APIRouter()
+
+
+@router.get("/api/players", response_model=list[PlayerListOut])
+async def get_players(
+    name: str | None = Query(None, description="display_name の部分一致フィルタ"),
+    order: str = Query(default="asc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> list[PlayerListOut]:
+    return await repo.get_players(db, name, order, limit, offset)
 
 
 @router.get("/api/players/{user_id}/events", response_model=list[EventOut])
@@ -21,7 +32,9 @@ async def get_player_events(
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
-    return await repo.get_player_events(db, user_id, location_id, start, end, order, limit, offset)
+    return await repo.get_player_events(
+        db, user_id, location_id, start, end, order, limit, offset
+    )
 
 
 @router.get("/api/players/{user_id}/sessions", response_model=list[PlayerSessionOut])
@@ -35,4 +48,6 @@ async def get_player_sessions(
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerSessionOut]:
-    return await repo.get_player_sessions(db, user_id, location_id, start, end, order, limit, offset)
+    return await repo.get_player_sessions(
+        db, user_id, location_id, start, end, order, limit, offset
+    )

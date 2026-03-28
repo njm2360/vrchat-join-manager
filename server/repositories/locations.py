@@ -2,7 +2,14 @@ from datetime import datetime
 
 import aiosqlite
 
-from models import EventOut, LocationOut, PlayerOut, SessionOut, TimelinePoint
+from models import (
+    EventOut,
+    LocationOut,
+    PlayerListOut,
+    PlayerOut,
+    SessionOut,
+    TimelinePoint,
+)
 from utils import to_utc_str
 
 
@@ -23,7 +30,11 @@ async def get_locations(
         having.append("last_seen <= :end")
         params["end"] = to_utc_str(end)
     having_clause = ("HAVING " + " AND ".join(having)) if having else ""
-    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
+    limit_clause = (
+        f"LIMIT {limit} OFFSET {offset}"
+        if limit is not None
+        else f"LIMIT -1 OFFSET {offset}"
+    )
     cursor = await db.execute(
         f"""
         SELECT location_id, world_id, MIN(join_ts) AS first_seen, MAX(join_ts) AS last_seen
@@ -79,6 +90,36 @@ async def get_location_players(
     )
     rows = await cursor.fetchall()
     return [PlayerOut(**dict(row)) for row in rows]
+
+
+async def get_location_visitors(
+    db: aiosqlite.Connection,
+    location_id: str,
+    order: str = "desc",
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[PlayerListOut]:
+    limit_clause = (
+        f"LIMIT {limit} OFFSET {offset}"
+        if limit is not None
+        else f"LIMIT -1 OFFSET {offset}"
+    )
+    cursor = await db.execute(
+        f"""
+        SELECT user_id, display_name,
+               MIN(join_ts) AS first_seen,
+               MAX(join_ts) AS last_seen,
+               COUNT(*)     AS join_count
+        FROM sessions
+        WHERE location_id = :location_id
+        GROUP BY user_id
+        ORDER BY last_seen {order.upper()}
+        {limit_clause}
+        """,
+        {"location_id": location_id},
+    )
+    rows = await cursor.fetchall()
+    return [PlayerListOut(**dict(row)) for row in rows]
 
 
 async def get_presence_timeline(
@@ -154,7 +195,11 @@ async def get_location_events(
         conditions.append("timestamp <= :end")
         params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
-    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
+    limit_clause = (
+        f"LIMIT {limit} OFFSET {offset}"
+        if limit is not None
+        else f"LIMIT -1 OFFSET {offset}"
+    )
     cursor = await db.execute(
         f"""
         SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
@@ -187,7 +232,11 @@ async def get_location_sessions(
         conditions.append("join_ts <= :end")
         params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
-    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
+    limit_clause = (
+        f"LIMIT {limit} OFFSET {offset}"
+        if limit is not None
+        else f"LIMIT -1 OFFSET {offset}"
+    )
     cursor = await db.execute(
         f"""
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts, duration_seconds
