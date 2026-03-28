@@ -17,9 +17,11 @@ async def get_player_events(
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
-    return await repo.get_player_events(db, user_id, location_id, start, end, order)
+    return await repo.get_player_events(db, user_id, location_id, start, end, order, limit, offset)
 
 
 @router.get("/api/players/{user_id}/sessions", response_model=list[PlayerSessionOut])
@@ -29,6 +31,8 @@ async def get_player_sessions(
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerSessionOut]:
-    return await repo.get_player_sessions(db, user_id, location_id, start, end, order)
+    return await repo.get_player_sessions(db, user_id, location_id, start, end, order, limit, offset)

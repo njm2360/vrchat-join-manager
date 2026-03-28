@@ -13,6 +13,8 @@ async def get_player_events(
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[EventOut]:
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
@@ -28,12 +30,14 @@ async def get_player_events(
         params["end"] = to_utc_str(end)
 
     where = " AND ".join(conditions)
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
         ORDER BY timestamp {order.upper()}
+        {limit_clause}
         """,
         params,
     )
@@ -48,6 +52,8 @@ async def get_player_sessions(
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[PlayerSessionOut]:
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
@@ -63,6 +69,7 @@ async def get_player_sessions(
         params["end"] = to_utc_str(end)
 
     where = " AND ".join(conditions)
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT id, location_id, join_ts, leave_ts,
@@ -70,6 +77,7 @@ async def get_player_sessions(
         FROM sessions
         WHERE {where}
         ORDER BY join_ts {order.upper()}
+        {limit_clause}
         """,
         params,
     )

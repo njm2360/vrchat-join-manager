@@ -11,6 +11,8 @@ async def get_locations(
     start: datetime | None,
     end: datetime | None,
     order: str = "desc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[LocationOut]:
     having: list[str] = []
     params: dict = {}
@@ -21,6 +23,7 @@ async def get_locations(
         having.append("last_seen <= :end")
         params["end"] = to_utc_str(end)
     having_clause = ("HAVING " + " AND ".join(having)) if having else ""
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT location_id, world_id, MIN(join_ts) AS first_seen, MAX(join_ts) AS last_seen
@@ -28,6 +31,7 @@ async def get_locations(
         GROUP BY location_id
         {having_clause}
         ORDER BY last_seen {order.upper()}
+        {limit_clause}
         """,
         params,
     )
@@ -138,6 +142,8 @@ async def get_location_events(
     start: datetime | None,
     end: datetime | None,
     order: str = "desc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[EventOut]:
     conditions = ["location_id = :location_id"]
     params: dict = {"location_id": location_id}
@@ -148,12 +154,14 @@ async def get_location_events(
         conditions.append("timestamp <= :end")
         params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
         ORDER BY timestamp {order.upper()}
+        {limit_clause}
         """,
         params,
     )
@@ -167,6 +175,8 @@ async def get_location_sessions(
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[SessionOut]:
     conditions = ["location_id = :location_id"]
     params: dict = {"location_id": location_id}
@@ -177,12 +187,14 @@ async def get_location_sessions(
         conditions.append("join_ts <= :end")
         params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts, duration_seconds
         FROM sessions
         WHERE {where}
         ORDER BY join_ts {order.upper()}
+        {limit_clause}
         """,
         params,
     )

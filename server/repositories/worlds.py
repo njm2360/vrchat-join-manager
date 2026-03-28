@@ -11,6 +11,8 @@ async def get_world_sessions(
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[SessionOut]:
     conditions = ["world_id = :world_id"]
     params: dict = {"world_id": world_id}
@@ -23,6 +25,7 @@ async def get_world_sessions(
         params["end"] = end.isoformat()
 
     where = " AND ".join(conditions)
+    limit_clause = f"LIMIT {limit} OFFSET {offset}" if limit is not None else f"LIMIT -1 OFFSET {offset}"
     cursor = await db.execute(
         f"""
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
@@ -30,6 +33,7 @@ async def get_world_sessions(
         FROM sessions
         WHERE {where}
         ORDER BY join_ts {order.upper()}
+        {limit_clause}
         """,
         params,
     )

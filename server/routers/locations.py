@@ -15,9 +15,11 @@ async def get_locations(
     start: datetime | None = Query(None, description="first_seen がこの時刻以降"),
     end: datetime | None = Query(None, description="last_seen がこの時刻以前"),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[LocationOut]:
-    return await repo.get_locations(db, start, end, order)
+    return await repo.get_locations(db, start, end, order, limit, offset)
 
 
 @router.get("/api/locations/{location_id:path}/presence", response_model=list[SessionOut])
@@ -56,9 +58,11 @@ async def get_location_events(
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
-    return await repo.get_location_events(db, location_id, start, end, order)
+    return await repo.get_location_events(db, location_id, start, end, order, limit, offset)
 
 
 @router.get("/api/locations/{location_id:path}/sessions", response_model=list[SessionOut])
@@ -67,6 +71,8 @@ async def get_location_sessions(
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[SessionOut]:
-    return await repo.get_location_sessions(db, location_id, start, end, order)
+    return await repo.get_location_sessions(db, location_id, start, end, order, limit, offset)
