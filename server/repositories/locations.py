@@ -10,6 +10,7 @@ async def get_locations(
     db: aiosqlite.Connection,
     start: datetime | None,
     end: datetime | None,
+    order: str = "desc",
 ) -> list[LocationOut]:
     having: list[str] = []
     params: dict = {}
@@ -26,7 +27,7 @@ async def get_locations(
         FROM sessions
         GROUP BY location_id
         {having_clause}
-        ORDER BY last_seen DESC
+        ORDER BY last_seen {order.upper()}
         """,
         params,
     )
@@ -165,6 +166,7 @@ async def get_location_sessions(
     location_id: str,
     start: datetime | None,
     end: datetime | None,
+    order: str = "asc",
 ) -> list[SessionOut]:
     conditions = ["location_id = :location_id"]
     params: dict = {"location_id": location_id}
@@ -180,7 +182,7 @@ async def get_location_sessions(
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts, duration_seconds
         FROM sessions
         WHERE {where}
-        ORDER BY join_ts
+        ORDER BY join_ts {order.upper()}
         """,
         params,
     )

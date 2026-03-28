@@ -14,9 +14,10 @@ router = APIRouter()
 async def get_locations(
     start: datetime | None = Query(None, description="first_seen がこの時刻以降"),
     end: datetime | None = Query(None, description="last_seen がこの時刻以前"),
+    order: str = Query(default="desc", pattern="^(asc|desc)$"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[LocationOut]:
-    return await repo.get_locations(db, start, end)
+    return await repo.get_locations(db, start, end, order)
 
 
 @router.get("/api/locations/{location_id:path}/presence", response_model=list[SessionOut])
@@ -65,6 +66,7 @@ async def get_location_sessions(
     location_id: str,
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
+    order: str = Query(default="asc", pattern="^(asc|desc)$"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[SessionOut]:
-    return await repo.get_location_sessions(db, location_id, start, end)
+    return await repo.get_location_sessions(db, location_id, start, end, order)

@@ -12,6 +12,7 @@ async def get_player_events(
     location_id: str | None,
     start: datetime | None,
     end: datetime | None,
+    order: str = "asc",
 ) -> list[EventOut]:
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
@@ -32,7 +33,7 @@ async def get_player_events(
         SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
-        ORDER BY timestamp
+        ORDER BY timestamp {order.upper()}
         """,
         params,
     )
@@ -46,6 +47,7 @@ async def get_player_sessions(
     location_id: str | None,
     start: datetime | None,
     end: datetime | None,
+    order: str = "asc",
 ) -> list[PlayerSessionOut]:
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
@@ -67,7 +69,7 @@ async def get_player_sessions(
                duration_seconds
         FROM sessions
         WHERE {where}
-        ORDER BY join_ts
+        ORDER BY join_ts {order.upper()}
         """,
         params,
     )

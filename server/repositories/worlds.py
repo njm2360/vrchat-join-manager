@@ -10,6 +10,7 @@ async def get_world_sessions(
     world_id: str,
     start: datetime | None,
     end: datetime | None,
+    order: str = "asc",
 ) -> list[SessionOut]:
     conditions = ["world_id = :world_id"]
     params: dict = {"world_id": world_id}
@@ -28,7 +29,7 @@ async def get_world_sessions(
                duration_seconds
         FROM sessions
         WHERE {where}
-        ORDER BY join_ts
+        ORDER BY join_ts {order.upper()}
         """,
         params,
     )
