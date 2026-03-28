@@ -1,0 +1,100 @@
+import re
+import logging
+from collections import deque
+from pathlib import Path
+from datetime import datetime
+from api_client import ApiClient
+
+logger = logging.getLogger(__name__)
+
+_LOG_TIME = re.compile(r"^(\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2})")
+_JOINING = re.compile(r"\[Behaviour\] Joining (wrld_\S+)")
+_PLAYER_JOIN = re.compile(r"\[Behaviour\] OnPlayerJoined (.+) \((usr_[0-9a-f\-]+)\)")
+_PLAYER_LEFT = re.compile(r"\[Behaviour\] OnPlayerLeft (.+) \((usr_[0-9a-f\-]+)\)")
+_PLAYER_API = re.compile(
+    r"\[Behaviour\] Initialized PlayerAPI \"(.+)\" is (remote|local)"
+)
+_RESTORED = re.compile(r"\[Behaviour\] Restored player (\d+)")
+
+
+class VRChatLogParser:
+    def __init__(self, api_client: ApiClient) -> None:
+        self._api = api_client
+        self._location: str = ""
+        self._pending_names: deque[str] = deque()
+        self._internal_ids: dict[str, int] = {}
+        self._pending_joins: dict[str, str] = {}
+
+    def _timestamp(self, line: str) -> datetime | None:
+        m = _LOG_TIME.match(line)
+        if m:
+            return datetime.strptime(m.group(1), "%Y.%m.%d %H:%M:%S")
+        return None
+
+    async def on_line(self, _: Path, line: str) -> None:
+        ts = self._timestamp(line)
+        if ts is None:
+            return
+
+        # ロケーション移動検知
+        m = _JOINING.search(line)
+        if m:
+            self._pending_joins.clear()
+            self._pending_names.clear()
+            self._internal_ids.clear()
+            self._location = m.group(1)
+            logger.info("Location: %s", self._location)
+            return
+
+        # OnPlayerJoined
+        m = _PLAYER_JOIN.search(line)
+        if m:
+            name, user_id = m.group(1), m.group(2)
+            self._pending_joins[name] = user_id
+            return
+
+        # Initialized PlayerAPI "XXXX" is (remote | local)
+        if "Initialized PlayerAPI" in line:
+            m = _PLAYER_API.search(line)
+            if m:
+                self._pending_names.append(m.group(1))
+            return
+
+        # Restored player N
+        m = _RESTORED.search(line)
+        if m:
+            if self._pending_names:
+                name = self._pending_names.popleft()
+                self._internal_ids[name] = int(m.group(1))
+                if name in self._pending_joins:
+                    user_id = self._pending_joins.pop(name)
+                    logger.info(
+                        "JOIN  [%s] %s (%s) internal_id=%s",
+                        ts,
+                        name,
+                        user_id,
+                        m.group(1),
+                    )
+                    await self._api.send_event(
+                        "join", self._location, name, user_id,
+                        self._internal_ids.get(name), ts,
+                    )
+            return
+
+        # OnPlayerLeft
+        m = _PLAYER_LEFT.search(line)
+        if m:
+            name, user_id = m.group(1), m.group(2)
+            self._pending_joins.pop(name, None)
+            logger.info(
+                "LEAVE [%s] %s (%s) internal_id=%s",
+                ts,
+                name,
+                user_id,
+                self._internal_ids.get(name),
+            )
+            await self._api.send_event(
+                "leave", self._location, name, user_id,
+                self._internal_ids.get(name), ts,
+            )
+            self._internal_ids.pop(name, None)
