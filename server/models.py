@@ -53,6 +53,7 @@ class PlayerOut(BaseModel):
     display_name: str
     internal_id: int | None
     join_ts: str
+    join_count: int
 
 
 class TimelinePoint(BaseModel):

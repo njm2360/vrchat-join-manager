@@ -60,7 +60,9 @@ async def get_location_players(
 ) -> list[PlayerOut]:
     cursor = await db.execute(
         """
-        SELECT s.user_id, s.display_name, e.internal_id, s.join_ts
+        SELECT s.user_id, s.display_name, e.internal_id, s.join_ts,
+               (SELECT COUNT(*) FROM sessions s2
+                WHERE s2.user_id = s.user_id AND s2.location_id = s.location_id) AS join_count
         FROM sessions s
         JOIN events e ON e.id = s.join_event_id
         WHERE s.location_id = :location_id
@@ -133,6 +135,7 @@ async def get_location_events(
     location_id: str,
     start: datetime | None,
     end: datetime | None,
+    order: str = "desc",
 ) -> list[EventOut]:
     conditions = ["location_id = :location_id"]
     params: dict = {"location_id": location_id}
@@ -148,7 +151,7 @@ async def get_location_events(
         SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
-        ORDER BY timestamp
+        ORDER BY timestamp {order.upper()}
         """,
         params,
     )

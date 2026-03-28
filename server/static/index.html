@@ -140,6 +140,7 @@
                   <th style="width:60px" class="text-end">ID</th>
                   <th>表示名</th>
                   <th style="width:140px">入室日時</th>
+                  <th style="width:80px" class="text-end">入室回数</th>
                 </tr>
               </thead>
               <tbody id="player-tbody"></tbody>
@@ -336,8 +337,8 @@
     tbody.innerHTML = events.map(ev => {
       const isJoin = ev.event_type === 'join';
       const badge = isJoin
-        ? '<span class="badge bg-success">JOIN</span>'
-        : '<span class="badge bg-danger">LEAVE</span>';
+        ? '<span class="badge bg-success" style="width:4.5em">JOIN</span>'
+        : '<span class="badge bg-danger" style="width:4.5em">LEAVE</span>';
       return `<tr>
         <td class="text-nowrap small">${fmtDateFull(ev.timestamp)}</td>
         <td>${badge}</td>
@@ -354,13 +355,14 @@
     const players = await res.json();
     const tbody = document.getElementById('player-tbody');
     if (players.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
       return;
     }
     tbody.innerHTML = players.map(p => `<tr>
       <td class="text-end text-muted">${p.internal_id ?? '—'}</td>
       <td>${escHtml(p.display_name)}</td>
       <td class="small text-nowrap">${fmtDateFull(p.join_ts)}</td>
+      <td class="text-end small">${p.join_count}回目</td>
     </tr>`).join('');
   }
 

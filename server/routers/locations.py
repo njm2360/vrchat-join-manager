@@ -54,9 +54,10 @@ async def get_location_events(
     location_id: str,
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
+    order: str = Query(default="desc", pattern="^(asc|desc)$"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
-    return await repo.get_location_events(db, location_id, start, end)
+    return await repo.get_location_events(db, location_id, start, end, order)
 
 
 @router.get("/api/locations/{location_id:path}/sessions", response_model=list[SessionOut])
