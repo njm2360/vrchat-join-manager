@@ -1,9 +1,15 @@
+import os
+import sys
 import asyncio
 import logging
-import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+from api_client import ApiClient
 from log_parser import VRChatLogParser
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -13,7 +19,8 @@ class DebugFileRunner:
 
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
-        self._parser = VRChatLogParser()
+        base_url = os.environ["API_BASE"]
+        self._parser = VRChatLogParser(ApiClient(base_url))
 
     async def run(self) -> None:
         with self._path.open("r", encoding="utf-8", errors="replace") as f:

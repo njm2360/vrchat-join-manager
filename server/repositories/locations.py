@@ -3,6 +3,7 @@ from datetime import datetime
 import aiosqlite
 
 from models import EventOut, LocationOut, PlayerOut, SessionOut, TimelinePoint
+from utils import to_utc_str
 
 
 async def get_locations(
@@ -14,10 +15,10 @@ async def get_locations(
     params: dict = {}
     if start is not None:
         having.append("first_seen >= :start")
-        params["start"] = start.isoformat()
+        params["start"] = to_utc_str(start)
     if end is not None:
         having.append("last_seen <= :end")
-        params["end"] = end.isoformat()
+        params["end"] = to_utc_str(end)
     having_clause = ("HAVING " + " AND ".join(having)) if having else ""
     cursor = await db.execute(
         f"""
@@ -48,7 +49,7 @@ async def get_presence(
           AND (leave_ts IS NULL OR leave_ts >= :at)
         ORDER BY join_ts
         """,
-        {"location_id": location_id, "at": at.isoformat()},
+        {"location_id": location_id, "at": to_utc_str(at)},
     )
     rows = await cursor.fetchall()
     return [SessionOut(**dict(row)) for row in rows]
@@ -81,8 +82,8 @@ async def get_presence_timeline(
     start: datetime | None,
     end: datetime | None,
 ) -> list[TimelinePoint]:
-    start_str = start.isoformat() if start else None
-    end_str = end.isoformat() if end else None
+    start_str = to_utc_str(start) if start else None
+    end_str = to_utc_str(end) if end else None
 
     # start 時点での在席数（start より前に join し、まだ leave していないセッション）
     if start_str:
@@ -141,10 +142,10 @@ async def get_location_events(
     params: dict = {"location_id": location_id}
     if start is not None:
         conditions.append("timestamp >= :start")
-        params["start"] = start.isoformat()
+        params["start"] = to_utc_str(start)
     if end is not None:
         conditions.append("timestamp <= :end")
-        params["end"] = end.isoformat()
+        params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
     cursor = await db.execute(
         f"""
@@ -169,10 +170,10 @@ async def get_location_sessions(
     params: dict = {"location_id": location_id}
     if start is not None:
         conditions.append("join_ts >= :start")
-        params["start"] = start.isoformat()
+        params["start"] = to_utc_str(start)
     if end is not None:
         conditions.append("join_ts <= :end")
-        params["end"] = end.isoformat()
+        params["end"] = to_utc_str(end)
     where = " AND ".join(conditions)
     cursor = await db.execute(
         f"""

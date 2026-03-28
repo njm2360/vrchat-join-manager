@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from db import get_db
 from models import PlayerEvent
 from repositories import events as repo
+from utils import to_utc_str
 
 router = APIRouter()
 
@@ -13,7 +14,7 @@ async def receive_event(
     body: PlayerEvent,
     db: aiosqlite.Connection = Depends(get_db),
 ) -> None:
-    ts = body.timestamp.isoformat()
+    ts = to_utc_str(body.timestamp)
 
     await repo.upsert_player(db, body.user_id, body.name, ts)
     event_id = await repo.insert_event(db, body, ts)

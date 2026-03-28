@@ -3,6 +3,7 @@ from datetime import datetime
 import aiosqlite
 
 from models import EventOut, PlayerSessionOut
+from utils import to_utc_str
 
 
 async def get_player_events(
@@ -20,10 +21,10 @@ async def get_player_events(
         params["location_id"] = location_id
     if start is not None:
         conditions.append("timestamp >= :start")
-        params["start"] = start.isoformat()
+        params["start"] = to_utc_str(start)
     if end is not None:
         conditions.append("timestamp <= :end")
-        params["end"] = end.isoformat()
+        params["end"] = to_utc_str(end)
 
     where = " AND ".join(conditions)
     cursor = await db.execute(
@@ -54,10 +55,10 @@ async def get_player_sessions(
         params["location_id"] = location_id
     if start is not None:
         conditions.append("join_ts >= :start")
-        params["start"] = start.isoformat()
+        params["start"] = to_utc_str(start)
     if end is not None:
         conditions.append("join_ts <= :end")
-        params["end"] = end.isoformat()
+        params["end"] = to_utc_str(end)
 
     where = " AND ".join(conditions)
     cursor = await db.execute(

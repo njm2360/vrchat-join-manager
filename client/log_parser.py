@@ -2,7 +2,9 @@ import re
 import logging
 from collections import deque
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_JST = timezone(timedelta(hours=9))
 from api_client import ApiClient
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,8 @@ class VRChatLogParser:
     def _timestamp(self, line: str) -> datetime | None:
         m = _LOG_TIME.match(line)
         if m:
-            return datetime.strptime(m.group(1), "%Y.%m.%d %H:%M:%S")
+            naive = datetime.strptime(m.group(1), "%Y.%m.%d %H:%M:%S")
+            return naive.replace(tzinfo=_JST).astimezone(timezone.utc)
         return None
 
     async def on_line(self, _: Path, line: str) -> None:

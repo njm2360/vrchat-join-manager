@@ -26,7 +26,7 @@ class ApiClient:
             "name": name,
             "user_id": user_id,
             "internal_id": internal_id,
-            "timestamp": timestamp.isoformat(),
+            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         try:
             async with httpx.AsyncClient() as client:
