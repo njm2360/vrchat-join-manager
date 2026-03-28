@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VRChat Join Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
@@ -75,13 +76,16 @@
               <button class="nav-link active" data-tab="timeline">人数推移</button>
             </li>
             <li class="nav-item">
-              <button class="nav-link" data-tab="events">イベント一覧</button>
+              <button class="nav-link" data-tab="events">入退場ログ</button>
             </li>
             <li class="nav-item">
               <button class="nav-link" data-tab="sessions">セッション一覧</button>
             </li>
             <li class="nav-item">
               <button class="nav-link" data-tab="players">在室中</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-tab="visitors">訪れた人</button>
             </li>
           </ul>
         </div>
@@ -118,7 +122,7 @@
               <table class="table table-sm table-hover mb-0">
                 <thead class="table-light sticky-top">
                   <tr>
-                    <th>表示名</th>
+                    <th>名前</th>
                     <th style="width:140px">入室</th>
                     <th style="width:140px">退室</th>
                     <th style="width:90px" class="text-end">滞在時間</th>
@@ -138,7 +142,7 @@
               <thead class="table-light">
                 <tr>
                   <th style="width:60px" class="text-end">ID</th>
-                  <th>表示名</th>
+                  <th>名前</th>
                   <th style="width:140px">入室日時</th>
                   <th style="width:80px" class="text-end">入室回数</th>
                 </tr>
@@ -147,7 +151,52 @@
             </table>
           </div>
 
-          <!-- ── イベント一覧タブ ── -->
+          <!-- ── 訪れた人タブ ── -->
+          <div id="tab-visitors" class="d-none">
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+              <button id="vi-reload-btn" class="btn btn-primary btn-sm">更新</button>
+              <span id="vi-count" class="text-muted small"></span>
+            </div>
+            <div style="max-height:520px;overflow-y:auto">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>名前</th>
+                    <th style="width:140px">初訪問</th>
+                    <th style="width:140px">最終訪問</th>
+                    <th style="width:80px" class="text-end">訪問回数</th>
+                  </tr>
+                </thead>
+                <tbody id="visitor-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ── セッションモーダル ── -->
+          <div class="modal fade" id="session-modal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="session-modal-title"></h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th style="width:140px">入室</th>
+                        <th style="width:140px">退室</th>
+                        <th style="width:90px" class="text-end">滞在時間</th>
+                      </tr>
+                    </thead>
+                    <tbody id="session-modal-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 入退場ログタブ ── -->
           <div id="tab-events" class="d-none">
             <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
               <input type="datetime-local" id="ev-start" class="form-control form-control-sm" style="width:auto">
@@ -161,7 +210,7 @@
                   <tr>
                     <th style="width:150px">日時</th>
                     <th style="width:70px">種別</th>
-                    <th>表示名</th>
+                    <th>名前</th>
                   </tr>
                 </thead>
                 <tbody id="event-tbody"></tbody>
@@ -198,10 +247,12 @@
     document.getElementById('tab-events').classList.toggle('d-none', tab !== 'events');
     document.getElementById('tab-sessions').classList.toggle('d-none', tab !== 'sessions');
     document.getElementById('tab-players').classList.toggle('d-none', tab !== 'players');
+    document.getElementById('tab-visitors').classList.toggle('d-none', tab !== 'visitors');
     if (tab === 'timeline') loadTimeline();
     if (tab === 'events')   loadEvents();
     if (tab === 'sessions') loadSessions();
     if (tab === 'players')  loadPlayers();
+    if (tab === 'visitors') loadVisitors();
   }
 
   // ── ロケーション一覧 ────────────────────────────────────────────
@@ -313,7 +364,7 @@
     });
   }
 
-  // ── イベント一覧 ────────────────────────────────────────────────
+  // ── 入退場ログ ────────────────────────────────────────────────
 
   async function loadEvents() {
     if (!currentLocationId) return;
@@ -364,6 +415,63 @@
       <td class="small text-nowrap">${fmtDateFull(p.join_ts)}</td>
       <td class="text-end small">${p.join_count}回目</td>
     </tr>`).join('');
+  }
+
+  // ── 訪れた人 ────────────────────────────────────────────────────
+
+  async function loadVisitors() {
+    if (!currentLocationId) return;
+    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/visitors`);
+    const visitors = await res.json();
+    const tbody = document.getElementById('visitor-tbody');
+    document.getElementById('vi-count').textContent = `${visitors.length} 人`;
+    if (visitors.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">データなし</td></tr>';
+      return;
+    }
+    tbody.innerHTML = visitors.map(v => `<tr>
+      <td class="text-truncate" style="max-width:200px">
+        <a href="#" class="visitor-name-link" data-user-id="${escHtml(v.user_id)}" data-display-name="${escHtml(v.display_name)}">${escHtml(v.display_name)}</a>
+      </td>
+      <td class="small text-nowrap">${fmtDateFull(v.first_seen)}</td>
+      <td class="small text-nowrap">${fmtDateFull(v.last_seen)}</td>
+      <td class="text-end small">${v.join_count}回</td>
+    </tr>`).join('');
+    tbody.querySelectorAll('.visitor-name-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        openPlayerSessions(link.dataset.userId, link.dataset.displayName);
+      });
+    });
+  }
+
+  // ── プレイヤーセッションモーダル ────────────────────────────────
+
+  async function openPlayerSessions(userId, displayName) {
+    document.getElementById('session-modal-title').textContent = displayName + ' のセッション';
+    const tbody = document.getElementById('session-modal-tbody');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">読み込み中...</td></tr>';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('session-modal')).show();
+
+    const params = new URLSearchParams({ location_id: currentLocationId, order: 'desc' });
+    const res = await fetch(`/api/players/${encodeURIComponent(userId)}/sessions?${params}`);
+    const sessions = await res.json();
+
+    if (sessions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">データなし</td></tr>';
+      return;
+    }
+    tbody.innerHTML = sessions.map(s => {
+      const leaveCell = s.leave_ts
+        ? fmtDateFull(s.leave_ts)
+        : '<span class="badge bg-success">在室中</span>';
+      const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
+      return `<tr>
+        <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
+        <td class="small text-nowrap">${leaveCell}</td>
+        <td class="text-end small">${duration}</td>
+      </tr>`;
+    }).join('');
   }
 
   // ── セッション一覧 ──────────────────────────────────────────────
@@ -445,6 +553,7 @@
   document.getElementById('ev-update-btn').addEventListener('click', loadEvents);
   document.getElementById('ss-update-btn').addEventListener('click', loadSessions);
   document.getElementById('pl-reload-btn').addEventListener('click', loadPlayers);
+  document.getElementById('vi-reload-btn').addEventListener('click', loadVisitors);
 
   loadLocations();
 </script>
