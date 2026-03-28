@@ -7,10 +7,10 @@ from db import get_db
 from models import EventOut, PlayerListOut, PlayerSessionOut
 from repositories import players as repo
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["players"])
 
 
-@router.get("/api/players", response_model=list[PlayerListOut])
+@router.get("/players", response_model=list[PlayerListOut])
 async def get_players(
     name: str | None = Query(None, description="display_name の部分一致フィルタ"),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
@@ -21,7 +21,7 @@ async def get_players(
     return await repo.get_players(db, name, order, limit, offset)
 
 
-@router.get("/api/players/{user_id}/events", response_model=list[EventOut])
+@router.get("/players/{user_id}/events", response_model=list[EventOut])
 async def get_player_events(
     user_id: str,
     location_id: str | None = Query(None),
@@ -37,7 +37,7 @@ async def get_player_events(
     )
 
 
-@router.get("/api/players/{user_id}/sessions", response_model=list[PlayerSessionOut])
+@router.get("/players/{user_id}/sessions", response_model=list[PlayerSessionOut])
 async def get_player_sessions(
     user_id: str,
     location_id: str | None = Query(None),

@@ -6,10 +6,10 @@ from models import PlayerEvent
 from repositories import events as repo
 from utils import to_utc_str
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["events"])
 
 
-@router.post("/api/events")
+@router.post("/events")
 async def receive_event(
     body: PlayerEvent,
     db: aiosqlite.Connection = Depends(get_db),

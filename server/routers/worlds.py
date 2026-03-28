@@ -7,10 +7,10 @@ from db import get_db
 from models import SessionOut, WorldOut
 from repositories import worlds as repo
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["worlds"])
 
 
-@router.get("/api/worlds", response_model=list[WorldOut])
+@router.get("/worlds", response_model=list[WorldOut])
 async def get_worlds(
     start: datetime | None = Query(None, description="first_seen がこの時刻以降"),
     end: datetime | None = Query(None, description="last_seen がこの時刻以前"),
@@ -22,7 +22,7 @@ async def get_worlds(
     return await repo.get_worlds(db, start, end, order, limit, offset)
 
 
-@router.get("/api/worlds/{world_id}/sessions", response_model=list[SessionOut])
+@router.get("/worlds/{world_id}/sessions", response_model=list[SessionOut])
 async def get_world_sessions(
     world_id: str,
     start: datetime | None = Query(None),

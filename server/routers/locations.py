@@ -14,10 +14,10 @@ from models import (
 )
 from repositories import locations as repo
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["locations"])
 
 
-@router.get("/api/locations", response_model=list[LocationOut])
+@router.get("/locations", response_model=list[LocationOut])
 async def get_locations(
     start: datetime | None = Query(None, description="first_seen がこの時刻以降"),
     end: datetime | None = Query(None, description="last_seen がこの時刻以前"),
@@ -30,7 +30,7 @@ async def get_locations(
 
 
 @router.get(
-    "/api/locations/{location_id:path}/presence", response_model=list[SessionOut]
+    "/locations/{location_id:path}/presence", response_model=list[SessionOut]
 )
 async def get_presence(
     location_id: str,
@@ -40,7 +40,7 @@ async def get_presence(
     return await repo.get_presence(db, location_id, at)
 
 
-@router.get("/api/locations/{location_id:path}/players", response_model=list[PlayerOut])
+@router.get("/locations/{location_id:path}/players", response_model=list[PlayerOut])
 async def get_location_players(
     location_id: str,
     db: aiosqlite.Connection = Depends(get_db),
@@ -49,7 +49,7 @@ async def get_location_players(
 
 
 @router.get(
-    "/api/locations/{location_id:path}/visitors", response_model=list[PlayerListOut]
+    "/locations/{location_id:path}/visitors", response_model=list[PlayerListOut]
 )
 async def get_location_visitors(
     location_id: str,
@@ -62,7 +62,7 @@ async def get_location_visitors(
 
 
 @router.get(
-    "/api/locations/{location_id:path}/presence-timeline",
+    "/locations/{location_id:path}/presence-timeline",
     response_model=list[TimelinePoint],
 )
 async def get_presence_timeline(
@@ -74,7 +74,7 @@ async def get_presence_timeline(
     return await repo.get_presence_timeline(db, location_id, start, end)
 
 
-@router.get("/api/locations/{location_id:path}/events", response_model=list[EventOut])
+@router.get("/locations/{location_id:path}/events", response_model=list[EventOut])
 async def get_location_events(
     location_id: str,
     start: datetime | None = Query(default=None),
@@ -90,7 +90,7 @@ async def get_location_events(
 
 
 @router.get(
-    "/api/locations/{location_id:path}/sessions", response_model=list[SessionOut]
+    "/locations/{location_id:path}/sessions", response_model=list[SessionOut]
 )
 async def get_location_sessions(
     location_id: str,
