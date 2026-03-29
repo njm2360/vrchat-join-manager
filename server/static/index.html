@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +8,24 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    html, body { height: 100%; }
+    html,
+    body {
+      height: 100%;
+    }
+
     #sidebar {
       height: calc(100vh - 56px);
       overflow-y: auto;
     }
+
     #chart-wrapper {
       position: relative;
       height: 420px;
     }
+
     .location-item small {
       display: block;
       white-space: nowrap;
@@ -25,537 +33,208 @@
       text-overflow: ellipsis;
       max-width: 100%;
     }
+
     #event-table-wrapper {
       max-height: 520px;
       overflow-y: auto;
     }
   </style>
 </head>
+
 <body>
 
-<nav class="navbar navbar-dark bg-dark px-3">
-  <span class="navbar-brand mb-0 h1">VRChat Join Manager</span>
-</nav>
+  <nav class="navbar navbar-dark bg-dark px-3">
+    <span class="navbar-brand mb-0 h1">VRChat Join Manager</span>
+  </nav>
 
-<div class="container-fluid">
-  <div class="row">
+  <div class="container-fluid">
+    <div class="row">
 
-    <!-- サイドバー: ロケーション一覧 -->
-    <div class="col-md-4 col-lg-3 p-0 border-end bg-light" id="sidebar">
-      <div class="p-3 border-bottom">
-        <div class="row g-2">
-          <div class="col-6">
-            <label class="form-label small mb-1">開始</label>
-            <input type="datetime-local" id="loc-start" class="form-control form-control-sm">
-          </div>
-          <div class="col-6">
-            <label class="form-label small mb-1">終了</label>
-            <input type="datetime-local" id="loc-end" class="form-control form-control-sm">
-          </div>
-          <div class="col-12">
-            <button id="loc-search-btn" class="btn btn-secondary btn-sm w-100">絞り込み</button>
+      <!-- サイドバー: ロケーション一覧 -->
+      <div class="col-md-4 col-lg-3 p-0 border-end bg-light" id="sidebar">
+        <div class="p-3 border-bottom">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small mb-1">開始</label>
+              <input type="datetime-local" id="loc-start" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-1">終了</label>
+              <input type="datetime-local" id="loc-end" class="form-control form-control-sm">
+            </div>
+            <div class="col-12">
+              <button id="loc-search-btn" class="btn btn-secondary btn-sm w-100">絞り込み</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div id="location-list" class="list-group list-group-flush">
-        <div class="list-group-item text-muted small">読み込み中...</div>
-      </div>
-    </div>
-
-    <!-- メイン -->
-    <div class="col-md-8 col-lg-9 p-3">
-      <div class="card">
-
-        <!-- ロケーション名 + タブ -->
-        <div class="card-header">
-          <div class="mb-2">
-            <span id="selected-label" class="text-muted small">ロケーションを選択してください</span>
-          </div>
-          <ul class="nav nav-tabs card-header-tabs" id="main-tabs">
-            <li class="nav-item">
-              <button class="nav-link active" data-tab="timeline">人数推移</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" data-tab="events">入退場ログ</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" data-tab="sessions">セッション一覧</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" data-tab="players">在室中</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" data-tab="visitors">訪れた人</button>
-            </li>
-          </ul>
+        <div id="location-list" class="list-group list-group-flush">
+          <div class="list-group-item text-muted small">読み込み中...</div>
         </div>
+      </div>
 
-        <div class="card-body">
+      <!-- メイン -->
+      <div class="col-md-8 col-lg-9 p-3">
+        <div class="card">
 
-          <!-- 共通プレースホルダー -->
-          <div id="main-placeholder" class="text-center text-muted py-5">
-            左のリストからロケーションを選択してください
+          <!-- ロケーション名 + タブ -->
+          <div class="card-header">
+            <div class="mb-2">
+              <span id="selected-label" class="text-muted small">ロケーションを選択してください</span>
+            </div>
+            <ul class="nav nav-tabs card-header-tabs" id="main-tabs">
+              <li class="nav-item">
+                <button class="nav-link active" data-tab="timeline">人数推移</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-tab="events">入退場ログ</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-tab="sessions">セッション一覧</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-tab="players">在室中</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-tab="visitors">訪れた人</button>
+              </li>
+            </ul>
           </div>
 
-          <!-- ── 人数推移タブ ── -->
-          <div id="tab-timeline" class="d-none">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-              <input type="datetime-local" id="tl-start" class="form-control form-control-sm" style="width:auto">
-              <span class="text-muted small">〜</span>
-              <input type="datetime-local" id="tl-end" class="form-control form-control-sm" style="width:auto">
-              <button id="tl-update-btn" class="btn btn-primary btn-sm">更新</button>
-            </div>
-            <div id="chart-wrapper">
-              <canvas id="timeline-chart"></canvas>
-            </div>
-          </div>
+          <div class="card-body">
 
-          <!-- ── セッション一覧タブ ── -->
-          <div id="tab-sessions" class="d-none">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-              <input type="datetime-local" id="ss-start" class="form-control form-control-sm" style="width:auto">
-              <span class="text-muted small">〜</span>
-              <input type="datetime-local" id="ss-end" class="form-control form-control-sm" style="width:auto">
-              <button id="ss-update-btn" class="btn btn-primary btn-sm">更新</button>
+            <!-- 共通プレースホルダー -->
+            <div id="main-placeholder" class="text-center text-muted py-5">
+              左のリストからロケーションを選択してください
             </div>
-            <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
+
+            <!-- ── 人数推移タブ ── -->
+            <div id="tab-timeline" class="d-none">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                <input type="datetime-local" id="tl-start" class="form-control form-control-sm" style="width:auto">
+                <span class="text-muted small">〜</span>
+                <input type="datetime-local" id="tl-end" class="form-control form-control-sm" style="width:auto">
+                <button id="tl-update-btn" class="btn btn-primary btn-sm">更新</button>
+              </div>
+              <div id="chart-wrapper">
+                <canvas id="timeline-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- ── セッション一覧タブ ── -->
+            <div id="tab-sessions" class="d-none">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                <input type="datetime-local" id="ss-start" class="form-control form-control-sm" style="width:auto">
+                <span class="text-muted small">〜</span>
+                <input type="datetime-local" id="ss-end" class="form-control form-control-sm" style="width:auto">
+                <button id="ss-update-btn" class="btn btn-primary btn-sm">更新</button>
+              </div>
+              <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>名前</th>
+                      <th style="width:140px">入室</th>
+                      <th style="width:140px">退室</th>
+                      <th style="width:90px" class="text-end">滞在時間</th>
+                    </tr>
+                  </thead>
+                  <tbody id="session-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ── 在室中タブ ── -->
+            <div id="tab-players" class="d-none">
+              <div class="mb-3">
+                <button id="pl-reload-btn" class="btn btn-primary btn-sm">更新</button>
+              </div>
               <table class="table table-sm table-hover mb-0">
-                <thead class="table-light sticky-top">
+                <thead class="table-light">
                   <tr>
+                    <th style="width:60px" class="text-end">ID</th>
                     <th>名前</th>
-                    <th style="width:140px">入室</th>
-                    <th style="width:140px">退室</th>
-                    <th style="width:90px" class="text-end">滞在時間</th>
+                    <th style="width:140px">入室日時</th>
                   </tr>
                 </thead>
-                <tbody id="session-tbody"></tbody>
+                <tbody id="player-tbody"></tbody>
               </table>
             </div>
-          </div>
 
-          <!-- ── 在室中タブ ── -->
-          <div id="tab-players" class="d-none">
-            <div class="mb-3">
-              <button id="pl-reload-btn" class="btn btn-primary btn-sm">更新</button>
+            <!-- ── 訪れた人タブ ── -->
+            <div id="tab-visitors" class="d-none">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                <button id="vi-reload-btn" class="btn btn-primary btn-sm">更新</button>
+                <span id="vi-count" class="text-muted small"></span>
+              </div>
+              <div style="max-height:520px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>名前</th>
+                      <th style="width:140px">初訪問</th>
+                      <th style="width:140px">最終訪問</th>
+                      <th style="width:80px" class="text-end">訪問回数</th>
+                    </tr>
+                  </thead>
+                  <tbody id="visitor-tbody"></tbody>
+                </table>
+              </div>
             </div>
-            <table class="table table-sm table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th style="width:60px" class="text-end">ID</th>
-                  <th>名前</th>
-                  <th style="width:140px">入室日時</th>
-                  <th style="width:80px" class="text-end">入室回数</th>
-                </tr>
-              </thead>
-              <tbody id="player-tbody"></tbody>
-            </table>
-          </div>
 
-          <!-- ── 訪れた人タブ ── -->
-          <div id="tab-visitors" class="d-none">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-              <button id="vi-reload-btn" class="btn btn-primary btn-sm">更新</button>
-              <span id="vi-count" class="text-muted small"></span>
-            </div>
-            <div style="max-height:520px;overflow-y:auto">
-              <table class="table table-sm table-hover mb-0">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>名前</th>
-                    <th style="width:140px">初訪問</th>
-                    <th style="width:140px">最終訪問</th>
-                    <th style="width:80px" class="text-end">訪問回数</th>
-                  </tr>
-                </thead>
-                <tbody id="visitor-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- ── セッションモーダル ── -->
-          <div class="modal fade" id="session-modal" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="session-modal-title"></h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-0">
-                  <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light sticky-top">
-                      <tr>
-                        <th style="width:140px">入室</th>
-                        <th style="width:140px">退室</th>
-                        <th style="width:90px" class="text-end">滞在時間</th>
-                      </tr>
-                    </thead>
-                    <tbody id="session-modal-tbody"></tbody>
-                  </table>
+            <!-- ── セッションモーダル ── -->
+            <div class="modal fade" id="session-modal" tabindex="-1">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="session-modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                      <thead class="table-light sticky-top">
+                        <tr>
+                          <th style="width:140px">入室</th>
+                          <th style="width:140px">退室</th>
+                          <th style="width:140px" class="text-end">滞在時間</th>
+                        </tr>
+                      </thead>
+                      <tbody id="session-modal-tbody"></tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- ── 入退場ログタブ ── -->
-          <div id="tab-events" class="d-none">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-              <input type="datetime-local" id="ev-start" class="form-control form-control-sm" style="width:auto">
-              <span class="text-muted small">〜</span>
-              <input type="datetime-local" id="ev-end" class="form-control form-control-sm" style="width:auto">
-              <button id="ev-update-btn" class="btn btn-primary btn-sm">更新</button>
+            <!-- ── 入退場ログタブ ── -->
+            <div id="tab-events" class="d-none">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                <input type="datetime-local" id="ev-start" class="form-control form-control-sm" style="width:auto">
+                <span class="text-muted small">〜</span>
+                <input type="datetime-local" id="ev-end" class="form-control form-control-sm" style="width:auto">
+                <button id="ev-update-btn" class="btn btn-primary btn-sm">更新</button>
+              </div>
+              <div id="event-table-wrapper">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th style="width:150px">日時</th>
+                      <th style="width:150px">種別</th>
+                      <th>名前</th>
+                    </tr>
+                  </thead>
+                  <tbody id="event-tbody"></tbody>
+                </table>
+              </div>
             </div>
-            <div id="event-table-wrapper">
-              <table class="table table-sm table-hover mb-0">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th style="width:150px">日時</th>
-                    <th style="width:70px">種別</th>
-                    <th>名前</th>
-                  </tr>
-                </thead>
-                <tbody id="event-tbody"></tbody>
-              </table>
-            </div>
-          </div>
 
+          </div>
         </div>
       </div>
+
     </div>
-
   </div>
-</div>
 
-<script>
-  let chart = null;
-  let currentLocationId = null;
-  let currentTab = 'timeline';
-
-  // ── タブ切り替え ────────────────────────────────────────────────
-
-  document.querySelectorAll('#main-tabs .nav-link').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#main-tabs .nav-link').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentTab = btn.dataset.tab;
-      if (currentLocationId) showTab(currentTab);
-    });
-  });
-
-  function showTab(tab) {
-    document.getElementById('main-placeholder').classList.add('d-none');
-    document.getElementById('tab-timeline').classList.toggle('d-none', tab !== 'timeline');
-    document.getElementById('tab-events').classList.toggle('d-none', tab !== 'events');
-    document.getElementById('tab-sessions').classList.toggle('d-none', tab !== 'sessions');
-    document.getElementById('tab-players').classList.toggle('d-none', tab !== 'players');
-    document.getElementById('tab-visitors').classList.toggle('d-none', tab !== 'visitors');
-    if (tab === 'timeline') loadTimeline();
-    if (tab === 'events')   loadEvents();
-    if (tab === 'sessions') loadSessions();
-    if (tab === 'players')  loadPlayers();
-    if (tab === 'visitors') loadVisitors();
-  }
-
-  // ── ロケーション一覧 ────────────────────────────────────────────
-
-  async function loadLocations() {
-    const start = document.getElementById('loc-start').value;
-    const end   = document.getElementById('loc-end').value;
-    const params = new URLSearchParams();
-    if (start) params.set('start', toISO(start));
-    if (end)   params.set('end',   toISO(end));
-
-    const res = await fetch('/api/locations?' + params);
-    const locations = await res.json();
-
-    const list = document.getElementById('location-list');
-    if (locations.length === 0) {
-      list.innerHTML = '<div class="list-group-item text-muted small">該当なし</div>';
-      return;
-    }
-
-    list.innerHTML = '';
-    for (const loc of locations) {
-      const a = document.createElement('a');
-      a.href = '#';
-      a.className = 'list-group-item list-group-item-action location-item py-2';
-      a.dataset.locationId = loc.location_id;
-      a.innerHTML = `
-        <div class="fw-semibold text-truncate">${loc.world_id}</div>
-        <small class="text-muted">${loc.location_id}</small>
-        <div class="d-flex justify-content-between mt-1">
-          <span class="badge bg-secondary">${fmtDate(loc.first_seen)}</span>
-          <span class="badge bg-primary">${fmtDate(loc.last_seen)}</span>
-        </div>`;
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        selectLocation(loc.location_id);
-      });
-      list.appendChild(a);
-    }
-
-    if (currentLocationId) setActiveItem(currentLocationId);
-  }
-
-  // ── ロケーション選択 ────────────────────────────────────────────
-
-  function selectLocation(locationId) {
-    currentLocationId = locationId;
-    setActiveItem(locationId);
-    document.getElementById('selected-label').textContent = locationId;
-    showTab(currentTab);
-  }
-
-  // ── 人数推移 ────────────────────────────────────────────────────
-
-  async function loadTimeline() {
-    if (!currentLocationId) return;
-    const params = new URLSearchParams();
-    const start = document.getElementById('tl-start').value;
-    const end   = document.getElementById('tl-end').value;
-    if (start) params.set('start', toISO(start));
-    if (end)   params.set('end',   toISO(end));
-
-    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/presence-timeline?${params}`);
-    const data = await res.json();
-    renderChart(data);
-  }
-
-  function renderChart(data) {
-    if (chart) chart.destroy();
-    const ctx = document.getElementById('timeline-chart').getContext('2d');
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          label: '人数',
-          data: data.map(d => ({ x: new Date(d.timestamp), y: d.count })),
-          borderColor: 'rgb(13, 110, 253)',
-          backgroundColor: 'rgba(13, 110, 253, 0.08)',
-          stepped: true,
-          fill: true,
-          pointRadius: data.length < 200 ? 3 : 0,
-          borderWidth: 2,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            type: 'time',
-            time: { displayFormats: { minute: 'HH:mm', hour: 'MM/dd HH:mm' } }
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 },
-            title: { display: true, text: '人数' }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              title: items => new Date(items[0].parsed.x).toLocaleString('ja-JP'),
-              label: items => ` ${items.parsed.y} 人`
-            }
-          },
-          legend: { display: false }
-        }
-      }
-    });
-  }
-
-  // ── 入退場ログ ────────────────────────────────────────────────
-
-  async function loadEvents() {
-    if (!currentLocationId) return;
-    const params = new URLSearchParams();
-    const start = document.getElementById('ev-start').value;
-    const end   = document.getElementById('ev-end').value;
-    if (start) params.set('start', toISO(start));
-    if (end)   params.set('end',   toISO(end));
-
-    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/events?${params}`);
-    const events = await res.json();
-    renderEventTable(events);
-  }
-
-  function renderEventTable(events) {
-    const tbody = document.getElementById('event-tbody');
-    if (events.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">データなし</td></tr>';
-      return;
-    }
-    tbody.innerHTML = events.map(ev => {
-      const isJoin = ev.event_type === 'join';
-      const badge = isJoin
-        ? '<span class="badge bg-success" style="width:4.5em">JOIN</span>'
-        : '<span class="badge bg-danger" style="width:4.5em">LEAVE</span>';
-      return `<tr>
-        <td class="text-nowrap small">${fmtDateFull(ev.timestamp)}</td>
-        <td>${badge}</td>
-        <td class="text-truncate" style="max-width:160px">${escHtml(ev.display_name)}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── 在室中 ──────────────────────────────────────────────────────
-
-  async function loadPlayers() {
-    if (!currentLocationId) return;
-    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/players`);
-    const players = await res.json();
-    const tbody = document.getElementById('player-tbody');
-    if (players.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
-      return;
-    }
-    tbody.innerHTML = players.map(p => `<tr>
-      <td class="text-end text-muted">${p.internal_id ?? '—'}</td>
-      <td>${escHtml(p.display_name)}</td>
-      <td class="small text-nowrap">${fmtDateFull(p.join_ts)}</td>
-      <td class="text-end small">${p.join_count}回目</td>
-    </tr>`).join('');
-  }
-
-  // ── 訪れた人 ────────────────────────────────────────────────────
-
-  async function loadVisitors() {
-    if (!currentLocationId) return;
-    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/visitors`);
-    const visitors = await res.json();
-    const tbody = document.getElementById('visitor-tbody');
-    document.getElementById('vi-count').textContent = `${visitors.length} 人`;
-    if (visitors.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">データなし</td></tr>';
-      return;
-    }
-    tbody.innerHTML = visitors.map(v => `<tr>
-      <td class="text-truncate" style="max-width:200px">
-        <a href="#" class="visitor-name-link" data-user-id="${escHtml(v.user_id)}" data-display-name="${escHtml(v.display_name)}">${escHtml(v.display_name)}</a>
-      </td>
-      <td class="small text-nowrap">${fmtDateFull(v.first_seen)}</td>
-      <td class="small text-nowrap">${fmtDateFull(v.last_seen)}</td>
-      <td class="text-end small">${v.join_count}回</td>
-    </tr>`).join('');
-    tbody.querySelectorAll('.visitor-name-link').forEach(link => {
-      link.addEventListener('click', e => {
-        e.preventDefault();
-        openPlayerSessions(link.dataset.userId, link.dataset.displayName);
-      });
-    });
-  }
-
-  // ── プレイヤーセッションモーダル ────────────────────────────────
-
-  async function openPlayerSessions(userId, displayName) {
-    document.getElementById('session-modal-title').textContent = displayName + ' のセッション';
-    const tbody = document.getElementById('session-modal-tbody');
-    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">読み込み中...</td></tr>';
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('session-modal')).show();
-
-    const params = new URLSearchParams({ location_id: currentLocationId, order: 'desc' });
-    const res = await fetch(`/api/players/${encodeURIComponent(userId)}/sessions?${params}`);
-    const sessions = await res.json();
-
-    if (sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">データなし</td></tr>';
-      return;
-    }
-    tbody.innerHTML = sessions.map(s => {
-      const leaveCell = s.leave_ts
-        ? fmtDateFull(s.leave_ts)
-        : '<span class="badge bg-success">在室中</span>';
-      const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
-      return `<tr>
-        <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
-        <td class="small text-nowrap">${leaveCell}</td>
-        <td class="text-end small">${duration}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── セッション一覧 ──────────────────────────────────────────────
-
-  async function loadSessions() {
-    if (!currentLocationId) return;
-    const params = new URLSearchParams();
-    const start = document.getElementById('ss-start').value;
-    const end   = document.getElementById('ss-end').value;
-    if (start) params.set('start', toISO(start));
-    if (end)   params.set('end',   toISO(end));
-
-    const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/sessions?${params}`);
-    const sessions = await res.json();
-    renderSessionTable(sessions);
-  }
-
-  function renderSessionTable(sessions) {
-    const tbody = document.getElementById('session-tbody');
-    if (sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">データなし</td></tr>';
-      return;
-    }
-    tbody.innerHTML = sessions.map(s => {
-      const leaveCell = s.leave_ts
-        ? fmtDateFull(s.leave_ts)
-        : '<span class="badge bg-success">在室中</span>';
-      const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
-      return `<tr>
-        <td class="text-truncate" style="max-width:160px">${escHtml(s.display_name)}</td>
-        <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
-        <td class="small text-nowrap">${leaveCell}</td>
-        <td class="text-end small">${duration}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── ユーティリティ ──────────────────────────────────────────────
-
-  function setActiveItem(locationId) {
-    document.querySelectorAll('.location-item').forEach(el => {
-      el.classList.toggle('active', el.dataset.locationId === locationId);
-    });
-  }
-
-  function toISO(localDatetime) {
-    return new Date(localDatetime).toISOString();
-  }
-
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleString('ja-JP', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-    });
-  }
-
-  function fmtDateFull(iso) {
-    return new Date(iso).toLocaleString('ja-JP', {
-      month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
-  }
-
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function fmtDuration(sec) {
-    if (sec < 60)   return `${sec}秒`;
-    if (sec < 3600) return `${Math.floor(sec / 60)}分${sec % 60}秒`;
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    return `${h}時間${m}分`;
-  }
-
-  // ── イベント登録 ────────────────────────────────────────────────
-
-  document.getElementById('loc-search-btn').addEventListener('click', loadLocations);
-  document.getElementById('tl-update-btn').addEventListener('click', loadTimeline);
-  document.getElementById('ev-update-btn').addEventListener('click', loadEvents);
-  document.getElementById('ss-update-btn').addEventListener('click', loadSessions);
-  document.getElementById('pl-reload-btn').addEventListener('click', loadPlayers);
-  document.getElementById('vi-reload-btn').addEventListener('click', loadVisitors);
-
-  loadLocations();
-</script>
+  <script src="/app.js"></script>
 </body>
+
 </html>
