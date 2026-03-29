@@ -90,23 +90,31 @@ async def get_player_sessions(
     db: aiosqlite.Connection,
     user_id: str,
     instance_id: int | None,
+    world_id: str | None,
+    group_id: str | None,
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
     limit: int | None = None,
     offset: int = 0,
 ) -> list[PlayerSessionOut]:
-    conditions = ["user_id = :user_id"]
+    conditions = ["s.user_id = :user_id"]
     params: dict = {"user_id": user_id}
 
     if instance_id is not None:
-        conditions.append("instance_id = :instance_id")
+        conditions.append("s.instance_id = :instance_id")
         params["instance_id"] = instance_id
+    if world_id is not None:
+        conditions.append("i.world_id = :world_id")
+        params["world_id"] = world_id
+    if group_id is not None:
+        conditions.append("i.group_id = :group_id")
+        params["group_id"] = group_id
     if start is not None:
-        conditions.append("join_ts >= :start")
+        conditions.append("s.join_ts >= :start")
         params["start"] = to_utc_str(start)
     if end is not None:
-        conditions.append("join_ts <= :end")
+        conditions.append("s.join_ts <= :end")
         params["end"] = to_utc_str(end)
 
     where = " AND ".join(conditions)
@@ -117,14 +125,15 @@ async def get_player_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, instance_id, join_ts, leave_ts,
-               COALESCE(duration_seconds,
-                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+        SELECT s.id, s.instance_id, i.world_id, s.join_ts, s.leave_ts,
+               COALESCE(s.duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
-               is_estimated_leave
-        FROM sessions
+               s.is_estimated_leave
+        FROM sessions s
+        JOIN instances i ON i.id = s.instance_id
         WHERE {where}
-        ORDER BY join_ts {order.upper()}
+        ORDER BY s.join_ts {order.upper()}
         {limit_clause}
         """,
         params,

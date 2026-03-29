@@ -1,5 +1,6 @@
 let chart = null;
 let currentInstanceId = null;
+let currentInstanceData = null;
 let currentTab = 'timeline';
 
 // ── タブ切り替え ────────────────────────────────────────────────
@@ -63,7 +64,7 @@ async function loadLocations() {
       </div>`;
     a.addEventListener('click', e => {
       e.preventDefault();
-      selectInstance(inst.id, inst.location_id);
+      selectInstance(inst);
     });
     list.appendChild(a);
   }
@@ -73,10 +74,11 @@ async function loadLocations() {
 
 // ── インスタンス選択 ─────────────────────────────────────────────
 
-function selectInstance(instanceId, locationId) {
-  currentInstanceId = instanceId;
-  setActiveItem(instanceId);
-  document.getElementById('selected-label').textContent = locationId;
+function selectInstance(inst) {
+  currentInstanceId = inst.id;
+  currentInstanceData = inst;
+  setActiveItem(inst.id);
+  document.getElementById('selected-label').textContent = inst.location_id;
   showTab(currentTab);
 }
 
@@ -98,12 +100,18 @@ async function loadTimeline() {
 function renderChart(data) {
   if (chart) chart.destroy();
   const ctx = document.getElementById('timeline-chart').getContext('2d');
+  const isOngoing = currentInstanceData && !currentInstanceData.closed_at;
+  const xMax = isOngoing ? new Date() : undefined;
+  const points = data.map(d => ({ x: new Date(d.timestamp), y: d.count }));
+  if (isOngoing && points.length > 0) {
+    points.push({ x: xMax, y: points[points.length - 1].y });
+  }
   chart = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [{
         label: '人数',
-        data: data.map(d => ({ x: new Date(d.timestamp), y: d.count })),
+        data: points,
         borderColor: 'rgb(13, 110, 253)',
         backgroundColor: 'rgba(13, 110, 253, 0.08)',
         stepped: true,
@@ -118,7 +126,8 @@ function renderChart(data) {
       scales: {
         x: {
           type: 'time',
-          time: { displayFormats: { minute: 'HH:mm', hour: 'MM/dd HH:mm' } }
+          time: { displayFormats: { minute: 'HH:mm', hour: 'MM/dd HH:mm' } },
+          max: xMax,
         },
         y: {
           beginAtZero: true,
@@ -252,11 +261,17 @@ async function loadVisitors() {
 
 async function openPlayerSessions(userId, displayName) {
   document.getElementById('session-modal-title').textContent = displayName + ' のセッション';
+  const worldId = currentInstanceData?.world_id ?? '';
+  document.getElementById('session-modal-player-link').href =
+    `/player.html?user_id=${encodeURIComponent(userId)}&display_name=${encodeURIComponent(displayName)}` +
+    (worldId ? `&world_id=${encodeURIComponent(worldId)}` : '');
   const tbody = document.getElementById('session-modal-tbody');
+  const tlContainer = document.getElementById('session-modal-timeline');
   tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">読み込み中...</td></tr>';
+  tlContainer.innerHTML = '';
   bootstrap.Modal.getOrCreateInstance(document.getElementById('session-modal')).show();
 
-  const params = new URLSearchParams({ instance_id: currentInstanceId, order: 'desc' });
+  const params = new URLSearchParams({ instance_id: currentInstanceId, order: 'asc' });
   const res = await fetch(`/api/players/${encodeURIComponent(userId)}/sessions?${params}`);
   const sessions = await res.json();
 
@@ -264,14 +279,80 @@ async function openPlayerSessions(userId, displayName) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">データなし</td></tr>';
     return;
   }
-  tbody.innerHTML = sessions.map(s => {
+
+  // タイムラインを描画
+  if (currentInstanceData) renderPlayerTimeline(sessions, currentInstanceData);
+
+  // テーブルを描画 (data-idx 付き)
+  tbody.innerHTML = sessions.map((s, i) => {
     const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
-    return `<tr>
+    return `<tr data-idx="${i}">
       <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
       <td class="small text-nowrap">${leaveCellHtml(s)}</td>
       <td class="text-end small">${duration}</td>
     </tr>`;
   }).join('');
+
+  // ホバー連動
+  const svg = document.getElementById('player-tl-svg');
+  if (!svg) return;
+
+  const highlight = (idx, on) => {
+    svg.querySelectorAll(`.tl-bar[data-idx="${idx}"]`).forEach(el => {
+      el.setAttribute('fill', on ? 'rgba(13,110,253,0.92)' : 'rgba(13,110,253,0.55)');
+      el.setAttribute('stroke', on ? 'rgba(13,110,253,1)' : 'none');
+    });
+    tbody.querySelectorAll(`tr[data-idx="${idx}"]`).forEach(el => {
+      el.classList.toggle('table-primary', on);
+    });
+  };
+
+  tbody.querySelectorAll('tr[data-idx]').forEach(tr => {
+    tr.addEventListener('mouseenter', () => highlight(tr.dataset.idx, true));
+    tr.addEventListener('mouseleave', () => highlight(tr.dataset.idx, false));
+  });
+
+  svg.querySelectorAll('.tl-bar').forEach(bar => {
+    bar.style.cursor = 'pointer';
+    bar.addEventListener('mouseenter', () => highlight(bar.dataset.idx, true));
+    bar.addEventListener('mouseleave', () => highlight(bar.dataset.idx, false));
+  });
+}
+
+function renderPlayerTimeline(sessions, instanceData) {
+  const container = document.getElementById('session-modal-timeline');
+
+  const instStart = new Date(instanceData.opened_at).getTime();
+  const instEnd   = instanceData.closed_at ? new Date(instanceData.closed_at).getTime() : Date.now();
+  const total     = instEnd - instStart;
+  if (total <= 0) { container.innerHTML = ''; return; }
+
+  const VW   = 1000;
+  const BAR_H = 26;
+
+  const toX = ts => ((new Date(ts).getTime() - instStart) / total) * VW;
+
+  const bars = sessions.map((s, i) => {
+    const x1 = toX(s.join_ts);
+    const x2 = s.leave_ts ? toX(s.leave_ts) : VW;
+    const w  = Math.max(3, x2 - x1);
+    return `<rect class="tl-bar" data-idx="${i}" x="${x1.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${BAR_H}" fill="rgba(13,110,253,0.55)" stroke="none" rx="2"/>`;
+  }).join('');
+
+  const fmt = ts => new Date(ts).toLocaleString('ja-JP', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+  });
+
+  container.innerHTML = `
+    <svg id="player-tl-svg" viewBox="0 0 ${VW} ${BAR_H}" preserveAspectRatio="none"
+         style="width:100%;height:${BAR_H}px;display:block">
+      <rect x="0" y="0" width="${VW}" height="${BAR_H}" fill="#dee2e6" rx="3"/>
+      ${bars}
+    </svg>
+    <div class="d-flex justify-content-between mt-1" style="font-size:11px;color:#6c757d">
+      <span>${fmt(instanceData.opened_at)}</span>
+      <span>${fmt(instanceData.closed_at ?? new Date(instEnd).toISOString())}</span>
+    </div>`;
 }
 
 // ── セッション一覧 ──────────────────────────────────────────────

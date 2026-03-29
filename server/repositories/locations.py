@@ -37,7 +37,7 @@ async def get_instances(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, world_id, opened_at, closed_at
+        SELECT id, location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at, closed_at
         FROM instances
         {where_clause}
         ORDER BY opened_at {order.upper()}

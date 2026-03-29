@@ -13,13 +13,20 @@ CREATE TABLE IF NOT EXISTS players (
 );
 
 CREATE TABLE IF NOT EXISTS instances (
-    id          INTEGER PRIMARY KEY,
-    location_id TEXT    NOT NULL,
-    world_id    TEXT    NOT NULL,
-    opened_at   TEXT    NOT NULL,
-    closed_at   TEXT
+    id                INTEGER PRIMARY KEY,
+    location_id       TEXT    NOT NULL,
+    world_id          TEXT    NOT NULL,
+    instance_id       TEXT,
+    group_id          TEXT,
+    group_access_type TEXT,
+    region            TEXT,
+    friends           TEXT,
+    hidden            TEXT,
+    opened_at         TEXT    NOT NULL,
+    closed_at         TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_instances_location ON instances(location_id);
+CREATE INDEX IF NOT EXISTS idx_instances_group    ON instances(group_id);
 
 CREATE TABLE IF NOT EXISTS events (
     id           INTEGER PRIMARY KEY,

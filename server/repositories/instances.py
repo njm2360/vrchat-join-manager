@@ -2,7 +2,16 @@ import aiosqlite
 
 
 async def get_or_create_instance(
-    db: aiosqlite.Connection, location_id: str, world_id: str, ts: str
+    db: aiosqlite.Connection,
+    location_id: str,
+    world_id: str,
+    instance_id: str | None,
+    group_id: str | None,
+    group_access_type: str | None,
+    region: str | None,
+    friends: str | None,
+    hidden: str | None,
+    ts: str,
 ) -> int:
     """joinイベント用: オープン中のインスタンスがあればそれを返し、なければ新規作成する。"""
     cur = await db.execute(
@@ -13,8 +22,20 @@ async def get_or_create_instance(
     if row:
         return row[0]
     cur = await db.execute(
-        "INSERT INTO instances(location_id, world_id, opened_at) VALUES(?, ?, ?)",
-        (location_id, world_id, ts),
+        """INSERT INTO instances
+               (location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at)
+           VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            location_id,
+            world_id,
+            instance_id,
+            group_id,
+            group_access_type,
+            region,
+            friends,
+            hidden,
+            ts,
+        ),
     )
     return cur.lastrowid
 

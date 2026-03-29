@@ -41,6 +41,8 @@ async def get_player_events(
 async def get_player_sessions(
     user_id: str,
     instance_id: int | None = Query(None),
+    world_id: str | None = Query(None),
+    group_id: str | None = Query(None),
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
@@ -49,5 +51,5 @@ async def get_player_sessions(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerSessionOut]:
     return await repo.get_player_sessions(
-        db, user_id, instance_id, start, end, order, limit, offset
+        db, user_id, instance_id, world_id, group_id, start, end, order, limit, offset
     )

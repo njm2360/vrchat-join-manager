@@ -45,6 +45,7 @@ class SessionOut(BaseModel):
 class PlayerSessionOut(BaseModel):
     id: int
     instance_id: int
+    world_id: str
     join_ts: UtcDatetime
     leave_ts: UtcDatetime | None
     duration_seconds: int | None
@@ -55,6 +56,12 @@ class InstanceOut(BaseModel):
     id: int
     location_id: str
     world_id: str
+    instance_id: str | None
+    group_id: str | None
+    group_access_type: str | None
+    region: str | None
+    friends: str | None
+    hidden: str | None
     opened_at: UtcDatetime
     closed_at: UtcDatetime | None
 

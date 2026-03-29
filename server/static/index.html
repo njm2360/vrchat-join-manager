@@ -38,6 +38,11 @@
       max-height: 520px;
       overflow-y: auto;
     }
+
+    .tl-bar {
+      cursor: default;
+      transition: fill 0.12s;
+    }
   </style>
 </head>
 
@@ -188,19 +193,26 @@
                 <div class="modal-content">
                   <div class="modal-header">
                     <h5 class="modal-title" id="session-modal-title"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                      <a id="session-modal-player-link" href="#" target="_blank"
+                         class="btn btn-sm btn-outline-secondary">このプレイヤーのセッション</a>
+                      <button type="button" class="btn-close m-0" data-bs-dismiss="modal"></button>
+                    </div>
                   </div>
                   <div class="modal-body p-0">
-                    <table class="table table-sm table-hover mb-0">
-                      <thead class="table-light sticky-top">
-                        <tr>
-                          <th style="width:140px">入室</th>
-                          <th style="width:140px">退室</th>
-                          <th style="width:140px" class="text-end">滞在時間</th>
-                        </tr>
-                      </thead>
-                      <tbody id="session-modal-tbody"></tbody>
-                    </table>
+                    <div id="session-modal-timeline" class="px-3 pt-3 pb-1"></div>
+                    <div class="px-3 pb-2">
+                      <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                          <tr>
+                            <th style="width:140px">入室</th>
+                            <th style="width:140px">退室</th>
+                            <th style="width:140px" class="text-end">滞在時間</th>
+                          </tr>
+                        </thead>
+                        <tbody id="session-modal-tbody"></tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>

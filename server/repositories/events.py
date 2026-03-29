@@ -37,7 +37,7 @@ async def insert_event(
         {
             "event_type": body.event,
             "instance_id": instance_id,
-            **loc,
+            "world_id": loc.world_id,
             "user_id": body.user_id,
             "name": body.name,
             "internal_id": body.internal_id,
@@ -78,7 +78,7 @@ async def open_session(
             """,
             {
                 "instance_id": instance_id,
-                **loc,
+                "world_id": loc.world_id,
                 "user_id": body.user_id,
                 "name": body.name,
                 "join_event_id": event_id,
