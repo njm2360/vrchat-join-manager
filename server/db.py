@@ -26,16 +26,17 @@ CREATE INDEX IF NOT EXISTS idx_events_location_time ON events(location_id, times
 CREATE INDEX IF NOT EXISTS idx_events_user_time     ON events(user_id, timestamp);
 
 CREATE TABLE IF NOT EXISTS sessions (
-    id               INTEGER PRIMARY KEY,
-    location_id      TEXT    NOT NULL,
-    world_id         TEXT    NOT NULL,
-    user_id          TEXT    NOT NULL REFERENCES players(user_id),
-    display_name     TEXT    NOT NULL,
-    join_event_id    INTEGER NOT NULL REFERENCES events(id),
-    leave_event_id   INTEGER          REFERENCES events(id),
-    join_ts          TEXT    NOT NULL,
-    leave_ts         TEXT,
-    duration_seconds INTEGER
+    id                    INTEGER PRIMARY KEY,
+    location_id           TEXT    NOT NULL,
+    world_id              TEXT    NOT NULL,
+    user_id               TEXT    NOT NULL REFERENCES players(user_id),
+    display_name          TEXT    NOT NULL,
+    join_event_id         INTEGER NOT NULL REFERENCES events(id),
+    leave_event_id        INTEGER          REFERENCES events(id),
+    join_ts               TEXT    NOT NULL,
+    leave_ts              TEXT,
+    duration_seconds      INTEGER,
+    is_estimated_leave    INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_location_time ON sessions(location_id, join_ts, leave_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_time     ON sessions(user_id, join_ts);

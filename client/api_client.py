@@ -10,7 +10,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 class ApiClient:
     def __init__(self, base_url: str) -> None:
-        self._events_url = f"{base_url}/api/events"
+        self._base_url = base_url
         self._client = httpx.AsyncClient(timeout=10.0)
 
     async def aclose(self) -> None:
@@ -34,7 +34,16 @@ class ApiClient:
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         try:
-            resp = await self._client.post(self._events_url, json=payload)
+            resp = await self._client.post(f"{self._base_url}/api/events", json=payload)
             logger.debug("POST -> %d", resp.status_code)
         except Exception as exc:
             logger.warning("Failed to send: %s", exc)
+
+    async def close_location(self, location_id: str, timestamp: datetime) -> None:
+        url = f"{self._base_url}/api/locations/{location_id}/close"
+        params = {"at": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")}
+        try:
+            resp = await self._client.post(url, params=params)
+            logger.debug("close_location -> %d", resp.status_code)
+        except Exception as exc:
+            logger.warning("Failed to close location: %s", exc)

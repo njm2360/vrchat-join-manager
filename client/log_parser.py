@@ -17,12 +17,14 @@ _PLAYER_API = re.compile(
     r"\[Behaviour\] Initialized PlayerAPI \"(.+)\" is (remote|local)"
 )
 _RESTORED = re.compile(r"\[Behaviour\] Restored player (\d+)")
+_DESTROYING = re.compile(r"\[Behaviour\] Destroying (.+)")
 
 
 class VRChatLogParser:
     def __init__(self, api_client: ApiClient) -> None:
         self._api = api_client
-        self._location = None
+        self._location: str | None = None
+        self._local_name: str | None = None
         self._pending_names: deque[str] = deque()
         self._internal_ids: dict[str, int] = {}
         self._pending_joins: dict[str, str] = {}
@@ -34,6 +36,11 @@ class VRChatLogParser:
             return naive.replace(tzinfo=_JST).astimezone(timezone.utc)
         return None
 
+    async def _close_current_location(self, ts: datetime) -> None:
+        if self._location:
+            logger.info("Closing location %s at %s", self._location, ts)
+            await self._api.close_location(self._location, ts)
+
     async def on_line(self, _: Path, line: str) -> None:
         ts = self._timestamp(line)
         if ts is None:
@@ -42,9 +49,13 @@ class VRChatLogParser:
         # ロケーション移動検知
         m = _JOINING.search(line)
         if m:
+            # Destroying が発火しないことがあるためここでもcloseを呼ぶ
+            # （既にclose済みなら leave_ts IS NULL 条件で空振り）
+            await self._close_current_location(ts)
             self._pending_joins.clear()
             self._pending_names.clear()
             self._internal_ids.clear()
+            self._local_name = None
             self._location = m.group(1)
             logger.info("Location: %s", self._location)
             return
@@ -64,7 +75,11 @@ class VRChatLogParser:
         if "Initialized PlayerAPI" in line:
             m = _PLAYER_API.search(line)
             if m:
-                self._pending_names.append(m.group(1))
+                name, kind = m.group(1), m.group(2)
+                self._pending_names.append(name)
+                # 自分自身のユーザー名を記録
+                if kind == "local":
+                    self._local_name = name
             return
 
         # Restored player N
@@ -123,3 +138,13 @@ class VRChatLogParser:
                 ts,
             )
             self._internal_ids.pop(name, None)
+            return
+
+        # インスタンス移動 or アプリ終了時
+        # Destroying <local_name> で残留者を一括退室扱いにする
+        #
+        # 厳密には不正確であるが、マスター固定用は常にインスタンスにいるのでこの扱いとする
+        if self._local_name and "Destroying" in line:
+            m = _DESTROYING.search(line)
+            if m and m.group(1) == self._local_name:
+                await self._close_current_location(ts)

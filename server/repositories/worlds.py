@@ -74,7 +74,10 @@ async def get_world_sessions(
     cursor = await db.execute(
         f"""
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
-               duration_seconds
+               COALESCE(duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+               ) AS duration_seconds,
+               is_estimated_leave
         FROM sessions
         WHERE {where}
         ORDER BY join_ts {order.upper()}

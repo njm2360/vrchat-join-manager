@@ -4,7 +4,9 @@ from models import PlayerEvent
 from utils import parse_location_id
 
 
-async def upsert_player(db: aiosqlite.Connection, user_id: str, name: str, ts: str) -> None:
+async def upsert_player(
+    db: aiosqlite.Connection, user_id: str, name: str, ts: str
+) -> None:
     await db.execute(
         """
         INSERT INTO players(user_id, display_name, updated_at)
@@ -17,7 +19,9 @@ async def upsert_player(db: aiosqlite.Connection, user_id: str, name: str, ts: s
     )
 
 
-async def insert_event(db: aiosqlite.Connection, body: PlayerEvent, ts: str) -> int | None:
+async def insert_event(
+    db: aiosqlite.Connection, body: PlayerEvent, ts: str
+) -> int | None:
     loc = parse_location_id(body.location_id)
     cursor = await db.execute(
         """
@@ -105,3 +109,20 @@ async def close_session(
             "location_id": location_id,
         },
     )
+
+
+async def close_location_sessions(
+    db: aiosqlite.Connection, location_id: str, ts: str
+) -> int:
+    cursor = await db.execute(
+        """
+        UPDATE sessions
+        SET leave_ts           = :ts,
+            duration_seconds   = CAST(ROUND((julianday(:ts) - julianday(join_ts)) * 86400) AS INTEGER),
+            is_estimated_leave = 1
+        WHERE location_id = :location_id
+          AND leave_ts IS NULL
+        """,
+        {"ts": ts, "location_id": location_id},
+    )
+    return cursor.rowcount

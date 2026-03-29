@@ -17,6 +17,17 @@ from repositories import locations as repo
 router = APIRouter(prefix="/api", tags=["locations"])
 
 
+@router.post("/locations/{location_id:path}/close", status_code=204)
+async def close_location(
+    location_id: str,
+    at: datetime = Query(..., description="一括退室とみなす時刻"),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> None:
+    ts = to_utc_str(at)
+    await events_repo.close_location_sessions(db, location_id, ts)
+    await db.commit()
+
+
 @router.get("/locations", response_model=list[LocationOut])
 async def get_locations(
     start: datetime | None = Query(None, description="first_seen がこの時刻以降"),

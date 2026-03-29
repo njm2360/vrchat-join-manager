@@ -39,6 +39,7 @@ class SessionOut(BaseModel):
     join_ts: UtcDatetime
     leave_ts: UtcDatetime | None
     duration_seconds: int | None
+    is_estimated_leave: bool
 
 
 class PlayerSessionOut(BaseModel):
@@ -47,6 +48,7 @@ class PlayerSessionOut(BaseModel):
     join_ts: UtcDatetime
     leave_ts: UtcDatetime | None
     duration_seconds: int | None
+    is_estimated_leave: bool
 
 
 class LocationOut(BaseModel):
@@ -77,6 +79,7 @@ class PlayerListOut(BaseModel):
     first_seen: UtcDatetime
     last_seen: UtcDatetime
     join_count: int
+    total_duration_seconds: int | None
 
 
 class TimelinePoint(BaseModel):

@@ -58,7 +58,10 @@ async def get_presence(
     cursor = await db.execute(
         """
         SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
-               duration_seconds
+               COALESCE(duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+               ) AS duration_seconds,
+               is_estimated_leave
         FROM sessions
         WHERE location_id = :location_id
           AND join_ts  <= :at
@@ -107,9 +110,12 @@ async def get_location_visitors(
     cursor = await db.execute(
         f"""
         SELECT user_id, display_name,
-               MIN(join_ts) AS first_seen,
-               MAX(join_ts) AS last_seen,
-               COUNT(*)     AS join_count
+               MIN(join_ts)          AS first_seen,
+               MAX(join_ts)          AS last_seen,
+               COUNT(*)              AS join_count,
+               SUM(COALESCE(duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+               ))                    AS total_duration_seconds
         FROM sessions
         WHERE location_id = :location_id
         GROUP BY user_id
@@ -239,7 +245,11 @@ async def get_location_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, user_id, display_name, join_ts, leave_ts, duration_seconds
+        SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
+               COALESCE(duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+               ) AS duration_seconds,
+               is_estimated_leave
         FROM sessions
         WHERE {where}
         ORDER BY join_ts {order.upper()}
