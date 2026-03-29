@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from api_client import ApiClient
 from log_parser import VRChatLogParser
 
-load_dotenv()
+load_dotenv(override=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -23,9 +23,12 @@ class DebugFileRunner:
         self._parser = VRChatLogParser(ApiClient(base_url))
 
     async def run(self) -> None:
-        with self._path.open("r", encoding="utf-8", errors="replace") as f:
-            for raw_line in f:
-                await self._parser.on_line(self._path, raw_line.rstrip("\n"))
+        try:
+            with self._path.open("r", encoding="utf-8", errors="replace") as f:
+                for raw_line in f:
+                    await self._parser.on_line(self._path, raw_line.rstrip("\n"))
+        finally:
+            await self._parser._api.aclose()
 
 
 if __name__ == "__main__":

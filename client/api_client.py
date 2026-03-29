@@ -5,11 +5,16 @@ from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class ApiClient:
     def __init__(self, base_url: str) -> None:
         self._events_url = f"{base_url}/api/events"
+        self._client = httpx.AsyncClient(timeout=10.0)
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
     async def send_event(
         self,
@@ -29,8 +34,7 @@ class ApiClient:
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(self._events_url, json=payload, timeout=10.0)
-                logger.debug("POST -> %d", resp.status_code)
+            resp = await self._client.post(self._events_url, json=payload)
+            logger.debug("POST -> %d", resp.status_code)
         except Exception as exc:
             logger.warning("Failed to send: %s", exc)

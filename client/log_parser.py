@@ -22,7 +22,7 @@ _RESTORED = re.compile(r"\[Behaviour\] Restored player (\d+)")
 class VRChatLogParser:
     def __init__(self, api_client: ApiClient) -> None:
         self._api = api_client
-        self._location: str = ""
+        self._location = None
         self._pending_names: deque[str] = deque()
         self._internal_ids: dict[str, int] = {}
         self._pending_joins: dict[str, str] = {}
@@ -47,6 +47,10 @@ class VRChatLogParser:
             self._internal_ids.clear()
             self._location = m.group(1)
             logger.info("Location: %s", self._location)
+            return
+
+        # ロケーションが取得できていない場合は処理しない
+        if self._location is None:
             return
 
         # OnPlayerJoined
@@ -79,8 +83,12 @@ class VRChatLogParser:
                         m.group(1),
                     )
                     await self._api.send_event(
-                        "join", self._location, name, user_id,
-                        self._internal_ids.get(name), ts,
+                        "join",
+                        self._location,
+                        name,
+                        user_id,
+                        self._internal_ids.get(name),
+                        ts,
                     )
             return
 
@@ -89,6 +97,16 @@ class VRChatLogParser:
         if m:
             name, user_id = m.group(1), m.group(2)
             self._pending_joins.pop(name, None)
+
+            # 正常にJoinされないユーザーは 「Restored player N」 が
+            # 出ないためJoin未確定のユーザーはLEAVE判定をスキップする
+            try:
+                self._pending_names.remove(name)
+            except ValueError:
+                pass
+            if name not in self._internal_ids:
+                return
+
             logger.info(
                 "LEAVE [%s] %s (%s) internal_id=%s",
                 ts,
@@ -97,7 +115,11 @@ class VRChatLogParser:
                 self._internal_ids.get(name),
             )
             await self._api.send_event(
-                "leave", self._location, name, user_id,
-                self._internal_ids.get(name), ts,
+                "leave",
+                self._location,
+                name,
+                user_id,
+                self._internal_ids.get(name),
+                ts,
             )
             self._internal_ids.pop(name, None)
