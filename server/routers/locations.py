@@ -13,6 +13,8 @@ from models import (
     TimelinePoint,
 )
 from repositories import locations as repo
+from repositories import events as events_repo
+from utils import to_utc_str
 
 router = APIRouter(prefix="/api", tags=["locations"])
 
@@ -40,9 +42,7 @@ async def get_locations(
     return await repo.get_locations(db, start, end, order, limit, offset)
 
 
-@router.get(
-    "/locations/{location_id:path}/presence", response_model=list[SessionOut]
-)
+@router.get("/locations/{location_id:path}/presence", response_model=list[SessionOut])
 async def get_presence(
     location_id: str,
     at: datetime = Query(..., description="この時刻に在席していたプレイヤーを返す"),
@@ -51,25 +51,36 @@ async def get_presence(
     return await repo.get_presence(db, location_id, at)
 
 
+_PLAYER_SORT_COLS = {"internal_id", "display_name", "join_ts"}
+
 @router.get("/locations/{location_id:path}/players", response_model=list[PlayerOut])
 async def get_location_players(
     location_id: str,
+    sort_by: str = Query(default="internal_id"),
+    order: str = Query(default="asc", pattern="^(asc|desc)$"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerOut]:
-    return await repo.get_location_players(db, location_id)
+    if sort_by not in _PLAYER_SORT_COLS:
+        sort_by = "internal_id"
+    return await repo.get_location_players(db, location_id, sort_by, order)
 
+
+_VISITOR_SORT_COLS = {"display_name", "first_seen", "last_seen", "join_count", "total_duration_seconds"}
 
 @router.get(
     "/locations/{location_id:path}/visitors", response_model=list[PlayerListOut]
 )
 async def get_location_visitors(
     location_id: str,
+    sort_by: str = Query(default="last_seen"),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
     limit: int | None = Query(default=None, ge=1),
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerListOut]:
-    return await repo.get_location_visitors(db, location_id, order, limit, offset)
+    if sort_by not in _VISITOR_SORT_COLS:
+        sort_by = "last_seen"
+    return await repo.get_location_visitors(db, location_id, sort_by, order, limit, offset)
 
 
 @router.get(
@@ -100,18 +111,21 @@ async def get_location_events(
     )
 
 
-@router.get(
-    "/locations/{location_id:path}/sessions", response_model=list[SessionOut]
-)
+_SESSION_SORT_COLS = {"display_name", "join_ts", "leave_ts", "duration_seconds"}
+
+@router.get("/locations/{location_id:path}/sessions", response_model=list[SessionOut])
 async def get_location_sessions(
     location_id: str,
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
+    sort_by: str = Query(default="join_ts"),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
     limit: int | None = Query(default=None, ge=1),
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[SessionOut]:
+    if sort_by not in _SESSION_SORT_COLS:
+        sort_by = "join_ts"
     return await repo.get_location_sessions(
-        db, location_id, start, end, order, limit, offset
+        db, location_id, start, end, sort_by, order, limit, offset
     )

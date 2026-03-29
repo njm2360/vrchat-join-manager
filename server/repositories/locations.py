@@ -77,9 +77,11 @@ async def get_presence(
 async def get_location_players(
     db: aiosqlite.Connection,
     location_id: str,
+    sort_by: str = "internal_id",
+    order: str = "asc",
 ) -> list[PlayerOut]:
     cursor = await db.execute(
-        """
+        f"""
         SELECT s.user_id, s.display_name, e.internal_id, s.join_ts,
                (SELECT COUNT(*) FROM sessions s2
                 WHERE s2.user_id = s.user_id AND s2.location_id = s.location_id) AS join_count
@@ -87,7 +89,7 @@ async def get_location_players(
         JOIN events e ON e.id = s.join_event_id
         WHERE s.location_id = :location_id
           AND s.leave_ts IS NULL
-        ORDER BY e.internal_id ASC
+        ORDER BY {"s." + sort_by if sort_by in ("display_name", "join_ts") else sort_by} {order.upper()}
         """,
         {"location_id": location_id},
     )
@@ -98,6 +100,7 @@ async def get_location_players(
 async def get_location_visitors(
     db: aiosqlite.Connection,
     location_id: str,
+    sort_by: str = "last_seen",
     order: str = "desc",
     limit: int | None = None,
     offset: int = 0,
@@ -119,7 +122,7 @@ async def get_location_visitors(
         FROM sessions
         WHERE location_id = :location_id
         GROUP BY user_id
-        ORDER BY last_seen {order.upper()}
+        ORDER BY {sort_by} {order.upper()}
         {limit_clause}
         """,
         {"location_id": location_id},
@@ -225,6 +228,7 @@ async def get_location_sessions(
     location_id: str,
     start: datetime | None,
     end: datetime | None,
+    sort_by: str = "join_ts",
     order: str = "asc",
     limit: int | None = None,
     offset: int = 0,
@@ -252,7 +256,7 @@ async def get_location_sessions(
                is_estimated_leave
         FROM sessions
         WHERE {where}
-        ORDER BY join_ts {order.upper()}
+        ORDER BY {sort_by} {order.upper()}
         {limit_clause}
         """,
         params,

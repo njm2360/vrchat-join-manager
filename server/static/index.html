@@ -130,12 +130,12 @@
               </div>
               <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
                 <table class="table table-sm table-hover mb-0">
-                  <thead class="table-light sticky-top">
+                  <thead class="table-light sticky-top" id="session-thead">
                     <tr>
-                      <th>名前</th>
-                      <th style="width:140px">入室</th>
-                      <th style="width:140px">退室</th>
-                      <th style="width:90px" class="text-end">滞在時間</th>
+                      <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="join_ts" style="width:140px;cursor:pointer">入室<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="leave_ts" style="width:140px;cursor:pointer">退室<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="duration_seconds" style="width:90px;cursor:pointer" class="text-end">滞在時間<span class="sort-indicator text-muted"></span></th>
                     </tr>
                   </thead>
                   <tbody id="session-tbody"></tbody>
@@ -149,11 +149,11 @@
                 <button id="pl-reload-btn" class="btn btn-primary btn-sm">更新</button>
               </div>
               <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
+                <thead class="table-light" id="player-thead">
                   <tr>
-                    <th style="width:60px" class="text-end">ID</th>
-                    <th>名前</th>
-                    <th style="width:140px">入室日時</th>
+                    <th data-sort="internal_id" style="width:60px;cursor:pointer" class="text-end">ID<span class="sort-indicator text-muted"></span></th>
+                    <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
+                    <th data-sort="join_ts" style="width:140px;cursor:pointer">入室日時<span class="sort-indicator text-muted"></span></th>
                   </tr>
                 </thead>
                 <tbody id="player-tbody"></tbody>
@@ -169,11 +169,12 @@
               <div style="max-height:520px;overflow-y:auto">
                 <table class="table table-sm table-hover mb-0">
                   <thead class="table-light sticky-top">
-                    <tr>
-                      <th>名前</th>
-                      <th style="width:140px">初訪問</th>
-                      <th style="width:140px">最終訪問</th>
-                      <th style="width:80px" class="text-end">訪問回数</th>
+                    <tr id="visitor-thead">
+                      <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="first_seen" style="width:140px;cursor:pointer">初訪問<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="last_seen" style="width:140px;cursor:pointer">最終訪問<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="join_count" style="width:80px;cursor:pointer" class="text-end">訪問回数<span class="sort-indicator text-muted"></span></th>
+                      <th data-sort="total_duration_seconds" style="width:100px;cursor:pointer" class="text-end">合計滞在<span class="sort-indicator text-muted"></span></th>
                     </tr>
                   </thead>
                   <tbody id="visitor-tbody"></tbody>
@@ -215,9 +216,9 @@
               </div>
               <div id="event-table-wrapper">
                 <table class="table table-sm table-hover mb-0">
-                  <thead class="table-light sticky-top">
+                  <thead class="table-light sticky-top" id="event-thead">
                     <tr>
-                      <th style="width:150px">日時</th>
+                      <th id="ev-ts-header" style="width:150px;cursor:pointer">日時<span id="ev-sort-indicator" class="text-muted"></span></th>
                       <th style="width:150px">種別</th>
                       <th>名前</th>
                     </tr>

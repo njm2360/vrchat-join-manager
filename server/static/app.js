@@ -138,13 +138,17 @@ function renderChart(data) {
 
 // ── 入退場ログ ────────────────────────────────────────────────
 
+let evOrder = 'desc';
+
 async function loadEvents() {
   if (!currentLocationId) return;
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ order: evOrder });
   const start = document.getElementById('ev-start').value;
   const end   = document.getElementById('ev-end').value;
   if (start) params.set('start', toISO(start));
   if (end)   params.set('end',   toISO(end));
+
+  document.getElementById('ev-sort-indicator').textContent = evOrder === 'asc' ? ' ▲' : ' ▼';
 
   const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/events?${params}`);
   const events = await res.json();
@@ -172,11 +176,20 @@ function renderEventTable(events) {
 
 // ── 在室中 ──────────────────────────────────────────────────────
 
+const plSort = { by: 'internal_id', order: 'asc' };
+
 async function loadPlayers() {
   if (!currentLocationId) return;
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/players`);
+  const params = new URLSearchParams({ sort_by: plSort.by, order: plSort.order });
+  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/players?${params}`);
   const players = await res.json();
   const tbody = document.getElementById('player-tbody');
+
+  document.querySelectorAll('#player-thead th[data-sort]').forEach(th => {
+    th.querySelector('.sort-indicator').textContent = th.dataset.sort === plSort.by
+      ? (plSort.order === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+
   if (players.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
     return;
@@ -190,14 +203,29 @@ async function loadPlayers() {
 
 // ── 訪れた人 ────────────────────────────────────────────────────
 
+const viSort = { by: 'last_seen', order: 'desc' };
+
 async function loadVisitors() {
   if (!currentLocationId) return;
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/visitors`);
+  const params = new URLSearchParams({ sort_by: viSort.by, order: viSort.order });
+  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/visitors?${params}`);
   const visitors = await res.json();
   const tbody = document.getElementById('visitor-tbody');
   document.getElementById('vi-count').textContent = `${visitors.length} 人`;
+
+  // ヘッダーのソートインジケーター更新
+  document.querySelectorAll('#visitor-thead th[data-sort]').forEach(th => {
+    const col = th.dataset.sort;
+    const indicator = th.querySelector('.sort-indicator');
+    if (col === viSort.by) {
+      indicator.textContent = viSort.order === 'asc' ? ' ▲' : ' ▼';
+    } else {
+      indicator.textContent = '';
+    }
+  });
+
   if (visitors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">データなし</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">データなし</td></tr>';
     return;
   }
   tbody.innerHTML = visitors.map(v => `<tr>
@@ -207,6 +235,7 @@ async function loadVisitors() {
     <td class="small text-nowrap">${fmtDateFull(v.first_seen)}</td>
     <td class="small text-nowrap">${fmtDateFull(v.last_seen)}</td>
     <td class="text-end small">${v.join_count}回</td>
+    <td class="text-end small">${v.total_duration_seconds != null ? fmtDuration(v.total_duration_seconds) : '—'}</td>
   </tr>`).join('');
   tbody.querySelectorAll('.visitor-name-link').forEach(link => {
     link.addEventListener('click', e => {
@@ -233,13 +262,10 @@ async function openPlayerSessions(userId, displayName) {
     return;
   }
   tbody.innerHTML = sessions.map(s => {
-    const leaveCell = s.leave_ts
-      ? fmtDateFull(s.leave_ts)
-      : '<span class="badge bg-success">在室中</span>';
     const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
     return `<tr>
       <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
-      <td class="small text-nowrap">${leaveCell}</td>
+      <td class="small text-nowrap">${leaveCellHtml(s)}</td>
       <td class="text-end small">${duration}</td>
     </tr>`;
   }).join('');
@@ -247,9 +273,11 @@ async function openPlayerSessions(userId, displayName) {
 
 // ── セッション一覧 ──────────────────────────────────────────────
 
+const ssSort = { by: 'join_ts', order: 'asc' };
+
 async function loadSessions() {
   if (!currentLocationId) return;
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ sort_by: ssSort.by, order: ssSort.order });
   const start = document.getElementById('ss-start').value;
   const end   = document.getElementById('ss-end').value;
   if (start) params.set('start', toISO(start));
@@ -262,22 +290,36 @@ async function loadSessions() {
 
 function renderSessionTable(sessions) {
   const tbody = document.getElementById('session-tbody');
+
+  document.querySelectorAll('#session-thead th[data-sort]').forEach(th => {
+    th.querySelector('.sort-indicator').textContent = th.dataset.sort === ssSort.by
+      ? (ssSort.order === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+
   if (sessions.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">データなし</td></tr>';
     return;
   }
   tbody.innerHTML = sessions.map(s => {
-    const leaveCell = s.leave_ts
-      ? fmtDateFull(s.leave_ts)
-      : '<span class="badge bg-success">在室中</span>';
     const duration = s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—';
     return `<tr>
       <td class="text-truncate" style="max-width:160px">${escHtml(s.display_name)}</td>
       <td class="small text-nowrap">${fmtDateFull(s.join_ts)}</td>
-      <td class="small text-nowrap">${leaveCell}</td>
+      <td class="small text-nowrap">${leaveCellHtml(s)}</td>
       <td class="text-end small">${duration}</td>
     </tr>`;
   }).join('');
+}
+
+// ── セル生成ヘルパー ────────────────────────────────────────────
+
+function leaveCellHtml(s) {
+  if (!s.leave_ts) return '<span class="badge bg-success">在室中</span>';
+  const dateStr = fmtDateFull(s.leave_ts);
+  if (s.is_estimated_leave) {
+    return `${dateStr} <span class="badge rounded-pill bg-warning text-dark" title="退室時刻を使用した推定値です">!</span>`;
+  }
+  return dateStr;
 }
 
 // ── ユーティリティ ──────────────────────────────────────────────
@@ -318,6 +360,38 @@ function fmtDuration(sec) {
 }
 
 // ── イベント登録 ────────────────────────────────────────────────
+
+document.querySelectorAll('#visitor-thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (viSort.by === col) { viSort.order = viSort.order === 'asc' ? 'desc' : 'asc'; }
+    else { viSort.by = col; viSort.order = 'desc'; }
+    loadVisitors();
+  });
+});
+
+document.querySelectorAll('#session-thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (ssSort.by === col) { ssSort.order = ssSort.order === 'asc' ? 'desc' : 'asc'; }
+    else { ssSort.by = col; ssSort.order = 'desc'; }
+    loadSessions();
+  });
+});
+
+document.querySelectorAll('#player-thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (plSort.by === col) { plSort.order = plSort.order === 'asc' ? 'desc' : 'asc'; }
+    else { plSort.by = col; plSort.order = 'asc'; }
+    loadPlayers();
+  });
+});
+
+document.getElementById('ev-ts-header').addEventListener('click', () => {
+  evOrder = evOrder === 'asc' ? 'desc' : 'asc';
+  loadEvents();
+});
 
 document.getElementById('loc-search-btn').addEventListener('click', loadLocations);
 document.getElementById('tl-update-btn').addEventListener('click', loadTimeline);
