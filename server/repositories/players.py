@@ -46,7 +46,7 @@ async def get_players(
 async def get_player_events(
     db: aiosqlite.Connection,
     user_id: str,
-    location_id: str | None,
+    instance_id: int | None,
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
@@ -56,9 +56,9 @@ async def get_player_events(
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
 
-    if location_id is not None:
-        conditions.append("location_id = :location_id")
-        params["location_id"] = location_id
+    if instance_id is not None:
+        conditions.append("instance_id = :instance_id")
+        params["instance_id"] = instance_id
     if start is not None:
         conditions.append("timestamp >= :start")
         params["start"] = to_utc_str(start)
@@ -74,7 +74,7 @@ async def get_player_events(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
+        SELECT id, event_type, instance_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
         ORDER BY timestamp {order.upper()}
@@ -89,7 +89,7 @@ async def get_player_events(
 async def get_player_sessions(
     db: aiosqlite.Connection,
     user_id: str,
-    location_id: str | None,
+    instance_id: int | None,
     start: datetime | None,
     end: datetime | None,
     order: str = "asc",
@@ -99,9 +99,9 @@ async def get_player_sessions(
     conditions = ["user_id = :user_id"]
     params: dict = {"user_id": user_id}
 
-    if location_id is not None:
-        conditions.append("location_id = :location_id")
-        params["location_id"] = location_id
+    if instance_id is not None:
+        conditions.append("instance_id = :instance_id")
+        params["instance_id"] = instance_id
     if start is not None:
         conditions.append("join_ts >= :start")
         params["start"] = to_utc_str(start)
@@ -117,7 +117,7 @@ async def get_player_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, join_ts, leave_ts,
+        SELECT id, instance_id, join_ts, leave_ts,
                COALESCE(duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,

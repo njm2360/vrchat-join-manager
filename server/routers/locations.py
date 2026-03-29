@@ -6,72 +6,81 @@ from fastapi import APIRouter, Depends, Query
 from db import get_db
 from models import (
     EventOut,
-    LocationOut,
+    InstanceOut,
     PlayerListOut,
     PlayerOut,
     SessionOut,
     TimelinePoint,
 )
 from repositories import locations as repo
-from repositories import events as events_repo
+from repositories import instances as instances_repo
 from utils import to_utc_str
 
-router = APIRouter(prefix="/api", tags=["locations"])
+router = APIRouter(prefix="/api", tags=["instances"])
 
 
 @router.post("/locations/{location_id:path}/close", status_code=204)
-async def close_location(
+async def close_location_by_location_id(
     location_id: str,
     at: datetime = Query(..., description="一括退室とみなす時刻"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> None:
-    ts = to_utc_str(at)
-    await events_repo.close_location_sessions(db, location_id, ts)
-    await db.commit()
+    """クライアント用: location_id からオープン中のインスタンスを探して閉じる"""
+    instance_id = await instances_repo.get_open_instance_id(db, location_id)
+    if instance_id is not None:
+        ts = to_utc_str(at)
+        await instances_repo.close_location_sessions(db, instance_id, ts)
+        await db.commit()
 
 
-@router.get("/locations", response_model=list[LocationOut])
-async def get_locations(
-    start: datetime | None = Query(None, description="first_seen がこの時刻以降"),
-    end: datetime | None = Query(None, description="last_seen がこの時刻以前"),
+@router.get("/instances", response_model=list[InstanceOut])
+async def get_instances(
+    start: datetime | None = Query(None, description="opened_at がこの時刻以降"),
+    end: datetime | None = Query(None, description="opened_at がこの時刻以前"),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
     limit: int | None = Query(default=None, ge=1),
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
-) -> list[LocationOut]:
-    return await repo.get_locations(db, start, end, order, limit, offset)
+) -> list[InstanceOut]:
+    return await repo.get_instances(db, start, end, order, limit, offset)
 
 
-@router.get("/locations/{location_id:path}/presence", response_model=list[SessionOut])
+@router.get("/instances/{instance_id}/presence", response_model=list[SessionOut])
 async def get_presence(
-    location_id: str,
+    instance_id: int,
     at: datetime = Query(..., description="この時刻に在席していたプレイヤーを返す"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[SessionOut]:
-    return await repo.get_presence(db, location_id, at)
+    return await repo.get_presence(db, instance_id, at)
 
 
 _PLAYER_SORT_COLS = {"internal_id", "display_name", "join_ts"}
 
-@router.get("/locations/{location_id:path}/players", response_model=list[PlayerOut])
+
+@router.get("/instances/{instance_id}/players", response_model=list[PlayerOut])
 async def get_location_players(
-    location_id: str,
+    instance_id: int,
     sort_by: str = Query(default="internal_id"),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[PlayerOut]:
     if sort_by not in _PLAYER_SORT_COLS:
         sort_by = "internal_id"
-    return await repo.get_location_players(db, location_id, sort_by, order)
+    return await repo.get_location_players(db, instance_id, sort_by, order)
 
 
-_VISITOR_SORT_COLS = {"display_name", "first_seen", "last_seen", "join_count", "total_duration_seconds"}
+_VISITOR_SORT_COLS = {
+    "display_name",
+    "first_seen",
+    "last_seen",
+    "join_count",
+    "total_duration_seconds",
+}
 
-@router.get(
-    "/locations/{location_id:path}/visitors", response_model=list[PlayerListOut]
-)
+
+@router.get("/instances/{instance_id}/visitors", response_model=list[PlayerListOut])
 async def get_location_visitors(
-    location_id: str,
+    instance_id: int,
     sort_by: str = Query(default="last_seen"),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
     limit: int | None = Query(default=None, ge=1),
@@ -80,25 +89,27 @@ async def get_location_visitors(
 ) -> list[PlayerListOut]:
     if sort_by not in _VISITOR_SORT_COLS:
         sort_by = "last_seen"
-    return await repo.get_location_visitors(db, location_id, sort_by, order, limit, offset)
+    return await repo.get_location_visitors(
+        db, instance_id, sort_by, order, limit, offset
+    )
 
 
 @router.get(
-    "/locations/{location_id:path}/presence-timeline",
+    "/instances/{instance_id}/presence-timeline",
     response_model=list[TimelinePoint],
 )
 async def get_presence_timeline(
-    location_id: str,
+    instance_id: int,
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[TimelinePoint]:
-    return await repo.get_presence_timeline(db, location_id, start, end)
+    return await repo.get_presence_timeline(db, instance_id, start, end)
 
 
-@router.get("/locations/{location_id:path}/events", response_model=list[EventOut])
+@router.get("/instances/{instance_id}/events", response_model=list[EventOut])
 async def get_location_events(
-    location_id: str,
+    instance_id: int,
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
@@ -107,15 +118,16 @@ async def get_location_events(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[EventOut]:
     return await repo.get_location_events(
-        db, location_id, start, end, order, limit, offset
+        db, instance_id, start, end, order, limit, offset
     )
 
 
 _SESSION_SORT_COLS = {"display_name", "join_ts", "leave_ts", "duration_seconds"}
 
-@router.get("/locations/{location_id:path}/sessions", response_model=list[SessionOut])
+
+@router.get("/instances/{instance_id}/sessions", response_model=list[SessionOut])
 async def get_location_sessions(
-    location_id: str,
+    instance_id: int,
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     sort_by: str = Query(default="join_ts"),
@@ -127,5 +139,5 @@ async def get_location_sessions(
     if sort_by not in _SESSION_SORT_COLS:
         sort_by = "join_ts"
     return await repo.get_location_sessions(
-        db, location_id, start, end, sort_by, order, limit, offset
+        db, instance_id, start, end, sort_by, order, limit, offset
     )

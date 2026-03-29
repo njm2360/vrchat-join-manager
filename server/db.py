@@ -12,22 +12,31 @@ CREATE TABLE IF NOT EXISTS players (
     updated_at   TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS instances (
+    id          INTEGER PRIMARY KEY,
+    location_id TEXT    NOT NULL,
+    world_id    TEXT    NOT NULL,
+    opened_at   TEXT    NOT NULL,
+    closed_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_instances_location ON instances(location_id);
+
 CREATE TABLE IF NOT EXISTS events (
     id           INTEGER PRIMARY KEY,
     event_type   TEXT    NOT NULL CHECK(event_type IN ('join', 'leave')),
-    location_id  TEXT    NOT NULL,
+    instance_id  INTEGER NOT NULL REFERENCES instances(id),
     world_id     TEXT    NOT NULL,
     user_id      TEXT    NOT NULL REFERENCES players(user_id),
     display_name TEXT    NOT NULL,
     internal_id  INTEGER,
     timestamp    TEXT    NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_events_location_time ON events(location_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_instance_time ON events(instance_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_user_time     ON events(user_id, timestamp);
 
 CREATE TABLE IF NOT EXISTS sessions (
     id                    INTEGER PRIMARY KEY,
-    location_id           TEXT    NOT NULL,
+    instance_id           INTEGER NOT NULL REFERENCES instances(id),
     world_id              TEXT    NOT NULL,
     user_id               TEXT    NOT NULL REFERENCES players(user_id),
     display_name          TEXT    NOT NULL,
@@ -38,7 +47,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     duration_seconds      INTEGER,
     is_estimated_leave    INTEGER NOT NULL DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS idx_sessions_location_time ON sessions(location_id, join_ts, leave_ts);
+CREATE INDEX IF NOT EXISTS idx_sessions_instance_time ON sessions(instance_id, join_ts, leave_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_time     ON sessions(user_id, join_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_world_time    ON sessions(world_id, join_ts);
 """

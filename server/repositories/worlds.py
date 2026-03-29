@@ -73,7 +73,7 @@ async def get_world_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
+        SELECT id, instance_id, user_id, display_name, join_ts, leave_ts,
                COALESCE(duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,

@@ -23,7 +23,7 @@ class PlayerEvent(BaseModel):
 class EventOut(BaseModel):
     id: int
     event_type: str
-    location_id: str
+    instance_id: int
     world_id: str
     user_id: str
     display_name: str
@@ -33,7 +33,7 @@ class EventOut(BaseModel):
 
 class SessionOut(BaseModel):
     id: int
-    location_id: str
+    instance_id: int
     user_id: str
     display_name: str
     join_ts: UtcDatetime
@@ -44,18 +44,19 @@ class SessionOut(BaseModel):
 
 class PlayerSessionOut(BaseModel):
     id: int
-    location_id: str
+    instance_id: int
     join_ts: UtcDatetime
     leave_ts: UtcDatetime | None
     duration_seconds: int | None
     is_estimated_leave: bool
 
 
-class LocationOut(BaseModel):
+class InstanceOut(BaseModel):
+    id: int
     location_id: str
     world_id: str
-    first_seen: UtcDatetime
-    last_seen: UtcDatetime
+    opened_at: UtcDatetime
+    closed_at: UtcDatetime | None
 
 
 class WorldOut(BaseModel):

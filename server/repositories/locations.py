@@ -4,7 +4,7 @@ import aiosqlite
 
 from models import (
     EventOut,
-    LocationOut,
+    InstanceOut,
     PlayerListOut,
     PlayerOut,
     SessionOut,
@@ -13,23 +13,23 @@ from models import (
 from utils import to_utc_str
 
 
-async def get_locations(
+async def get_instances(
     db: aiosqlite.Connection,
     start: datetime | None,
     end: datetime | None,
     order: str = "desc",
     limit: int | None = None,
     offset: int = 0,
-) -> list[LocationOut]:
-    having: list[str] = []
+) -> list[InstanceOut]:
+    conditions: list[str] = []
     params: dict = {}
     if start is not None:
-        having.append("first_seen >= :start")
+        conditions.append("opened_at >= :start")
         params["start"] = to_utc_str(start)
     if end is not None:
-        having.append("last_seen <= :end")
+        conditions.append("opened_at <= :end")
         params["end"] = to_utc_str(end)
-    having_clause = ("HAVING " + " AND ".join(having)) if having else ""
+    where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     limit_clause = (
         f"LIMIT {limit} OFFSET {offset}"
         if limit is not None
@@ -37,38 +37,37 @@ async def get_locations(
     )
     cursor = await db.execute(
         f"""
-        SELECT location_id, world_id, MIN(join_ts) AS first_seen, MAX(join_ts) AS last_seen
-        FROM sessions
-        GROUP BY location_id
-        {having_clause}
-        ORDER BY last_seen {order.upper()}
+        SELECT id, location_id, world_id, opened_at, closed_at
+        FROM instances
+        {where_clause}
+        ORDER BY opened_at {order.upper()}
         {limit_clause}
         """,
         params,
     )
     rows = await cursor.fetchall()
-    return [LocationOut(**dict(row)) for row in rows]
+    return [InstanceOut(**dict(row)) for row in rows]
 
 
 async def get_presence(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     at: datetime,
 ) -> list[SessionOut]:
     cursor = await db.execute(
         """
-        SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
+        SELECT id, instance_id, user_id, display_name, join_ts, leave_ts,
                COALESCE(duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
                is_estimated_leave
         FROM sessions
-        WHERE location_id = :location_id
+        WHERE instance_id = :instance_id
           AND join_ts  <= :at
           AND (leave_ts IS NULL OR leave_ts >= :at)
         ORDER BY join_ts
         """,
-        {"location_id": location_id, "at": to_utc_str(at)},
+        {"instance_id": instance_id, "at": to_utc_str(at)},
     )
     rows = await cursor.fetchall()
     return [SessionOut(**dict(row)) for row in rows]
@@ -76,7 +75,7 @@ async def get_presence(
 
 async def get_location_players(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     sort_by: str = "internal_id",
     order: str = "asc",
 ) -> list[PlayerOut]:
@@ -84,14 +83,14 @@ async def get_location_players(
         f"""
         SELECT s.user_id, s.display_name, e.internal_id, s.join_ts,
                (SELECT COUNT(*) FROM sessions s2
-                WHERE s2.user_id = s.user_id AND s2.location_id = s.location_id) AS join_count
+                WHERE s2.user_id = s.user_id AND s2.instance_id = s.instance_id) AS join_count
         FROM sessions s
         JOIN events e ON e.id = s.join_event_id
-        WHERE s.location_id = :location_id
+        WHERE s.instance_id = :instance_id
           AND s.leave_ts IS NULL
         ORDER BY {"s." + sort_by if sort_by in ("display_name", "join_ts") else sort_by} {order.upper()}
         """,
-        {"location_id": location_id},
+        {"instance_id": instance_id},
     )
     rows = await cursor.fetchall()
     return [PlayerOut(**dict(row)) for row in rows]
@@ -99,7 +98,7 @@ async def get_location_players(
 
 async def get_location_visitors(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     sort_by: str = "last_seen",
     order: str = "desc",
     limit: int | None = None,
@@ -120,12 +119,12 @@ async def get_location_visitors(
                    CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
                ))                    AS total_duration_seconds
         FROM sessions
-        WHERE location_id = :location_id
+        WHERE instance_id = :instance_id
         GROUP BY user_id
         ORDER BY {sort_by} {order.upper()}
         {limit_clause}
         """,
-        {"location_id": location_id},
+        {"instance_id": instance_id},
     )
     rows = await cursor.fetchall()
     return [PlayerListOut(**dict(row)) for row in rows]
@@ -133,7 +132,7 @@ async def get_location_visitors(
 
 async def get_presence_timeline(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     start: datetime | None,
     end: datetime | None,
 ) -> list[TimelinePoint]:
@@ -145,11 +144,11 @@ async def get_presence_timeline(
         cursor = await db.execute(
             """
             SELECT COUNT(*) FROM sessions
-            WHERE location_id = :location_id
+            WHERE instance_id = :instance_id
               AND join_ts <= :start
               AND (leave_ts IS NULL OR leave_ts > :start)
             """,
-            {"location_id": location_id, "start": start_str},
+            {"instance_id": instance_id, "start": start_str},
         )
         row = await cursor.fetchone()
         initial_count: int = row[0]
@@ -157,8 +156,8 @@ async def get_presence_timeline(
         initial_count = 0
 
     # 範囲内の join/leave イベントを時系列順に取得
-    conditions = ["location_id = :location_id"]
-    params: dict = {"location_id": location_id}
+    conditions = ["instance_id = :instance_id"]
+    params: dict = {"instance_id": instance_id}
     if start_str:
         conditions.append("timestamp > :start")
         params["start"] = start_str
@@ -188,15 +187,15 @@ async def get_presence_timeline(
 
 async def get_location_events(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     start: datetime | None,
     end: datetime | None,
     order: str = "desc",
     limit: int | None = None,
     offset: int = 0,
 ) -> list[EventOut]:
-    conditions = ["location_id = :location_id"]
-    params: dict = {"location_id": location_id}
+    conditions = ["instance_id = :instance_id"]
+    params: dict = {"instance_id": instance_id}
     if start is not None:
         conditions.append("timestamp >= :start")
         params["start"] = to_utc_str(start)
@@ -211,7 +210,7 @@ async def get_location_events(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, event_type, location_id, world_id, user_id, display_name, internal_id, timestamp
+        SELECT id, event_type, instance_id, world_id, user_id, display_name, internal_id, timestamp
         FROM events
         WHERE {where}
         ORDER BY timestamp {order.upper()}
@@ -225,7 +224,7 @@ async def get_location_events(
 
 async def get_location_sessions(
     db: aiosqlite.Connection,
-    location_id: str,
+    instance_id: int,
     start: datetime | None,
     end: datetime | None,
     sort_by: str = "join_ts",
@@ -233,8 +232,8 @@ async def get_location_sessions(
     limit: int | None = None,
     offset: int = 0,
 ) -> list[SessionOut]:
-    conditions = ["location_id = :location_id"]
-    params: dict = {"location_id": location_id}
+    conditions = ["instance_id = :instance_id"]
+    params: dict = {"instance_id": instance_id}
     if start is not None:
         conditions.append("join_ts >= :start")
         params["start"] = to_utc_str(start)
@@ -249,7 +248,7 @@ async def get_location_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, user_id, display_name, join_ts, leave_ts,
+        SELECT id, instance_id, user_id, display_name, join_ts, leave_ts,
                COALESCE(duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,

@@ -20,23 +20,23 @@ async def upsert_player(
 
 
 async def insert_event(
-    db: aiosqlite.Connection, body: PlayerEvent, ts: str
+    db: aiosqlite.Connection, body: PlayerEvent, instance_id: int, ts: str
 ) -> int | None:
     loc = parse_location_id(body.location_id)
     cursor = await db.execute(
         """
         INSERT OR IGNORE INTO events(
-            event_type, location_id, world_id,
+            event_type, instance_id, world_id,
             user_id, display_name, internal_id, timestamp
         )
         VALUES(
-            :event_type, :location_id, :world_id,
+            :event_type, :instance_id, :world_id,
             :user_id, :name, :internal_id, :ts
         )
         """,
         {
             "event_type": body.event,
-            "location_id": body.location_id,
+            "instance_id": instance_id,
             **loc,
             "user_id": body.user_id,
             "name": body.name,
@@ -48,32 +48,36 @@ async def insert_event(
 
 
 async def open_session(
-    db: aiosqlite.Connection, body: PlayerEvent, event_id: int, ts: str
+    db: aiosqlite.Connection,
+    body: PlayerEvent,
+    instance_id: int,
+    event_id: int,
+    ts: str,
 ) -> None:
     loc = parse_location_id(body.location_id)
-    # 同ロケーションにオープンセッションが既にあれば重複とみなしてスキップ
+    # 同インスタンスにオープンセッションが既にあれば重複とみなしてスキップ
     cur = await db.execute(
         """
         SELECT 1 FROM sessions
-        WHERE user_id = :user_id AND location_id = :location_id AND leave_ts IS NULL
+        WHERE user_id = :user_id AND instance_id = :instance_id AND leave_ts IS NULL
         LIMIT 1
         """,
-        {"user_id": body.user_id, "location_id": body.location_id},
+        {"user_id": body.user_id, "instance_id": instance_id},
     )
     if await cur.fetchone() is None:
         await db.execute(
             """
             INSERT INTO sessions(
-                location_id, world_id,
+                instance_id, world_id,
                 user_id, display_name, join_event_id, join_ts
             )
             VALUES(
-                :location_id, :world_id,
+                :instance_id, :world_id,
                 :user_id, :name, :join_event_id, :join_ts
             )
             """,
             {
-                "location_id": body.location_id,
+                "instance_id": instance_id,
                 **loc,
                 "user_id": body.user_id,
                 "name": body.name,
@@ -84,9 +88,9 @@ async def open_session(
 
 
 async def close_session(
-    db: aiosqlite.Connection, user_id: str, location_id: str, event_id: int, ts: str
+    db: aiosqlite.Connection, user_id: str, instance_id: int, event_id: int, ts: str
 ) -> None:
-    # 同ロケーションの最新オープンセッションを閉じる
+    # 同インスタンスの最新オープンセッションを閉じる
     await db.execute(
         """
         UPDATE sessions
@@ -96,7 +100,7 @@ async def close_session(
         WHERE id = (
             SELECT id FROM sessions
             WHERE user_id     = :user_id
-              AND location_id = :location_id
+              AND instance_id = :instance_id
               AND leave_ts IS NULL
             ORDER BY join_ts DESC
             LIMIT 1
@@ -106,23 +110,6 @@ async def close_session(
             "event_id": event_id,
             "ts": ts,
             "user_id": user_id,
-            "location_id": location_id,
+            "instance_id": instance_id,
         },
     )
-
-
-async def close_location_sessions(
-    db: aiosqlite.Connection, location_id: str, ts: str
-) -> int:
-    cursor = await db.execute(
-        """
-        UPDATE sessions
-        SET leave_ts           = :ts,
-            duration_seconds   = CAST(ROUND((julianday(:ts) - julianday(join_ts)) * 86400) AS INTEGER),
-            is_estimated_leave = 1
-        WHERE location_id = :location_id
-          AND leave_ts IS NULL
-        """,
-        {"ts": ts, "location_id": location_id},
-    )
-    return cursor.rowcount

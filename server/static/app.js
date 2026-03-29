@@ -1,5 +1,5 @@
 let chart = null;
-let currentLocationId = null;
+let currentInstanceId = null;
 let currentTab = 'timeline';
 
 // ── タブ切り替え ────────────────────────────────────────────────
@@ -9,7 +9,7 @@ document.querySelectorAll('#main-tabs .nav-link').forEach(btn => {
     document.querySelectorAll('#main-tabs .nav-link').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentTab = btn.dataset.tab;
-    if (currentLocationId) showTab(currentTab);
+    if (currentInstanceId) showTab(currentTab);
   });
 });
 
@@ -27,7 +27,7 @@ function showTab(tab) {
   if (tab === 'visitors') loadVisitors();
 }
 
-// ── ロケーション一覧 ────────────────────────────────────────────
+// ── インスタンス一覧 ─────────────────────────────────────────────
 
 async function loadLocations() {
   const start = document.getElementById('loc-start').value;
@@ -36,43 +36,46 @@ async function loadLocations() {
   if (start) params.set('start', toISO(start));
   if (end)   params.set('end',   toISO(end));
 
-  const res = await fetch('/api/locations?' + params);
-  const locations = await res.json();
+  const res = await fetch('/api/instances?' + params);
+  const instances = await res.json();
 
   const list = document.getElementById('location-list');
-  if (locations.length === 0) {
+  if (instances.length === 0) {
     list.innerHTML = '<div class="list-group-item text-muted small">該当なし</div>';
     return;
   }
 
   list.innerHTML = '';
-  for (const loc of locations) {
+  for (const inst of instances) {
     const a = document.createElement('a');
     a.href = '#';
     a.className = 'list-group-item list-group-item-action location-item py-2';
-    a.dataset.locationId = loc.location_id;
+    a.dataset.instanceId = inst.id;
+    const endBadge = inst.closed_at
+      ? `<span class="badge bg-secondary">${fmtDate(inst.closed_at)}</span>`
+      : `<span class="badge bg-success">進行中</span>`;
     a.innerHTML = `
-      <div class="fw-semibold text-truncate">${loc.world_id}</div>
-      <small class="text-muted">${loc.location_id}</small>
+      <div class="fw-semibold text-truncate">${escHtml(inst.world_id)}</div>
+      <small class="text-muted">${escHtml(inst.location_id)}</small>
       <div class="d-flex justify-content-between mt-1">
-        <span class="badge bg-secondary">${fmtDate(loc.first_seen)}</span>
-        <span class="badge bg-primary">${fmtDate(loc.last_seen)}</span>
+        <span class="badge bg-primary">${fmtDate(inst.opened_at)}</span>
+        ${endBadge}
       </div>`;
     a.addEventListener('click', e => {
       e.preventDefault();
-      selectLocation(loc.location_id);
+      selectInstance(inst.id, inst.location_id);
     });
     list.appendChild(a);
   }
 
-  if (currentLocationId) setActiveItem(currentLocationId);
+  if (currentInstanceId) setActiveItem(currentInstanceId);
 }
 
-// ── ロケーション選択 ────────────────────────────────────────────
+// ── インスタンス選択 ─────────────────────────────────────────────
 
-function selectLocation(locationId) {
-  currentLocationId = locationId;
-  setActiveItem(locationId);
+function selectInstance(instanceId, locationId) {
+  currentInstanceId = instanceId;
+  setActiveItem(instanceId);
   document.getElementById('selected-label').textContent = locationId;
   showTab(currentTab);
 }
@@ -80,14 +83,14 @@ function selectLocation(locationId) {
 // ── 人数推移 ────────────────────────────────────────────────────
 
 async function loadTimeline() {
-  if (!currentLocationId) return;
+  if (!currentInstanceId) return;
   const params = new URLSearchParams();
   const start = document.getElementById('tl-start').value;
   const end   = document.getElementById('tl-end').value;
   if (start) params.set('start', toISO(start));
   if (end)   params.set('end',   toISO(end));
 
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/presence-timeline?${params}`);
+  const res = await fetch(`/api/instances/${currentInstanceId}/presence-timeline?${params}`);
   const data = await res.json();
   renderChart(data);
 }
@@ -141,7 +144,7 @@ function renderChart(data) {
 let evOrder = 'desc';
 
 async function loadEvents() {
-  if (!currentLocationId) return;
+  if (!currentInstanceId) return;
   const params = new URLSearchParams({ order: evOrder });
   const start = document.getElementById('ev-start').value;
   const end   = document.getElementById('ev-end').value;
@@ -150,7 +153,7 @@ async function loadEvents() {
 
   document.getElementById('ev-sort-indicator').textContent = evOrder === 'asc' ? ' ▲' : ' ▼';
 
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/events?${params}`);
+  const res = await fetch(`/api/instances/${currentInstanceId}/events?${params}`);
   const events = await res.json();
   renderEventTable(events);
 }
@@ -179,9 +182,9 @@ function renderEventTable(events) {
 const plSort = { by: 'internal_id', order: 'asc' };
 
 async function loadPlayers() {
-  if (!currentLocationId) return;
+  if (!currentInstanceId) return;
   const params = new URLSearchParams({ sort_by: plSort.by, order: plSort.order });
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/players?${params}`);
+  const res = await fetch(`/api/instances/${currentInstanceId}/players?${params}`);
   const players = await res.json();
   const tbody = document.getElementById('player-tbody');
 
@@ -206,9 +209,9 @@ async function loadPlayers() {
 const viSort = { by: 'last_seen', order: 'desc' };
 
 async function loadVisitors() {
-  if (!currentLocationId) return;
+  if (!currentInstanceId) return;
   const params = new URLSearchParams({ sort_by: viSort.by, order: viSort.order });
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/visitors?${params}`);
+  const res = await fetch(`/api/instances/${currentInstanceId}/visitors?${params}`);
   const visitors = await res.json();
   const tbody = document.getElementById('visitor-tbody');
   document.getElementById('vi-count').textContent = `${visitors.length} 人`;
@@ -253,7 +256,7 @@ async function openPlayerSessions(userId, displayName) {
   tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">読み込み中...</td></tr>';
   bootstrap.Modal.getOrCreateInstance(document.getElementById('session-modal')).show();
 
-  const params = new URLSearchParams({ location_id: currentLocationId, order: 'desc' });
+  const params = new URLSearchParams({ instance_id: currentInstanceId, order: 'desc' });
   const res = await fetch(`/api/players/${encodeURIComponent(userId)}/sessions?${params}`);
   const sessions = await res.json();
 
@@ -273,17 +276,17 @@ async function openPlayerSessions(userId, displayName) {
 
 // ── セッション一覧 ──────────────────────────────────────────────
 
-const ssSort = { by: 'join_ts', order: 'asc' };
+const ssSort = { by: 'leave_ts', order: 'asc' };
 
 async function loadSessions() {
-  if (!currentLocationId) return;
+  if (!currentInstanceId) return;
   const params = new URLSearchParams({ sort_by: ssSort.by, order: ssSort.order });
   const start = document.getElementById('ss-start').value;
   const end   = document.getElementById('ss-end').value;
   if (start) params.set('start', toISO(start));
   if (end)   params.set('end',   toISO(end));
 
-  const res = await fetch(`/api/locations/${encodeURIComponent(currentLocationId)}/sessions?${params}`);
+  const res = await fetch(`/api/instances/${currentInstanceId}/sessions?${params}`);
   const sessions = await res.json();
   renderSessionTable(sessions);
 }
@@ -324,9 +327,9 @@ function leaveCellHtml(s) {
 
 // ── ユーティリティ ──────────────────────────────────────────────
 
-function setActiveItem(locationId) {
+function setActiveItem(instanceId) {
   document.querySelectorAll('.location-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.locationId === locationId);
+    el.classList.toggle('active', Number(el.dataset.instanceId) === instanceId);
   });
 }
 
