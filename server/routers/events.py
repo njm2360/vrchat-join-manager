@@ -19,9 +19,10 @@ async def receive_event(
     await repo.upsert_player(db, body.user_id, body.name, ts)
     event_id = await repo.insert_event(db, body, ts)
 
-    if body.event == "join":
-        await repo.open_session(db, body, event_id, ts)
-    elif body.event == "leave":
-        await repo.close_session(db, body.user_id, body.location_id, event_id, ts)
+    if event_id is not None:
+        if body.event == "join":
+            await repo.open_session(db, body, event_id, ts)
+        elif body.event == "leave":
+            await repo.close_session(db, body.user_id, body.location_id, event_id, ts)
 
     await db.commit()

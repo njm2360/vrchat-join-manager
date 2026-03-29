@@ -17,11 +17,11 @@ async def upsert_player(db: aiosqlite.Connection, user_id: str, name: str, ts: s
     )
 
 
-async def insert_event(db: aiosqlite.Connection, body: PlayerEvent, ts: str) -> int:
+async def insert_event(db: aiosqlite.Connection, body: PlayerEvent, ts: str) -> int | None:
     loc = parse_location_id(body.location_id)
     cursor = await db.execute(
         """
-        INSERT INTO events(
+        INSERT OR IGNORE INTO events(
             event_type, location_id, world_id,
             user_id, display_name, internal_id, timestamp
         )
@@ -40,7 +40,7 @@ async def insert_event(db: aiosqlite.Connection, body: PlayerEvent, ts: str) -> 
             "ts": ts,
         },
     )
-    return cursor.lastrowid
+    return cursor.lastrowid if cursor.rowcount else None
 
 
 async def open_session(

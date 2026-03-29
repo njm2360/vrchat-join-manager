@@ -43,16 +43,27 @@ CREATE INDEX IF NOT EXISTS idx_sessions_world_time    ON sessions(world_id, join
 """
 
 
+_db: aiosqlite.Connection | None = None
+
+
 async def init_db() -> None:
+    global _db
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("PRAGMA journal_mode=WAL")
-        await db.execute("PRAGMA synchronous=NORMAL")
-        await db.executescript(_DDL)
-        await db.commit()
+    _db = await aiosqlite.connect(DB_PATH)
+    _db.row_factory = aiosqlite.Row
+    await _db.execute("PRAGMA journal_mode=WAL")
+    await _db.execute("PRAGMA synchronous=NORMAL")
+    await _db.executescript(_DDL)
+    await _db.commit()
+
+
+async def close_db() -> None:
+    global _db
+    if _db is not None:
+        await _db.close()
+        _db = None
 
 
 async def get_db() -> AsyncGenerator[aiosqlite.Connection, None]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        yield db
+    assert _db is not None, "DB not initialized"
+    yield _db
