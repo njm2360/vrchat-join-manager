@@ -16,9 +16,18 @@
       height: 100%;
     }
 
-    #sidebar {
-      height: calc(100vh - 56px);
-      overflow-y: auto;
+    @media (min-width: 768px) {
+      #sidebar {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      #sidebar {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+      }
     }
 
     #chart-wrapper {
@@ -43,6 +52,28 @@
       cursor: default;
       transition: fill 0.12s;
     }
+
+    #main-tabs .nav-link {
+      white-space: nowrap;
+    }
+
+    .table-scroll-wrapper {
+      overflow-x: auto;
+    }
+
+    .table-scroll-wrapper th,
+    .table-scroll-wrapper td {
+      white-space: nowrap;
+    }
+
+    #main-tabs {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    #main-tabs::-webkit-scrollbar {
+      display: none;
+    }
   </style>
 </head>
 
@@ -56,37 +87,37 @@
     <div class="row">
 
       <!-- サイドバー: ロケーション一覧 -->
-      <div class="col-md-4 col-lg-3 p-0 border-end bg-light" id="sidebar">
-        <div class="p-3 border-bottom">
-          <div class="row g-2">
-            <div class="col-6">
-              <label class="form-label small mb-1">開始</label>
-              <input type="datetime-local" id="loc-start" class="form-control form-control-sm">
-            </div>
-            <div class="col-6">
-              <label class="form-label small mb-1">終了</label>
-              <input type="datetime-local" id="loc-end" class="form-control form-control-sm">
-            </div>
-            <div class="col-12">
-              <button id="loc-search-btn" class="btn btn-secondary btn-sm w-100">絞り込み</button>
+      <div id="col-sidebar" class="col-md-4 col-lg-3 p-0 border-end bg-light">
+        <div id="sidebar">
+          <div class="p-3 border-bottom">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small mb-1">開始</label>
+                <input type="datetime-local" id="loc-start" class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label small mb-1">終了</label>
+                <input type="datetime-local" id="loc-end" class="form-control form-control-sm">
+              </div>
+              <div class="col-12">
+                <button id="loc-search-btn" class="btn btn-secondary btn-sm w-100">絞り込み</button>
+              </div>
             </div>
           </div>
-        </div>
-        <div id="location-list" class="list-group list-group-flush">
-          <div class="list-group-item text-muted small">読み込み中...</div>
+          <div id="location-list" class="list-group list-group-flush">
+            <div class="list-group-item text-muted small">読み込み中...</div>
+          </div>
         </div>
       </div>
 
       <!-- メイン -->
-      <div class="col-md-8 col-lg-9 p-3">
+      <div id="col-main" class="col-md-8 col-lg-9 p-3 d-none d-md-block">
         <div class="card">
 
-          <!-- ロケーション名 + タブ -->
+          <!-- タブ + モバイル戻るボタン -->
           <div class="card-header">
-            <div class="mb-2">
-              <span id="selected-label" class="text-muted small">ロケーションを選択してください</span>
-            </div>
-            <ul class="nav nav-tabs card-header-tabs" id="main-tabs">
+            <button id="back-btn" class="btn btn-sm btn-outline-secondary d-md-none mb-2">&#8592; 一覧に戻る</button>
+            <ul class="nav nav-tabs card-header-tabs flex-nowrap" id="main-tabs">
               <li class="nav-item">
                 <button class="nav-link active" data-tab="timeline">人数推移</button>
               </li>
@@ -133,6 +164,7 @@
                 <input type="datetime-local" id="ss-end" class="form-control form-control-sm" style="width:auto">
                 <button id="ss-update-btn" class="btn btn-primary btn-sm">更新</button>
               </div>
+              <div class="table-scroll-wrapper">
               <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
                 <table class="table table-sm table-hover mb-0">
                   <thead class="table-light sticky-top" id="session-thead">
@@ -146,13 +178,16 @@
                   <tbody id="session-tbody"></tbody>
                 </table>
               </div>
+              </div>
             </div>
 
             <!-- ── 在室中タブ ── -->
             <div id="tab-players" class="d-none">
-              <div class="mb-3">
+              <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
                 <button id="pl-reload-btn" class="btn btn-primary btn-sm">更新</button>
+                <span id="pl-count" class="fs-4 fw-bold"></span>
               </div>
+              <div class="table-scroll-wrapper">
               <table class="table table-sm table-hover mb-0">
                 <thead class="table-light" id="player-thead">
                   <tr>
@@ -163,14 +198,16 @@
                 </thead>
                 <tbody id="player-tbody"></tbody>
               </table>
+              </div>
             </div>
 
             <!-- ── 訪れた人タブ ── -->
             <div id="tab-visitors" class="d-none">
-              <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+              <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
                 <button id="vi-reload-btn" class="btn btn-primary btn-sm">更新</button>
-                <span id="vi-count" class="text-muted small"></span>
+                <span id="vi-count" class="fs-4 fw-bold"></span>
               </div>
+              <div class="table-scroll-wrapper">
               <div style="max-height:520px;overflow-y:auto">
                 <table class="table table-sm table-hover mb-0">
                   <thead class="table-light sticky-top">
@@ -184,6 +221,7 @@
                   </thead>
                   <tbody id="visitor-tbody"></tbody>
                 </table>
+              </div>
               </div>
             </div>
 

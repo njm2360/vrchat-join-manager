@@ -52,15 +52,17 @@ async function loadLocations() {
     a.href = '#';
     a.className = 'list-group-item list-group-item-action location-item py-2';
     a.dataset.instanceId = inst.id;
-    const endBadge = inst.closed_at
-      ? `<span class="badge bg-secondary">${fmtDate(inst.closed_at)}</span>`
-      : `<span class="badge bg-success">進行中</span>`;
+    const rangeBadge = inst.closed_at
+      ? `<span class="badge bg-secondary">${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}</span>`
+      : `<span class="badge bg-success">${fmtDate(inst.opened_at)} 〜</span>`;
+    const countBadge = !inst.closed_at && inst.user_count > 0
+      ? `<span class="badge bg-warning text-dark">${inst.user_count}人</span>`
+      : '';
     a.innerHTML = `
       <div class="fw-semibold text-truncate">${escHtml(inst.world_id)}</div>
       <small class="text-muted">${escHtml(inst.location_id)}</small>
-      <div class="d-flex justify-content-between mt-1">
-        <span class="badge bg-primary">${fmtDate(inst.opened_at)}</span>
-        ${endBadge}
+      <div class="d-flex align-items-center gap-1 mt-1 small">
+        ${rangeBadge}${countBadge}
       </div>`;
     a.addEventListener('click', e => {
       e.preventDefault();
@@ -78,9 +80,18 @@ function selectInstance(inst) {
   currentInstanceId = inst.id;
   currentInstanceData = inst;
   setActiveItem(inst.id);
-  document.getElementById('selected-label').textContent = inst.location_id;
   showTab(currentTab);
+  // モバイル: 詳細画面へ切り替え
+  if (window.innerWidth < 768) {
+    document.getElementById('col-sidebar').classList.add('d-none');
+    document.getElementById('col-main').classList.remove('d-none');
+  }
 }
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  document.getElementById('col-main').classList.add('d-none');
+  document.getElementById('col-sidebar').classList.remove('d-none');
+});
 
 // ── 人数推移 ────────────────────────────────────────────────────
 
@@ -202,6 +213,7 @@ async function loadPlayers() {
       ? (plSort.order === 'asc' ? ' ▲' : ' ▼') : '';
   });
 
+  document.getElementById('pl-count').textContent = `${players.length} 人`;
   if (players.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
     return;
