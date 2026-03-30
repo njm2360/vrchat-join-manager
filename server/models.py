@@ -64,6 +64,7 @@ class InstanceOut(BaseModel):
     hidden: str | None
     opened_at: UtcDatetime
     closed_at: UtcDatetime | None
+    user_count: int
 
 
 class WorldOut(BaseModel):

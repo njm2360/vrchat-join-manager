@@ -17,6 +17,11 @@ async def get_instances(
     db: aiosqlite.Connection,
     start: datetime | None,
     end: datetime | None,
+    is_open: bool | None = None,
+    world_id: str | None = None,
+    group_id: str | None = None,
+    region: str | None = None,
+    sort_by: str = "opened_at",
     order: str = "desc",
     limit: int | None = None,
     offset: int = 0,
@@ -29,6 +34,19 @@ async def get_instances(
     if end is not None:
         conditions.append("opened_at <= :end")
         params["end"] = to_utc_str(end)
+    if is_open is True:
+        conditions.append("closed_at IS NULL")
+    elif is_open is False:
+        conditions.append("closed_at IS NOT NULL")
+    if world_id is not None:
+        conditions.append("world_id = :world_id")
+        params["world_id"] = world_id
+    if group_id is not None:
+        conditions.append("group_id = :group_id")
+        params["group_id"] = group_id
+    if region is not None:
+        conditions.append("region = :region")
+        params["region"] = region
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     limit_clause = (
         f"LIMIT {limit} OFFSET {offset}"
@@ -37,10 +55,11 @@ async def get_instances(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at, closed_at
+        SELECT id, location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at, closed_at,
+               (SELECT COUNT(*) FROM sessions s WHERE s.instance_id = instances.id AND s.leave_ts IS NULL) AS user_count
         FROM instances
         {where_clause}
-        ORDER BY opened_at {order.upper()}
+        ORDER BY {sort_by} {order.upper()}
         {limit_clause}
         """,
         params,

@@ -33,16 +33,28 @@ async def close_location_by_location_id(
         await db.commit()
 
 
+_INSTANCE_SORT_COLS = {"opened_at", "closed_at"}
+
+
 @router.get("/instances", response_model=list[InstanceOut])
 async def get_instances(
     start: datetime | None = Query(None, description="opened_at がこの時刻以降"),
     end: datetime | None = Query(None, description="opened_at がこの時刻以前"),
+    is_open: bool | None = Query(None, description="true=進行中のみ / false=終了済みのみ"),
+    world_id: str | None = Query(None, description="ワールドID完全一致"),
+    group_id: str | None = Query(None, description="グループID完全一致"),
+    region: str | None = Query(None, description="リージョン完全一致"),
+    sort_by: str = Query(default="opened_at", description="ソートカラム: opened_at / closed_at"),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
     limit: int | None = Query(default=None, ge=1),
     offset: int = Query(default=0, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[InstanceOut]:
-    return await repo.get_instances(db, start, end, order, limit, offset)
+    if sort_by not in _INSTANCE_SORT_COLS:
+        sort_by = "opened_at"
+    return await repo.get_instances(
+        db, start, end, is_open, world_id, group_id, region, sort_by, order, limit, offset
+    )
 
 
 @router.get("/instances/{instance_id}/presence", response_model=list[SessionOut])
