@@ -108,7 +108,7 @@ async def get_player_sessions(
         conditions.append("i.group_id = :group_id")
         params["group_id"] = group_id
     if start is not None:
-        conditions.append("s.join_ts >= :start")
+        conditions.append("(s.leave_ts >= :start OR s.leave_ts IS NULL)")
         params["start"] = to_utc_str(start)
     if end is not None:
         conditions.append("s.join_ts <= :end")
