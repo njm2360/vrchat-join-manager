@@ -1,11 +1,12 @@
 from datetime import datetime
 
 import aiosqlite
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import get_db
-from models import SessionOut, WorldOut
+from models.worlds import WorldOut, WorldRenameIn
 from repositories import worlds as repo
+from utils import to_utc_str
 
 router = APIRouter(prefix="/api", tags=["worlds"])
 
@@ -22,14 +23,21 @@ async def get_worlds(
     return await repo.get_worlds(db, start, end, order, limit, offset)
 
 
-@router.get("/worlds/{world_id}/sessions", response_model=list[SessionOut])
-async def get_world_sessions(
+@router.patch("/worlds/{world_id}", status_code=204)
+async def rename_world(
     world_id: str,
-    start: datetime | None = Query(None),
-    end: datetime | None = Query(None),
-    order: str = Query(default="asc", pattern="^(asc|desc)$"),
-    limit: int | None = Query(default=None, ge=1),
-    offset: int = Query(default=0, ge=0),
+    body: WorldRenameIn,
     db: aiosqlite.Connection = Depends(get_db),
-) -> list[SessionOut]:
-    return await repo.get_world_sessions(db, world_id, start, end, order, limit, offset)
+) -> None:
+    ts = to_utc_str(datetime.now())
+    if not await repo.rename_world(db, world_id, body.name, ts):
+        raise HTTPException(status_code=404)
+
+
+@router.delete("/worlds/{world_id}", status_code=204)
+async def delete_world(
+    world_id: str,
+    db: aiosqlite.Connection = Depends(get_db),
+) -> None:
+    if not await repo.delete_world(db, world_id):
+        raise HTTPException(status_code=404)

@@ -6,6 +6,20 @@ import aiosqlite
 DB_PATH = Path(__file__).parent / "data" / "vrchat.db"
 
 _DDL = """
+CREATE TABLE IF NOT EXISTS groups (
+    group_id   TEXT PRIMARY KEY,
+    name       TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS worlds (
+    world_id   TEXT PRIMARY KEY,
+    name       TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS players (
     user_id      TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,
