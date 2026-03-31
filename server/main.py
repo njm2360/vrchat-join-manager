@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(events.router)
+app.include_router(groups.router)
 app.include_router(locations.router)
 app.include_router(players.router)
 app.include_router(worlds.router)

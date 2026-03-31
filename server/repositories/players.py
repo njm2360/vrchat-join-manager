@@ -2,7 +2,8 @@ from datetime import datetime
 
 import aiosqlite
 
-from models import EventOut, PlayerListOut, PlayerSessionOut
+from models.common import EventOut
+from models.players import PlayerOut, PlayerSessionOut
 from utils import to_utc_str
 
 
@@ -12,11 +13,11 @@ async def get_players(
     order: str = "asc",
     limit: int | None = None,
     offset: int = 0,
-) -> list[PlayerListOut]:
+) -> list[PlayerOut]:
     conditions: list[str] = []
     params: dict = {}
     if name is not None:
-        conditions.append("p.display_name LIKE :name")
+        conditions.append("display_name LIKE :name")
         params["name"] = f"%{name}%"
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     limit_clause = (
@@ -26,21 +27,16 @@ async def get_players(
     )
     cursor = await db.execute(
         f"""
-        SELECT p.user_id, p.display_name,
-               MIN(s.join_ts) AS first_seen,
-               MAX(s.join_ts) AS last_seen,
-               COUNT(s.id)    AS join_count
-        FROM players p
-        LEFT JOIN sessions s ON s.user_id = p.user_id
+        SELECT user_id, display_name, created_at, updated_at
+        FROM players
         {where}
-        GROUP BY p.user_id
-        ORDER BY last_seen {order.upper()}
+        ORDER BY created_at {order.upper()}
         {limit_clause}
         """,
         params,
     )
     rows = await cursor.fetchall()
-    return [PlayerListOut(**dict(row)) for row in rows]
+    return [PlayerOut(**dict(row)) for row in rows]
 
 
 async def get_player_events(
@@ -53,7 +49,7 @@ async def get_player_events(
     limit: int | None = None,
     offset: int = 0,
 ) -> list[EventOut]:
-    conditions = ["user_id = :user_id"]
+    conditions = ["e.user_id = :user_id"]
     params: dict = {"user_id": user_id}
 
     if instance_id is not None:
@@ -74,10 +70,11 @@ async def get_player_events(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, event_type, instance_id, world_id, user_id, display_name, internal_id, timestamp
-        FROM events
+        SELECT e.id, e.event_type, e.instance_id, e.world_id, e.user_id, p.display_name, e.timestamp
+        FROM events e
+        JOIN players p ON p.user_id = e.user_id
         WHERE {where}
-        ORDER BY timestamp {order.upper()}
+        ORDER BY e.timestamp {order.upper()}
         {limit_clause}
         """,
         params,

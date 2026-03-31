@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS worlds (
 CREATE TABLE IF NOT EXISTS players (
     user_id      TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
     updated_at   TEXT NOT NULL
 );
 
@@ -48,8 +49,6 @@ CREATE TABLE IF NOT EXISTS events (
     instance_id  INTEGER NOT NULL REFERENCES instances(id),
     world_id     TEXT    NOT NULL,
     user_id      TEXT    NOT NULL REFERENCES players(user_id),
-    display_name TEXT    NOT NULL,
-    internal_id  INTEGER,
     timestamp    TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_events_instance_time ON events(instance_id, timestamp);
@@ -60,7 +59,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     instance_id           INTEGER NOT NULL REFERENCES instances(id),
     world_id              TEXT    NOT NULL,
     user_id               TEXT    NOT NULL REFERENCES players(user_id),
-    display_name          TEXT    NOT NULL,
+    internal_id           INTEGER,
     join_event_id         INTEGER NOT NULL REFERENCES events(id),
     leave_event_id        INTEGER          REFERENCES events(id),
     join_ts               TEXT    NOT NULL,

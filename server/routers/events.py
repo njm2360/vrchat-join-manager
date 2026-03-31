@@ -2,7 +2,7 @@ import aiosqlite
 from fastapi import APIRouter, Depends
 
 from db import get_db
-from models import PlayerEvent
+from models.events import PlayerEvent
 from repositories import events as repo
 from repositories import instances as instances_repo
 from utils import LocationInfo, parse_location_id, to_utc_str
@@ -21,6 +21,9 @@ async def receive_event(
     await repo.upsert_player(db, body.user_id, body.name, ts)
 
     if body.event == "join":
+        await repo.upsert_world(db, loc.world_id, ts)
+        if loc.group_id is not None:
+            await repo.upsert_group(db, loc.group_id, ts)
         instance_id = await instances_repo.get_or_create_instance(
             db,
             body.location_id,

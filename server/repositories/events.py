@@ -1,7 +1,29 @@
 import aiosqlite
 
-from models import PlayerEvent
+from models.events import PlayerEvent
 from utils import parse_location_id
+
+
+async def upsert_group(db: aiosqlite.Connection, group_id: str, ts: str) -> None:
+    await db.execute(
+        """
+        INSERT INTO groups(group_id, created_at, updated_at)
+        VALUES(:group_id, :ts, :ts)
+        ON CONFLICT(group_id) DO NOTHING
+        """,
+        {"group_id": group_id, "ts": ts},
+    )
+
+
+async def upsert_world(db: aiosqlite.Connection, world_id: str, ts: str) -> None:
+    await db.execute(
+        """
+        INSERT INTO worlds(world_id, created_at, updated_at)
+        VALUES(:world_id, :ts, :ts)
+        ON CONFLICT(world_id) DO NOTHING
+        """,
+        {"world_id": world_id, "ts": ts},
+    )
 
 
 async def upsert_player(
@@ -9,8 +31,8 @@ async def upsert_player(
 ) -> None:
     await db.execute(
         """
-        INSERT INTO players(user_id, display_name, updated_at)
-        VALUES(:user_id, :name, :ts)
+        INSERT INTO players(user_id, display_name, created_at, updated_at)
+        VALUES(:user_id, :name, :ts, :ts)
         ON CONFLICT(user_id) DO UPDATE
             SET display_name = excluded.display_name,
                 updated_at   = excluded.updated_at
@@ -27,11 +49,11 @@ async def insert_event(
         """
         INSERT OR IGNORE INTO events(
             event_type, instance_id, world_id,
-            user_id, display_name, internal_id, timestamp
+            user_id, timestamp
         )
         VALUES(
             :event_type, :instance_id, :world_id,
-            :user_id, :name, :internal_id, :ts
+            :user_id, :ts
         )
         """,
         {
@@ -39,8 +61,6 @@ async def insert_event(
             "instance_id": instance_id,
             "world_id": loc.world_id,
             "user_id": body.user_id,
-            "name": body.name,
-            "internal_id": body.internal_id,
             "ts": ts,
         },
     )
@@ -69,18 +89,18 @@ async def open_session(
             """
             INSERT INTO sessions(
                 instance_id, world_id,
-                user_id, display_name, join_event_id, join_ts
+                user_id, internal_id, join_event_id, join_ts
             )
             VALUES(
                 :instance_id, :world_id,
-                :user_id, :name, :join_event_id, :join_ts
+                :user_id, :internal_id, :join_event_id, :join_ts
             )
             """,
             {
                 "instance_id": instance_id,
                 "world_id": loc.world_id,
                 "user_id": body.user_id,
-                "name": body.name,
+                "internal_id": body.internal_id,
                 "join_event_id": event_id,
                 "join_ts": ts,
             },

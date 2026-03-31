@@ -2,11 +2,11 @@ from datetime import datetime
 
 import aiosqlite
 
-from models import (
-    EventOut,
+from models.common import EventOut
+from models.locations import (
     InstanceOut,
+    LocationPlayerOut,
     PlayerListOut,
-    PlayerOut,
     SessionOut,
     TimelinePoint,
 )
@@ -29,23 +29,23 @@ async def get_instances(
     conditions: list[str] = []
     params: dict = {}
     if start is not None:
-        conditions.append("opened_at >= :start")
+        conditions.append("i.opened_at >= :start")
         params["start"] = to_utc_str(start)
     if end is not None:
-        conditions.append("opened_at <= :end")
+        conditions.append("i.opened_at <= :end")
         params["end"] = to_utc_str(end)
     if is_open is True:
-        conditions.append("closed_at IS NULL")
+        conditions.append("i.closed_at IS NULL")
     elif is_open is False:
-        conditions.append("closed_at IS NOT NULL")
+        conditions.append("i.closed_at IS NOT NULL")
     if world_id is not None:
-        conditions.append("world_id = :world_id")
+        conditions.append("i.world_id = :world_id")
         params["world_id"] = world_id
     if group_id is not None:
-        conditions.append("group_id = :group_id")
+        conditions.append("i.group_id = :group_id")
         params["group_id"] = group_id
     if region is not None:
-        conditions.append("region = :region")
+        conditions.append("i.region = :region")
         params["region"] = region
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     limit_clause = (
@@ -55,9 +55,13 @@ async def get_instances(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at, closed_at,
-               (SELECT COUNT(*) FROM sessions s WHERE s.instance_id = instances.id AND s.leave_ts IS NULL) AS user_count
-        FROM instances
+        SELECT i.id, i.location_id, i.world_id, w.name AS world_name,
+               i.instance_id, i.group_id, g.name AS group_name,
+               i.group_access_type, i.region, i.friends, i.hidden, i.opened_at, i.closed_at,
+               (SELECT COUNT(*) FROM sessions s WHERE s.instance_id = i.id AND s.leave_ts IS NULL) AS user_count
+        FROM instances i
+        JOIN worlds w ON w.world_id = i.world_id
+        LEFT JOIN groups g ON g.group_id = i.group_id
         {where_clause}
         ORDER BY {sort_by} {order.upper()}
         {limit_clause}
@@ -75,16 +79,17 @@ async def get_presence(
 ) -> list[SessionOut]:
     cursor = await db.execute(
         """
-        SELECT id, instance_id, user_id, display_name, join_ts, leave_ts,
-               COALESCE(duration_seconds,
-                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+        SELECT s.id, s.instance_id, s.user_id, p.display_name, s.join_ts, s.leave_ts,
+               COALESCE(s.duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
-               is_estimated_leave
-        FROM sessions
-        WHERE instance_id = :instance_id
-          AND join_ts  <= :at
-          AND (leave_ts IS NULL OR leave_ts >= :at)
-        ORDER BY join_ts
+               s.is_estimated_leave
+        FROM sessions s
+        JOIN players p ON p.user_id = s.user_id
+        WHERE s.instance_id = :instance_id
+          AND s.join_ts  <= :at
+          AND (s.leave_ts IS NULL OR s.leave_ts >= :at)
+        ORDER BY s.join_ts
         """,
         {"instance_id": instance_id, "at": to_utc_str(at)},
     )
@@ -97,22 +102,22 @@ async def get_location_players(
     instance_id: int,
     sort_by: str = "internal_id",
     order: str = "asc",
-) -> list[PlayerOut]:
+) -> list[LocationPlayerOut]:
     cursor = await db.execute(
         f"""
-        SELECT s.user_id, s.display_name, e.internal_id, s.join_ts,
+        SELECT s.user_id, p.display_name, s.internal_id, s.join_ts,
                (SELECT COUNT(*) FROM sessions s2
                 WHERE s2.user_id = s.user_id AND s2.instance_id = s.instance_id) AS join_count
         FROM sessions s
-        JOIN events e ON e.id = s.join_event_id
+        JOIN players p ON p.user_id = s.user_id
         WHERE s.instance_id = :instance_id
           AND s.leave_ts IS NULL
-        ORDER BY {"s." + sort_by if sort_by in ("display_name", "join_ts") else sort_by} {order.upper()}
+        ORDER BY {"p." + sort_by if sort_by == "display_name" else "s." + sort_by} {order.upper()}
         """,
         {"instance_id": instance_id},
     )
     rows = await cursor.fetchall()
-    return [PlayerOut(**dict(row)) for row in rows]
+    return [LocationPlayerOut(**dict(row)) for row in rows]
 
 
 async def get_location_visitors(
@@ -130,16 +135,17 @@ async def get_location_visitors(
     )
     cursor = await db.execute(
         f"""
-        SELECT user_id, display_name,
-               MIN(join_ts)          AS first_seen,
-               MAX(join_ts)          AS last_seen,
-               COUNT(*)              AS join_count,
-               SUM(COALESCE(duration_seconds,
-                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
-               ))                    AS total_duration_seconds
-        FROM sessions
-        WHERE instance_id = :instance_id
-        GROUP BY user_id
+        SELECT s.user_id, p.display_name,
+               MIN(s.join_ts)          AS first_seen,
+               MAX(s.join_ts)          AS last_seen,
+               COUNT(*)                AS join_count,
+               SUM(COALESCE(s.duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
+               ))                      AS total_duration_seconds
+        FROM sessions s
+        JOIN players p ON p.user_id = s.user_id
+        WHERE s.instance_id = :instance_id
+        GROUP BY s.user_id
         ORDER BY {sort_by} {order.upper()}
         {limit_clause}
         """,
@@ -229,10 +235,11 @@ async def get_location_events(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, event_type, instance_id, world_id, user_id, display_name, internal_id, timestamp
-        FROM events
+        SELECT e.id, e.event_type, e.instance_id, e.world_id, e.user_id, p.display_name, e.timestamp
+        FROM events e
+        JOIN players p ON p.user_id = e.user_id
         WHERE {where}
-        ORDER BY timestamp {order.upper()}
+        ORDER BY e.timestamp {order.upper()}
         {limit_clause}
         """,
         params,
@@ -267,12 +274,13 @@ async def get_location_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT id, instance_id, user_id, display_name, join_ts, leave_ts,
-               COALESCE(duration_seconds,
-                   CAST(ROUND((julianday('now') - julianday(join_ts)) * 86400) AS INTEGER)
+        SELECT s.id, s.instance_id, s.user_id, p.display_name, s.join_ts, s.leave_ts,
+               COALESCE(s.duration_seconds,
+                   CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
-               is_estimated_leave
-        FROM sessions
+               s.is_estimated_leave
+        FROM sessions s
+        JOIN players p ON p.user_id = s.user_id
         WHERE {where}
         ORDER BY {sort_by} {order.upper()}
         {limit_clause}
