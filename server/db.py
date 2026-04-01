@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS events (
     instance_id  INTEGER NOT NULL REFERENCES instances(id),
     world_id     TEXT    NOT NULL,
     user_id      TEXT    NOT NULL REFERENCES players(user_id),
-    timestamp    TEXT    NOT NULL
+    location_id  TEXT    NOT NULL,
+    timestamp    TEXT    NOT NULL,
+    UNIQUE(user_id, event_type, location_id, timestamp)
 );
 CREATE INDEX IF NOT EXISTS idx_events_instance_time ON events(instance_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_user_time     ON events(user_id, timestamp);

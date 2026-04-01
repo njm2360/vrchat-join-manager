@@ -49,11 +49,11 @@ async def insert_event(
         """
         INSERT OR IGNORE INTO events(
             event_type, instance_id, world_id,
-            user_id, timestamp
+            user_id, location_id, timestamp
         )
         VALUES(
             :event_type, :instance_id, :world_id,
-            :user_id, :ts
+            :user_id, :location_id, :ts
         )
         """,
         {
@@ -61,6 +61,7 @@ async def insert_event(
             "instance_id": instance_id,
             "world_id": loc.world_id,
             "user_id": body.user_id,
+            "location_id": body.location_id,
             "ts": ts,
         },
     )
