@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -50,6 +51,7 @@ func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID
 		return
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("SendEvent unexpected status: %d", resp.StatusCode)
 	}
@@ -64,6 +66,7 @@ func (a *ApiClient) CloseLocation(locationID string, ts time.Time) {
 		return
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("CloseLocation unexpected status: %d", resp.StatusCode)
 	}
