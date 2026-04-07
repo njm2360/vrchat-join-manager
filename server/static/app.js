@@ -489,6 +489,51 @@ document.getElementById('ev-ts-header').addEventListener('click', () => {
   loadEvents();
 });
 
+// ── インスタンス比較 ────────────────────────────────────────────
+
+document.getElementById('tl-compare-btn').addEventListener('click', async () => {
+  if (!currentInstanceId) return;
+  const list = document.getElementById('compare-instance-list');
+  list.innerHTML = '<div class="list-group-item text-muted small">読み込み中...</div>';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('compare-modal')).show();
+
+  const res = await fetch('/api/instances');
+  const instances = await res.json();
+  const curStart = new Date(currentInstanceData.opened_at);
+  const curEnd   = currentInstanceData.closed_at ? new Date(currentInstanceData.closed_at) : new Date();
+  const others = instances.filter(inst => {
+    if (inst.id === currentInstanceId) return false;
+    const s = new Date(inst.opened_at);
+    const e = inst.closed_at ? new Date(inst.closed_at) : new Date();
+    return curStart < e && s < curEnd;  // 期間が1秒でもかぶっていれば表示
+  });
+
+  if (others.length === 0) {
+    list.innerHTML = '<div class="list-group-item text-muted small">比較できる他のインスタンスがありません</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for (const inst of others) {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.className = 'list-group-item list-group-item-action py-2';
+    const rangeBadge = inst.closed_at
+      ? `<span class="badge bg-secondary">${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}</span>`
+      : `<span class="badge bg-success">${fmtDate(inst.opened_at)} 〜</span>`;
+    a.innerHTML = `
+      <div class="fw-semibold text-truncate">${escHtml(inst.world_id)}</div>
+      <small class="text-muted">${escHtml(inst.location_id)}</small>
+      <div class="mt-1 small">${rangeBadge}</div>`;
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      bootstrap.Modal.getInstance(document.getElementById('compare-modal')).hide();
+      window.open(`/compare.html?id1=${currentInstanceId}&id2=${inst.id}`, '_blank');
+    });
+    list.appendChild(a);
+  }
+});
+
 document.getElementById('loc-search-btn').addEventListener('click', loadLocations);
 document.getElementById('tl-update-btn').addEventListener('click', loadTimeline);
 document.getElementById('ev-update-btn').addEventListener('click', loadEvents);

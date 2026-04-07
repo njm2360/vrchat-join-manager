@@ -150,6 +150,7 @@
                 <span class="text-muted small">〜</span>
                 <input type="datetime-local" id="tl-end" class="form-control form-control-sm" style="width:auto">
                 <button id="tl-update-btn" class="btn btn-primary btn-sm">更新</button>
+                <button id="tl-compare-btn" class="btn btn-outline-secondary btn-sm ms-auto">他のインスタンスと比較</button>
               </div>
               <div id="chart-wrapper">
                 <canvas id="timeline-chart"></canvas>
@@ -250,6 +251,23 @@
                         </thead>
                         <tbody id="session-modal-tbody"></tbody>
                       </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 比較インスタンス選択モーダル ── -->
+            <div class="modal fade" id="compare-modal" tabindex="-1">
+              <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">比較するインスタンスを選択</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body p-0">
+                    <div id="compare-instance-list" class="list-group list-group-flush">
+                      <div class="list-group-item text-muted small">読み込み中...</div>
                     </div>
                   </div>
                 </div>
