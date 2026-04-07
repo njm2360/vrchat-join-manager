@@ -1,15 +1,17 @@
-from datetime import datetime
-
 import aiosqlite
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 
 from db import get_db
 from models.common import EventOut
 from models.locations import SessionOut
 from models.locations import (
+    CloseLocationRequest,
+    PotentialSession,
     InstanceOut,
     LocationPlayerOut,
     PlayerListOut,
+    RestoreRequest,
     TimelinePoint,
 )
 from repositories import locations as repo
@@ -22,15 +24,36 @@ router = APIRouter(prefix="/api", tags=["instances"])
 @router.post("/locations/{location_id:path}/close", status_code=204)
 async def close_location_by_location_id(
     location_id: str,
-    at: datetime = Query(..., description="一括退室とみなす時刻"),
+    body: CloseLocationRequest,
     db: aiosqlite.Connection = Depends(get_db),
 ) -> None:
-    """クライアント用: location_id からオープン中のインスタンスを探して閉じる"""
     instance_id = await instances_repo.get_open_instance_id(db, location_id)
     if instance_id is not None:
-        ts = to_utc_str(at)
-        await instances_repo.close_location_sessions(db, instance_id, ts)
+        ts = to_utc_str(body.at)
+        await instances_repo.close_location_sessions(db, instance_id, ts, body.user_id)
         await db.commit()
+
+
+@router.get(
+    "/locations/{location_id:path}/potential-sessions",
+    response_model=list[PotentialSession],
+)
+async def get_potential_sessions(
+    location_id: str,
+    db: aiosqlite.Connection = Depends(get_db),
+) -> list[PotentialSession]:
+    rows = await instances_repo.get_potential_sessions(db, location_id)
+    return [PotentialSession(user_id=r[0], internal_id=r[1]) for r in rows]
+
+
+@router.post("/locations/{location_id:path}/resume", status_code=204)
+async def resume_instance(
+    location_id: str,
+    body: RestoreRequest,
+    db: aiosqlite.Connection = Depends(get_db),
+) -> None:
+    await instances_repo.resume_instance(db, location_id, body.user_ids)
+    await db.commit()
 
 
 _INSTANCE_SORT_COLS = {"opened_at", "closed_at"}

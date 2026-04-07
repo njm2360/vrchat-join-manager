@@ -57,6 +57,20 @@ class LocationInfo:
         )
 
 
+class CloseLocationRequest(BaseModel):
+    at: UtcDatetime
+    user_id: str | None = None
+
+
+class PotentialSession(BaseModel):
+    user_id: str
+    internal_id: int
+
+
+class RestoreRequest(BaseModel):
+    user_ids: list[str]
+
+
 class InstanceOut(BaseModel):
     id: int
     location_id: str
