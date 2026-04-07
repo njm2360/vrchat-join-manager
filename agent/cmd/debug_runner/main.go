@@ -29,7 +29,7 @@ func csvToVrcLine(timestampUTC, message string, loc *time.Location) (string, err
 	return t.In(loc).Format("2006.01.02 15:04:05") + " " + message, nil
 }
 
-func procRawLog(path string, parser *core.VRChatLogParser) error {
+func procRawLog(path string, parser *core.LogParser) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func procRawLog(path string, parser *core.VRChatLogParser) error {
 	return nil
 }
 
-func procCSV(path string, parser *core.VRChatLogParser, loc *time.Location) error {
+func procCSV(path string, parser *core.LogParser, loc *time.Location) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func main() {
 		log.Fatalf("LOG_TZ: %v", err)
 	}
 
-	parser := core.NewVRChatLogParser(core.NewApiClient(baseURL), loc)
+	parser := core.NewLogParser(core.NewApiClient(baseURL), loc)
 
 	var procErr error
 	if strings.EqualFold(filepath.Ext(target), ".csv") {

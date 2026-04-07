@@ -47,7 +47,7 @@ func run(ctx context.Context, appDir string) error {
 	apiClient := core.NewApiClient(baseURL)
 	stateFile := filepath.Join(appDir, "state.json")
 	watcher := core.NewLogWatcher(logDir, func(_ string) core.LineHandler {
-		return core.NewVRChatLogParser(apiClient, loc).OnLine
+		return core.NewLogParser(apiClient, loc).OnLine
 	}, stateFile, false)
 
 	log.Printf("Watching: %s", logDir)

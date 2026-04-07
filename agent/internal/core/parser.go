@@ -4,7 +4,6 @@ import (
 	"log"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -18,7 +17,7 @@ var (
 	reDestroying = regexp.MustCompile(`\[Behaviour\] Destroying (.+)`)
 )
 
-type VRChatLogParser struct {
+type LogParser struct {
 	api          *ApiClient
 	loc          *time.Location
 	location     string
@@ -28,8 +27,8 @@ type VRChatLogParser struct {
 	pendingJoins map[string]string // name -> userID
 }
 
-func NewVRChatLogParser(api *ApiClient, loc *time.Location) *VRChatLogParser {
-	return &VRChatLogParser{
+func NewLogParser(api *ApiClient, loc *time.Location) *LogParser {
+	return &LogParser{
 		api:          api,
 		loc:          loc,
 		internalIDs:  make(map[string]int),
@@ -37,7 +36,7 @@ func NewVRChatLogParser(api *ApiClient, loc *time.Location) *VRChatLogParser {
 	}
 }
 
-func (p *VRChatLogParser) parseTimestamp(line string) (time.Time, bool) {
+func (p *LogParser) parseTimestamp(line string) (time.Time, bool) {
 	m := reLogTime.FindStringSubmatch(line)
 	if m == nil {
 		return time.Time{}, false
@@ -49,99 +48,115 @@ func (p *VRChatLogParser) parseTimestamp(line string) (time.Time, bool) {
 	return t.UTC(), true
 }
 
-func (p *VRChatLogParser) closeCurrentLocation(ts time.Time) {
+func (p *LogParser) sendJoin(name, userID string, internalID int, ts time.Time) {
+	log.Printf("JOIN  [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
+	p.api.SendEvent("join", p.location, name, userID, &internalID, ts)
+}
+
+func (p *LogParser) sendLeave(name, userID string, internalID int, ts time.Time) {
+	log.Printf("LEAVE [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
+	p.api.SendEvent("leave", p.location, name, userID, &internalID, ts)
+}
+
+func (p *LogParser) closeCurrentLocation(ts time.Time) {
 	if p.location != "" {
 		log.Printf("Closing location %s at %s", p.location, ts)
 		p.api.CloseLocation(p.location, ts)
 	}
 }
 
-func (p *VRChatLogParser) OnLine(_ string, line string) {
+func (p *LogParser) OnLine(_ string, line string) {
 	ts, ok := p.parseTimestamp(line)
 	if !ok {
 		return
 	}
-
-	// ロケーション移動検知
 	if m := reJoining.FindStringSubmatch(line); m != nil {
-		// Destroying が発火しないことがあるためここでもcloseを呼ぶ
-		p.closeCurrentLocation(ts)
-		p.pendingJoins = make(map[string]string)
-		p.pendingNames = nil
-		p.internalIDs = make(map[string]int)
-		p.localName = ""
-		p.location = m[1]
-		log.Printf("Location: %s", p.location)
+		p.handleJoining(m[1], ts)
 		return
 	}
-
-	// ロケーションが取得できていない場合は処理しない
 	if p.location == "" {
 		return
 	}
-
-	// OnPlayerJoined
 	if m := rePlayerJoin.FindStringSubmatch(line); m != nil {
-		p.pendingJoins[m[1]] = m[2]
+		p.handlePlayerJoin(m[1], m[2])
 		return
 	}
-
-	// Initialized PlayerAPI "XXXX" is (remote | local)
-	if strings.Contains(line, "Initialized PlayerAPI") {
-		if m := rePlayerAPI.FindStringSubmatch(line); m != nil {
-			name, kind := m[1], m[2]
-			p.pendingNames = append(p.pendingNames, name)
-			if kind == "local" {
-				p.localName = name
-			}
-		}
+	if m := rePlayerAPI.FindStringSubmatch(line); m != nil {
+		p.handlePlayerAPI(m[1], m[2])
 		return
 	}
-
-	// Restored player N
 	if m := reRestored.FindStringSubmatch(line); m != nil {
-		if len(p.pendingNames) > 0 {
-			name := p.pendingNames[0]
-			p.pendingNames = p.pendingNames[1:]
-			internalID, _ := strconv.Atoi(m[1])
-			p.internalIDs[name] = internalID
-			if userID, ok := p.pendingJoins[name]; ok {
-				delete(p.pendingJoins, name)
-				log.Printf("JOIN  [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-				id := internalID
-				p.api.SendEvent("join", p.location, name, userID, &id, ts)
-			}
-		}
+		p.handleRestored(m[1], ts)
 		return
 	}
-
-	// OnPlayerLeft
 	if m := rePlayerLeft.FindStringSubmatch(line); m != nil {
-		name, userID := m[1], m[2]
-		delete(p.pendingJoins, name)
-		// pendingNames から削除（正常にJoinされなかったユーザーの対応）
-		for i, n := range p.pendingNames {
-			if n == name {
-				p.pendingNames = append(p.pendingNames[:i], p.pendingNames[i+1:]...)
-				break
-			}
-		}
-		// Restored player が出ていないユーザーはLEAVE判定をスキップ
-		internalID, hasID := p.internalIDs[name]
-		if !hasID {
-			return
-		}
-		log.Printf("LEAVE [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-		id := internalID
-		p.api.SendEvent("leave", p.location, name, userID, &id, ts)
-		delete(p.internalIDs, name)
+		p.handlePlayerLeft(m[1], m[2], ts)
 		return
 	}
-
-	// インスタンス移動 or アプリ終了時: Destroying <local_name>
-	if p.localName != "" && strings.Contains(line, "Destroying") {
-		if m := reDestroying.FindStringSubmatch(line); m != nil && m[1] == p.localName {
-			p.closeCurrentLocation(ts)
+	if p.localName != "" {
+		m := reDestroying.FindStringSubmatch(line)
+		if m != nil && m[1] == p.localName {
+			p.handleDestroying(ts)
 		}
 	}
+}
+
+func (p *LogParser) handleJoining(worldID string, ts time.Time) {
+	p.closeCurrentLocation(ts) // Destroying が発火しないことがあるためここでもcloseを呼ぶ
+	p.location = worldID
+	p.pendingJoins = make(map[string]string)
+	p.pendingNames = nil
+	p.internalIDs = make(map[string]int)
+	p.localName = ""
+	log.Printf("Location: %s", p.location)
+}
+
+func (p *LogParser) handlePlayerJoin(name, userID string) {
+	p.pendingJoins[name] = userID
+}
+
+func (p *LogParser) handlePlayerAPI(name, kind string) {
+	p.pendingNames = append(p.pendingNames, name)
+	if kind == "local" {
+		p.localName = name
+	}
+}
+
+func (p *LogParser) handleRestored(rawID string, ts time.Time) {
+	if len(p.pendingNames) == 0 {
+		return
+	}
+	name := p.pendingNames[0]
+	p.pendingNames = p.pendingNames[1:]
+	internalID, _ := strconv.Atoi(rawID)
+	p.internalIDs[name] = internalID
+
+	userID, ok := p.pendingJoins[name]
+	if !ok {
+		return
+	}
+	delete(p.pendingJoins, name)
+	p.sendJoin(name, userID, internalID, ts)
+}
+
+func (p *LogParser) handlePlayerLeft(name, userID string, ts time.Time) {
+	delete(p.pendingJoins, name)
+	// pendingNames から削除（正常にJoinされなかったユーザーの対応）
+	for i, n := range p.pendingNames {
+		if n == name {
+			p.pendingNames = append(p.pendingNames[:i], p.pendingNames[i+1:]...)
+			break
+		}
+	}
+	// Restored player が出ていないユーザーはLEAVE判定をスキップ
+	internalID, hasID := p.internalIDs[name]
+	if !hasID {
+		return
+	}
+	p.sendLeave(name, userID, internalID, ts)
+	delete(p.internalIDs, name)
+}
+
+func (p *LogParser) handleDestroying(ts time.Time) {
+	p.closeCurrentLocation(ts)
 }
