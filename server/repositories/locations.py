@@ -57,7 +57,7 @@ async def get_instances(
         f"""
         SELECT i.id, i.location_id, i.world_id, w.name AS world_name,
                i.instance_id, i.group_id, g.name AS group_name,
-               i.group_access_type, i.region, i.friends, i.hidden, i.opened_at, i.closed_at,
+               i.group_access_type, i.region, i.friends, i.hidden, i.private, i.opened_at, i.closed_at,
                (SELECT COUNT(*) FROM sessions s WHERE s.instance_id = i.id AND s.leave_ts IS NULL) AS user_count
         FROM instances i
         JOIN worlds w ON w.world_id = i.world_id

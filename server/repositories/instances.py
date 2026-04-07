@@ -11,20 +11,15 @@ async def get_or_create_instance(
     region: str | None,
     friends: str | None,
     hidden: str | None,
+    private: str | None,
     ts: str,
 ) -> int:
     """joinイベント用: オープン中のインスタンスがあればそれを返し、なければ新規作成する。"""
     cur = await db.execute(
-        "SELECT id FROM instances WHERE location_id = ? AND closed_at IS NULL",
-        (location_id,),
-    )
-    row = await cur.fetchone()
-    if row:
-        return row[0]
-    cur = await db.execute(
-        """INSERT INTO instances
-               (location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, opened_at)
-           VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT OR IGNORE INTO instances
+               (location_id, world_id, instance_id, group_id, group_access_type, region, friends, hidden, private, opened_at)
+           VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           RETURNING id""",
         (
             location_id,
             world_id,
@@ -34,10 +29,19 @@ async def get_or_create_instance(
             region,
             friends,
             hidden,
+            private,
             ts,
         ),
     )
-    return cur.lastrowid
+    row = await cur.fetchone()
+    if row:
+        return row[0]
+    cur = await db.execute(
+        "SELECT id FROM instances WHERE location_id = ? AND closed_at IS NULL",
+        (location_id,),
+    )
+    row = await cur.fetchone()
+    return row[0]
 
 
 async def get_open_instance_id(

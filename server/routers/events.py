@@ -5,7 +5,8 @@ from db import get_db
 from models.events import PlayerEvent
 from repositories import events as repo
 from repositories import instances as instances_repo
-from utils import LocationInfo, parse_location_id, to_utc_str
+from models.locations import LocationInfo
+from utils import to_utc_str
 
 router = APIRouter(prefix="/api", tags=["events"])
 
@@ -16,7 +17,7 @@ async def receive_event(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> None:
     ts = to_utc_str(body.timestamp)
-    loc: LocationInfo = parse_location_id(body.location_id)
+    loc: LocationInfo = LocationInfo.parse(body.location_id)
 
     await repo.upsert_player(db, body.user_id, body.name, ts)
 
@@ -34,16 +35,17 @@ async def receive_event(
             loc.region,
             loc.friends,
             loc.hidden,
+            loc.private,
             ts,
         )
-        event_id = await repo.insert_event(db, body, instance_id, ts)
+        event_id = await repo.insert_event(db, body, instance_id, ts, loc.world_id)
         if event_id is not None:
-            await repo.open_session(db, body, instance_id, event_id, ts)
+            await repo.open_session(db, body, instance_id, event_id, ts, loc.world_id)
 
     elif body.event == "leave":
         instance_id = await instances_repo.get_open_instance_id(db, body.location_id)
         if instance_id is not None:
-            event_id = await repo.insert_event(db, body, instance_id, ts)
+            event_id = await repo.insert_event(db, body, instance_id, ts, loc.world_id)
             if event_id is not None:
                 await repo.close_session(db, body.user_id, instance_id, event_id, ts)
 

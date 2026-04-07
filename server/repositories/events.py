@@ -1,7 +1,6 @@
 import aiosqlite
 
 from models.events import PlayerEvent
-from utils import parse_location_id
 
 
 async def upsert_group(db: aiosqlite.Connection, group_id: str, ts: str) -> None:
@@ -42,9 +41,12 @@ async def upsert_player(
 
 
 async def insert_event(
-    db: aiosqlite.Connection, body: PlayerEvent, instance_id: int, ts: str
+    db: aiosqlite.Connection,
+    body: PlayerEvent,
+    instance_id: int,
+    ts: str,
+    world_id: str,
 ) -> int | None:
-    loc = parse_location_id(body.location_id)
     cursor = await db.execute(
         """
         INSERT OR IGNORE INTO events(
@@ -59,7 +61,7 @@ async def insert_event(
         {
             "event_type": body.event,
             "instance_id": instance_id,
-            "world_id": loc.world_id,
+            "world_id": world_id,
             "user_id": body.user_id,
             "location_id": body.location_id,
             "ts": ts,
@@ -74,38 +76,28 @@ async def open_session(
     instance_id: int,
     event_id: int,
     ts: str,
+    world_id: str,
 ) -> None:
-    loc = parse_location_id(body.location_id)
-    # 同インスタンスにオープンセッションが既にあれば重複とみなしてスキップ
-    cur = await db.execute(
+    await db.execute(
         """
-        SELECT 1 FROM sessions
-        WHERE user_id = :user_id AND instance_id = :instance_id AND leave_ts IS NULL
-        LIMIT 1
-        """,
-        {"user_id": body.user_id, "instance_id": instance_id},
-    )
-    if await cur.fetchone() is None:
-        await db.execute(
-            """
-            INSERT INTO sessions(
-                instance_id, world_id,
-                user_id, internal_id, join_event_id, join_ts
-            )
-            VALUES(
-                :instance_id, :world_id,
-                :user_id, :internal_id, :join_event_id, :join_ts
-            )
-            """,
-            {
-                "instance_id": instance_id,
-                "world_id": loc.world_id,
-                "user_id": body.user_id,
-                "internal_id": body.internal_id,
-                "join_event_id": event_id,
-                "join_ts": ts,
-            },
+        INSERT OR IGNORE INTO sessions(
+            instance_id, world_id,
+            user_id, internal_id, join_event_id, join_ts
         )
+        VALUES(
+            :instance_id, :world_id,
+            :user_id, :internal_id, :join_event_id, :join_ts
+        )
+        """,
+        {
+            "instance_id": instance_id,
+            "world_id": world_id,
+            "user_id": body.user_id,
+            "internal_id": body.internal_id,
+            "join_event_id": event_id,
+            "join_ts": ts,
+        },
+    )
 
 
 async def close_session(

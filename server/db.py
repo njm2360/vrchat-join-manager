@@ -37,11 +37,13 @@ CREATE TABLE IF NOT EXISTS instances (
     region            TEXT,
     friends           TEXT,
     hidden            TEXT,
+    private           TEXT,
     opened_at         TEXT    NOT NULL,
     closed_at         TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_instances_location ON instances(location_id);
 CREATE INDEX IF NOT EXISTS idx_instances_group    ON instances(group_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_instances_open ON instances(location_id) WHERE closed_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS events (
     id           INTEGER PRIMARY KEY,
@@ -72,6 +74,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_instance_time ON sessions(instance_id, join_ts, leave_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_time     ON sessions(user_id, join_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_world_time    ON sessions(world_id, join_ts);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sessions_open    ON sessions(user_id, instance_id) WHERE leave_ts IS NULL;
 """
 
 

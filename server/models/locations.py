@@ -1,6 +1,60 @@
 from pydantic import BaseModel
+from dataclasses import dataclass
 
 from models.common import UtcDatetime
+
+
+@dataclass(slots=True)
+class LocationInfo:
+    world_id: str
+    instance_id: str
+    region: str
+    group_id: str | None = None
+    group_access_type: str | None = None
+    friends: str | None = None
+    hidden: str | None = None
+    private: str | None = None
+
+    @classmethod
+    def parse(cls, location_id: str) -> "LocationInfo":
+        world_part, _, rest = location_id.partition(":")
+        parts = rest.split("~")
+        if not world_part or not parts[0]:
+            raise ValueError(f"Invalid location_id: {location_id!r}")
+
+        region: str | None = None
+        group_id = group_access_type = friends = hidden = private = None
+        for part in parts[1:]:
+            if "(" not in part or not part.endswith(")"):
+                continue
+            key, _, val = part.partition("(")
+            val = val[:-1]
+            if key == "region":
+                region = val
+            elif key == "group":
+                group_id = val
+            elif key == "groupAccessType":
+                group_access_type = val
+            elif key == "friends":
+                friends = val
+            elif key == "hidden":
+                hidden = val
+            elif key == "private":
+                private = val
+
+        if region is None:
+            raise ValueError(f"region missing in location_id: {location_id!r}")
+
+        return cls(
+            world_id=world_part,
+            instance_id=parts[0],
+            region=region,
+            group_id=group_id,
+            group_access_type=group_access_type,
+            friends=friends,
+            hidden=hidden,
+            private=private,
+        )
 
 
 class InstanceOut(BaseModel):
@@ -15,6 +69,7 @@ class InstanceOut(BaseModel):
     region: str | None
     friends: str | None
     hidden: str | None
+    private: str | None
     opened_at: UtcDatetime
     closed_at: UtcDatetime | None
     user_count: int
