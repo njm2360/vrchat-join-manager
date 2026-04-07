@@ -57,6 +57,50 @@ func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID
 	}
 }
 
+type PotentialSession struct {
+	UserID     string `json:"user_id"`
+	InternalID int    `json:"internal_id"`
+}
+
+func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession, error) {
+	url := fmt.Sprintf("%s/api/locations/%s/potential-sessions", a.baseURL, locationID)
+	resp, err := a.client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("GetPotentialSessions request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		io.Copy(io.Discard, resp.Body)
+		return nil, fmt.Errorf("GetPotentialSessions unexpected status: %d", resp.StatusCode)
+	}
+	var result []PotentialSession
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("GetPotentialSessions decode: %w", err)
+	}
+	return result, nil
+}
+
+func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
+	type payload struct {
+		UserIDs []string `json:"user_ids"`
+	}
+	body, err := json.Marshal(payload{UserIDs: userIDs})
+	if err != nil {
+		return fmt.Errorf("ResumeInstance marshal: %w", err)
+	}
+	url := fmt.Sprintf("%s/api/locations/%s/resume", a.baseURL, locationID)
+	resp, err := a.client.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("ResumeInstance request: %w", err)
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("ResumeInstance unexpected status: %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func (a *ApiClient) CloseLocation(locationID string, userID string, ts time.Time) {
 	type closeBody struct {
 		At     string `json:"at"`
