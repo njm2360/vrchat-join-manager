@@ -1,6 +1,6 @@
 import aiosqlite
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import get_db
 from models.common import EventOut
@@ -92,6 +92,17 @@ async def get_instances(
         limit,
         offset,
     )
+
+
+@router.get("/instances/{instance_id}", response_model=InstanceOut)
+async def get_instance(
+    instance_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+) -> InstanceOut:
+    inst = await repo.get_instance(db, instance_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="instance not found")
+    return inst
 
 
 @router.get("/instances/{instance_id}/presence", response_model=list[SessionOut])

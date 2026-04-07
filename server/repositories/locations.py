@@ -72,6 +72,29 @@ async def get_instances(
     return [InstanceOut(**dict(row)) for row in rows]
 
 
+async def get_instance(
+    db: aiosqlite.Connection,
+    instance_id: int,
+) -> InstanceOut | None:
+    cursor = await db.execute(
+        """
+        SELECT i.id, i.location_id, i.world_id, w.name AS world_name,
+               i.instance_id, i.group_id, g.name AS group_name,
+               i.group_access_type, i.region, i.friends, i.hidden, i.private, i.opened_at, i.closed_at,
+               (SELECT COUNT(*) FROM sessions s WHERE s.instance_id = i.id AND s.leave_ts IS NULL) AS user_count
+        FROM instances i
+        JOIN worlds w ON w.world_id = i.world_id
+        LEFT JOIN groups g ON g.group_id = i.group_id
+        WHERE i.id = :instance_id
+        """,
+        {"instance_id": instance_id},
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    return InstanceOut(**dict(row))
+
+
 async def get_presence(
     db: aiosqlite.Connection,
     instance_id: int,
