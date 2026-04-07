@@ -57,10 +57,22 @@ func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID
 	}
 }
 
-func (a *ApiClient) CloseLocation(locationID string, ts time.Time) {
-	url := fmt.Sprintf("%s/api/locations/%s/close?at=%s",
-		a.baseURL, locationID, ts.UTC().Format("2006-01-02T15:04:05Z"))
-	resp, err := a.client.Post(url, "", http.NoBody)
+func (a *ApiClient) CloseLocation(locationID string, userID string, ts time.Time) {
+	type closeBody struct {
+		At     string `json:"at"`
+		UserID string `json:"user_id,omitempty"`
+	}
+	payload := closeBody{
+		At:     ts.UTC().Format("2006-01-02T15:04:05Z"),
+		UserID: userID,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("CloseLocation marshal: %v", err)
+		return
+	}
+	url := fmt.Sprintf("%s/api/locations/%s/close", a.baseURL, locationID)
+	resp, err := a.client.Post(url, "application/json", bytes.NewReader(body))
 	if err != nil {
 		log.Printf("CloseLocation failed: %v", err)
 		return

@@ -22,6 +22,7 @@ type LogParser struct {
 	loc          *time.Location
 	location     string
 	localName    string
+	localUserID  string
 	pendingNames []string          // FIFO queue
 	internalIDs  map[string]int    // name -> internal player ID
 	pendingJoins map[string]string // name -> userID
@@ -61,7 +62,7 @@ func (p *LogParser) sendLeave(name, userID string, internalID int, ts time.Time)
 func (p *LogParser) closeCurrentLocation(ts time.Time) {
 	if p.location != "" {
 		log.Printf("Closing location %s at %s", p.location, ts)
-		p.api.CloseLocation(p.location, ts)
+		p.api.CloseLocation(p.location, p.localUserID, ts)
 	}
 }
 
@@ -108,6 +109,7 @@ func (p *LogParser) handleJoining(worldID string, ts time.Time) {
 	p.pendingNames = nil
 	p.internalIDs = make(map[string]int)
 	p.localName = ""
+	p.localUserID = ""
 	log.Printf("Location: %s", p.location)
 }
 
@@ -136,6 +138,10 @@ func (p *LogParser) handleRestored(rawID string, ts time.Time) {
 		return
 	}
 	delete(p.pendingJoins, name)
+
+	if name == p.localName {
+		p.localUserID = userID
+	}
 	p.sendJoin(name, userID, internalID, ts)
 }
 
@@ -158,5 +164,8 @@ func (p *LogParser) handlePlayerLeft(name, userID string, ts time.Time) {
 }
 
 func (p *LogParser) handleDestroying(ts time.Time) {
+	if id, ok := p.internalIDs[p.localName]; ok {
+		p.sendLeave(p.localName, p.localUserID, id, ts)
+	}
 	p.closeCurrentLocation(ts)
 }
