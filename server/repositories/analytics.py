@@ -212,8 +212,9 @@ async def get_join_violation_rankings(
     order: str = "desc",
     limit: int | None = None,
     offset: int = 0,
+    allow_diff: int = 0,
 ) -> list[JoinViolationRankOut]:
-    params: dict = {"group_id": group_id}
+    params: dict = {"group_id": group_id, "allow_diff": allow_diff}
     time_conditions: list[str] = []
     if start is not None:
         time_conditions.append("s.join_ts >= :start")
@@ -271,7 +272,7 @@ async def get_join_violation_rankings(
         user_stats AS (
             SELECT
                 user_id,
-                SUM(CASE WHEN my_count > other_count THEN 1 ELSE 0 END) AS violation_count,
+                SUM(CASE WHEN my_count - other_count > :allow_diff THEN 1 ELSE 0 END) AS violation_count,
                 COUNT(*) AS total_joins
             FROM with_other
             GROUP BY user_id
