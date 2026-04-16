@@ -213,6 +213,7 @@ async def get_join_violation_rankings(
     limit: int | None = None,
     offset: int = 0,
     allow_diff: int = 0,
+    min_duration: int | None = None,
 ) -> list[JoinViolationRankOut]:
     params: dict = {"group_id": group_id, "allow_diff": allow_diff}
     time_conditions: list[str] = []
@@ -222,6 +223,11 @@ async def get_join_violation_rankings(
     if end is not None:
         time_conditions.append("s.join_ts <= :end")
         params["end"] = to_utc_str(end)
+    if min_duration is not None:
+        time_conditions.append(
+            "CAST(ROUND((julianday(COALESCE(s.leave_ts, 'now')) - julianday(s.join_ts)) * 86400) AS INTEGER) >= :min_duration"
+        )
+        params["min_duration"] = min_duration
     time_where = ("AND " + " AND ".join(time_conditions)) if time_conditions else ""
 
     limit_clause = (
