@@ -22,9 +22,9 @@ function showTab(tab) {
   document.getElementById('tab-players').classList.toggle('d-none', tab !== 'players');
   document.getElementById('tab-visitors').classList.toggle('d-none', tab !== 'visitors');
   if (tab === 'timeline') loadTimeline();
-  if (tab === 'events')   loadEvents();
+  if (tab === 'events') loadEvents();
   if (tab === 'sessions') loadSessions();
-  if (tab === 'players')  loadPlayers();
+  if (tab === 'players') loadPlayers();
   if (tab === 'visitors') loadVisitors();
 }
 
@@ -32,10 +32,10 @@ function showTab(tab) {
 
 async function loadLocations() {
   const start = document.getElementById('loc-start').value;
-  const end   = document.getElementById('loc-end').value;
+  const end = document.getElementById('loc-end').value;
   const params = new URLSearchParams();
   if (start) params.set('start', toISO(start));
-  if (end)   params.set('end',   toISO(end));
+  if (end) params.set('end', toISO(end));
 
   const res = await fetch('/api/instances?' + params);
   const instances = await res.json();
@@ -71,7 +71,15 @@ async function loadLocations() {
     list.appendChild(a);
   }
 
-  if (currentInstanceId) setActiveItem(currentInstanceId);
+  if (currentInstanceId) {
+    setActiveItem(currentInstanceId);
+  } else {
+    const autoId = Number(new URLSearchParams(location.search).get('instance'));
+    if (autoId) {
+      const inst = instances.find(i => i.id === autoId);
+      if (inst) selectInstance(inst);
+    }
+  }
 }
 
 // ── インスタンス選択 ─────────────────────────────────────────────
@@ -80,6 +88,9 @@ function selectInstance(inst) {
   currentInstanceId = inst.id;
   currentInstanceData = inst;
   setActiveItem(inst.id);
+  const url = new URL(location.href);
+  url.searchParams.set('instance', inst.id);
+  history.replaceState(null, '', url);
   showTab(currentTab);
   // モバイル: 詳細画面へ切り替え
   if (window.innerWidth < 768) {
@@ -99,9 +110,9 @@ async function loadTimeline() {
   if (!currentInstanceId) return;
   const params = new URLSearchParams();
   const start = document.getElementById('tl-start').value;
-  const end   = document.getElementById('tl-end').value;
+  const end = document.getElementById('tl-end').value;
   if (start) params.set('start', toISO(start));
-  if (end)   params.set('end',   toISO(end));
+  if (end) params.set('end', toISO(end));
 
   const res = await fetch(`/api/instances/${currentInstanceId}/presence-timeline?${params}`);
   const data = await res.json();
@@ -113,9 +124,9 @@ function renderChart(data) {
   const ctx = document.getElementById('timeline-chart').getContext('2d');
   const isOngoing = currentInstanceData && !currentInstanceData.closed_at;
   const xMax = isOngoing ? new Date() : undefined;
-  const points = data.map(d => ({ x: new Date(d.timestamp), y: d.count }));
+  const points = data.map(d => ({ x: new Date(d.timestamp), y: d.count, displayName: d.display_name }));
   if (isOngoing && points.length > 0) {
-    points.push({ x: xMax, y: points[points.length - 1].y });
+    points.push({ x: xMax, y: points[points.length - 1].y, displayName: null });
   }
   chart = new Chart(ctx, {
     type: 'line',
@@ -150,7 +161,11 @@ function renderChart(data) {
         tooltip: {
           callbacks: {
             title: items => new Date(items[0].parsed.x).toLocaleString('ja-JP'),
-            label: items => ` ${items.parsed.y} 人`
+            label: items => ` ${items.parsed.y} 人`,
+            afterLabel: items => {
+              const name = items.dataset.data[items.dataIndex].displayName;
+              return name ? ` ${name}` : '';
+            }
           }
         },
         legend: { display: false }
@@ -167,9 +182,9 @@ async function loadEvents() {
   if (!currentInstanceId) return;
   const params = new URLSearchParams({ order: evOrder });
   const start = document.getElementById('ev-start').value;
-  const end   = document.getElementById('ev-end').value;
+  const end = document.getElementById('ev-end').value;
   if (start) params.set('start', toISO(start));
-  if (end)   params.set('end',   toISO(end));
+  if (end) params.set('end', toISO(end));
 
   document.getElementById('ev-sort-indicator').textContent = evOrder === 'asc' ? ' ▲' : ' ▼';
 
@@ -335,11 +350,11 @@ function renderPlayerTimeline(sessions, instanceData) {
   const container = document.getElementById('session-modal-timeline');
 
   const instStart = new Date(instanceData.opened_at).getTime();
-  const instEnd   = instanceData.closed_at ? new Date(instanceData.closed_at).getTime() : Date.now();
-  const total     = instEnd - instStart;
+  const instEnd = instanceData.closed_at ? new Date(instanceData.closed_at).getTime() : Date.now();
+  const total = instEnd - instStart;
   if (total <= 0) { container.innerHTML = ''; return; }
 
-  const VW   = 1000;
+  const VW = 1000;
   const BAR_H = 26;
 
   const toX = ts => ((new Date(ts).getTime() - instStart) / total) * VW;
@@ -347,7 +362,7 @@ function renderPlayerTimeline(sessions, instanceData) {
   const bars = sessions.map((s, i) => {
     const x1 = toX(s.join_ts);
     const x2 = s.leave_ts ? toX(s.leave_ts) : VW;
-    const w  = Math.max(3, x2 - x1);
+    const w = Math.max(3, x2 - x1);
     return `<rect class="tl-bar" data-idx="${i}" x="${x1.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${BAR_H}" fill="rgba(13,110,253,0.55)" stroke="none" rx="2"/>`;
   }).join('');
 
@@ -375,9 +390,9 @@ async function loadSessions() {
   if (!currentInstanceId) return;
   const params = new URLSearchParams({ sort_by: ssSort.by, order: ssSort.order });
   const start = document.getElementById('ss-start').value;
-  const end   = document.getElementById('ss-end').value;
+  const end = document.getElementById('ss-end').value;
   if (start) params.set('start', toISO(start));
-  if (end)   params.set('end',   toISO(end));
+  if (end) params.set('end', toISO(end));
 
   const res = await fetch(`/api/instances/${currentInstanceId}/sessions?${params}`);
   const sessions = await res.json();
@@ -430,31 +445,6 @@ function toISO(localDatetime) {
   return new Date(localDatetime).toISOString();
 }
 
-function fmtDate(iso) {
-  return new Date(iso).toLocaleString('ja-JP', {
-    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-  });
-}
-
-function fmtDateFull(iso) {
-  return new Date(iso).toLocaleString('ja-JP', {
-    month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
-}
-
-function escHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function fmtDuration(sec) {
-  if (sec < 60)   return `${sec}秒`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}分${sec % 60}秒`;
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  return `${h}時間${m}分`;
-}
-
 // ── イベント登録 ────────────────────────────────────────────────
 
 document.querySelectorAll('#visitor-thead th[data-sort]').forEach(th => {
@@ -500,7 +490,7 @@ document.getElementById('tl-compare-btn').addEventListener('click', async () => 
   const res = await fetch('/api/instances');
   const instances = await res.json();
   const curStart = new Date(currentInstanceData.opened_at);
-  const curEnd   = currentInstanceData.closed_at ? new Date(currentInstanceData.closed_at) : new Date();
+  const curEnd = currentInstanceData.closed_at ? new Date(currentInstanceData.closed_at) : new Date();
   const others = instances.filter(inst => {
     if (inst.id === currentInstanceId) return false;
     const s = new Date(inst.opened_at);

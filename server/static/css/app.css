@@ -1,0 +1,58 @@
+html,
+body {
+  height: 100%;
+}
+
+@media (min-width: 768px) {
+  #sidebar {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 767.98px) {
+  #sidebar {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+}
+
+.location-item small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+#event-table-wrapper {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.tl-bar {
+  cursor: default;
+  transition: fill 0.12s;
+}
+
+#main-tabs .nav-link {
+  white-space: nowrap;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+}
+
+.table-scroll-wrapper th,
+.table-scroll-wrapper td {
+  white-space: nowrap;
+}
+
+#main-tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#main-tabs::-webkit-scrollbar {
+  display: none;
+}

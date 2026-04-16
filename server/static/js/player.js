@@ -1,7 +1,7 @@
-const urlParams   = new URLSearchParams(location.search);
-const userId      = urlParams.get('user_id') || '';
+const urlParams = new URLSearchParams(location.search);
+const userId = urlParams.get('user_id') || '';
 const displayName = urlParams.get('display_name') || userId;
-const worldId     = urlParams.get('world_id') || '';
+const worldId = urlParams.get('world_id') || '';
 
 document.getElementById('player-heading').textContent = displayName + ' のセッション履歴';
 document.title = displayName + ' — セッション履歴';
@@ -17,7 +17,7 @@ if (worldId) {
 }
 
 const now = new Date();
-let curYear  = now.getFullYear();
+let curYear = now.getFullYear();
 let curMonth = now.getMonth(); // 0-based
 
 document.getElementById('prev-btn').addEventListener('click', () => {
@@ -42,11 +42,11 @@ async function loadMonth() {
 
   // 前月末日から開始し、月をまたぐセッションも拾う
   const start = new Date(curYear, curMonth, 0);        // 前月最終日
-  const end   = new Date(curYear, curMonth + 1, 1);    // 翌月1日
+  const end = new Date(curYear, curMonth + 1, 1);    // 翌月1日
 
   const params = new URLSearchParams({
     start: start.toISOString(),
-    end:   end.toISOString(),
+    end: end.toISOString(),
     order: 'asc',
     limit: 2000,
   });
@@ -61,39 +61,39 @@ async function loadMonth() {
 
 function renderMonth(sessions) {
   const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
-  const nowMs       = Date.now();
-  const DAY_MS      = 86400000;
-  const DOW         = ['日', '月', '火', '水', '木', '金', '土'];
+  const nowMs = Date.now();
+  const DAY_MS = 86400000;
+  const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
   const rows = [];
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dayStart = new Date(curYear, curMonth, d).getTime();
-    const dayEnd   = dayStart + DAY_MS;
+    const dayEnd = dayStart + DAY_MS;
 
     const segs = [];
     for (const s of sessions) {
       const sStart = new Date(s.join_ts).getTime();
-      const sEnd   = s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs;
+      const sEnd = s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs;
       if (sStart >= dayEnd || sEnd <= dayStart) continue;
 
       const segStart = Math.max(sStart, dayStart);
-      const segEnd   = Math.min(sEnd, dayEnd);
-      const leftPct  = (segStart - dayStart) / DAY_MS * 100;
+      const segEnd = Math.min(sEnd, dayEnd);
+      const leftPct = (segStart - dayStart) / DAY_MS * 100;
       const widthPct = Math.max(0.2, (segEnd - segStart) / DAY_MS * 100);
 
       segs.push({ s, leftPct, widthPct });
     }
 
-    const dow   = new Date(curYear, curMonth, d).getDay();
+    const dow = new Date(curYear, curMonth, d).getDay();
     const color = dow === 0 ? 'text-danger' : dow === 6 ? 'text-primary' : '';
 
     const segsHtml = segs.map(({ s, leftPct, widthPct }) =>
       `<div class="seg"
          style="left:${leftPct.toFixed(3)}%;width:${widthPct.toFixed(3)}%"
-         data-join="${esc(fmtFull(s.join_ts))}"
-         data-leave="${esc(s.leave_ts ? fmtFull(s.leave_ts) : '在室中')}${s.is_estimated_leave ? ' (推定)' : ''}"
-         data-dur="${esc(s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—')}"
+         data-join="${escHtml(fmtDateFull(s.join_ts))}"
+         data-leave="${escHtml(s.leave_ts ? fmtDateFull(s.leave_ts) : '在室中')}${s.is_estimated_leave ? ' (推定)' : ''}"
+         data-dur="${escHtml(s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—')}"
        ></div>`
     ).join('');
 
@@ -124,7 +124,7 @@ function renderMonth(sessions) {
       // 右端にはみ出さないよう補正
       const maxX = window.innerWidth - tooltip.offsetWidth - 8;
       tooltip.style.left = Math.min(tx, maxX) + 'px';
-      tooltip.style.top  = ty + 'px';
+      tooltip.style.top = ty + 'px';
     });
     seg.addEventListener('mouseleave', () => {
       tooltip.style.display = 'none';
@@ -132,29 +132,5 @@ function renderMonth(sessions) {
   });
 }
 
-// ── ユーティリティ ──────────────────────────────────────────────
-
-function fmtFull(iso) {
-  return new Date(iso).toLocaleString('ja-JP', {
-    month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
-}
-
-function fmtDuration(sec) {
-  if (sec < 60)   return `${sec}秒`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}分${sec % 60}秒`;
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  return `${h}時間${m}分`;
-}
-
-function esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 loadMonth();

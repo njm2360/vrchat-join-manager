@@ -6,75 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VRChat Join Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/app.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <style>
-    html,
-    body {
-      height: 100%;
-    }
-
-    @media (min-width: 768px) {
-      #sidebar {
-        height: calc(100vh - 56px);
-        overflow-y: auto;
-      }
-    }
-
-    @media (max-width: 767.98px) {
-      #sidebar {
-        height: calc(100vh - 56px);
-        overflow-y: auto;
-      }
-    }
-
-    #chart-wrapper {
-      position: relative;
-      height: 420px;
-    }
-
-    .location-item small {
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
-
-    #event-table-wrapper {
-      max-height: 520px;
-      overflow-y: auto;
-    }
-
-    .tl-bar {
-      cursor: default;
-      transition: fill 0.12s;
-    }
-
-    #main-tabs .nav-link {
-      white-space: nowrap;
-    }
-
-    .table-scroll-wrapper {
-      overflow-x: auto;
-    }
-
-    .table-scroll-wrapper th,
-    .table-scroll-wrapper td {
-      white-space: nowrap;
-    }
-
-    #main-tabs {
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    #main-tabs::-webkit-scrollbar {
-      display: none;
-    }
-  </style>
 </head>
 
 <body>
@@ -166,19 +103,23 @@
                 <button id="ss-update-btn" class="btn btn-primary btn-sm">更新</button>
               </div>
               <div class="table-scroll-wrapper">
-              <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
-                <table class="table table-sm table-hover mb-0">
-                  <thead class="table-light sticky-top" id="session-thead">
-                    <tr>
-                      <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="join_ts" style="width:140px;cursor:pointer">入室<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="leave_ts" style="width:140px;cursor:pointer">退室<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="duration_seconds" style="width:90px;cursor:pointer" class="text-end">滞在時間<span class="sort-indicator text-muted"></span></th>
-                    </tr>
-                  </thead>
-                  <tbody id="session-tbody"></tbody>
-                </table>
-              </div>
+                <div id="session-table-wrapper" style="max-height:520px;overflow-y:auto">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top" id="session-thead">
+                      <tr>
+                        <th data-sort="display_name" style="cursor:pointer">名前<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="join_ts" style="width:140px;cursor:pointer">入室<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="leave_ts" style="width:140px;cursor:pointer">退室<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="duration_seconds" style="width:90px;cursor:pointer" class="text-end">滞在時間<span
+                            class="sort-indicator text-muted"></span></th>
+                      </tr>
+                    </thead>
+                    <tbody id="session-tbody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -189,16 +130,19 @@
                 <span id="pl-count" class="fs-4 fw-bold"></span>
               </div>
               <div class="table-scroll-wrapper">
-              <table class="table table-sm table-hover mb-0">
-                <thead class="table-light" id="player-thead">
-                  <tr>
-                    <th data-sort="internal_id" style="width:60px;cursor:pointer" class="text-end">ID<span class="sort-indicator text-muted"></span></th>
-                    <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
-                    <th data-sort="join_ts" style="width:140px;cursor:pointer">入室日時<span class="sort-indicator text-muted"></span></th>
-                  </tr>
-                </thead>
-                <tbody id="player-tbody"></tbody>
-              </table>
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light" id="player-thead">
+                    <tr>
+                      <th data-sort="internal_id" style="width:60px;cursor:pointer" class="text-end">ID<span
+                          class="sort-indicator text-muted"></span></th>
+                      <th data-sort="display_name" style="cursor:pointer">名前<span
+                          class="sort-indicator text-muted"></span></th>
+                      <th data-sort="join_ts" style="width:140px;cursor:pointer">入室日時<span
+                          class="sort-indicator text-muted"></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="player-tbody"></tbody>
+                </table>
               </div>
             </div>
 
@@ -209,20 +153,25 @@
                 <span id="vi-count" class="fs-4 fw-bold"></span>
               </div>
               <div class="table-scroll-wrapper">
-              <div style="max-height:520px;overflow-y:auto">
-                <table class="table table-sm table-hover mb-0">
-                  <thead class="table-light sticky-top">
-                    <tr id="visitor-thead">
-                      <th data-sort="display_name" style="cursor:pointer">名前<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="first_seen" style="width:140px;cursor:pointer">初訪問<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="last_seen" style="width:140px;cursor:pointer">最終訪問<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="join_count" style="width:80px;cursor:pointer" class="text-end">訪問回数<span class="sort-indicator text-muted"></span></th>
-                      <th data-sort="total_duration_seconds" style="width:100px;cursor:pointer" class="text-end">合計滞在<span class="sort-indicator text-muted"></span></th>
-                    </tr>
-                  </thead>
-                  <tbody id="visitor-tbody"></tbody>
-                </table>
-              </div>
+                <div style="max-height:520px;overflow-y:auto">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                      <tr id="visitor-thead">
+                        <th data-sort="display_name" style="cursor:pointer">名前<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="first_seen" style="width:140px;cursor:pointer">初訪問<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="last_seen" style="width:140px;cursor:pointer">最終訪問<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="join_count" style="width:80px;cursor:pointer" class="text-end">訪問回数<span
+                            class="sort-indicator text-muted"></span></th>
+                        <th data-sort="total_duration_seconds" style="width:100px;cursor:pointer" class="text-end">
+                          合計滞在<span class="sort-indicator text-muted"></span></th>
+                      </tr>
+                    </thead>
+                    <tbody id="visitor-tbody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -234,7 +183,7 @@
                     <h5 class="modal-title" id="session-modal-title"></h5>
                     <div class="ms-auto d-flex align-items-center gap-2">
                       <a id="session-modal-player-link" href="#" target="_blank"
-                         class="btn btn-sm btn-outline-secondary">このプレイヤーのセッション</a>
+                        class="btn btn-sm btn-outline-secondary">このプレイヤーのセッション</a>
                       <button type="button" class="btn-close m-0" data-bs-dismiss="modal"></button>
                     </div>
                   </div>
@@ -286,7 +235,8 @@
                 <table class="table table-sm table-hover mb-0">
                   <thead class="table-light sticky-top" id="event-thead">
                     <tr>
-                      <th id="ev-ts-header" style="width:150px;cursor:pointer">日時<span id="ev-sort-indicator" class="text-muted"></span></th>
+                      <th id="ev-ts-header" style="width:150px;cursor:pointer">日時<span id="ev-sort-indicator"
+                          class="text-muted"></span></th>
                       <th style="width:150px">種別</th>
                       <th>名前</th>
                     </tr>
@@ -303,7 +253,8 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 
 </html>

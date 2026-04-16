@@ -1,0 +1,11 @@
+#diff-chart-wrapper {
+  position: relative;
+  height: 220px;
+}
+
+.inst-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
