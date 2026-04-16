@@ -69,7 +69,7 @@
     </div>
 
     <!-- 差分グラフ -->
-    <div class="card">
+    <div class="card mb-3">
       <div class="card-header py-2 small fw-semibold text-muted">
         人数差分（<span class="text-primary">青</span> − <span class="text-danger">赤</span>）
       </div>
@@ -77,6 +77,31 @@
         <div id="diff-chart-wrapper">
           <canvas id="diff-chart"></canvas>
         </div>
+      </div>
+    </div>
+
+    <!-- ルール違反一覧 -->
+    <div class="card">
+      <div class="card-header py-2 small fw-semibold text-muted d-flex justify-content-between align-items-center">
+        <span>ルール違反一覧</span>
+        <span class="badge bg-danger" id="violation-count">0</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="violations-table">
+            <thead class="table-light">
+              <tr>
+                <th data-col="display_name" class="v-sort-col">ユーザー名<span class="v-sort-icon text-muted"> ⇅</span></th>
+                <th data-col="join_ts" class="v-sort-col">違反時刻<span class="v-sort-icon text-muted"> ⇅</span></th>
+                <th data-col="instance" class="v-sort-col">参加先<span class="v-sort-icon text-muted"> ⇅</span></th>
+                <th data-col="diff" class="v-sort-col">人数差<span class="v-sort-icon text-muted"> ⇅</span></th>
+                <th data-col="duration_seconds" class="v-sort-col">滞在時間<span class="v-sort-icon text-muted"> ⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="violations-tbody"></tbody>
+          </table>
+        </div>
+        <div id="violations-empty" class="text-center text-muted py-3 d-none small">違反なし</div>
       </div>
     </div>
 

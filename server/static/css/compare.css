@@ -3,6 +3,16 @@
   height: 220px;
 }
 
+.v-sort-col {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.v-sort-col:hover {
+  background-color: #e9ecef;
+}
+
 .inst-label {
   white-space: nowrap;
   overflow: hidden;

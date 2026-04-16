@@ -10,13 +10,19 @@ if (!id1 || !id2) {
   loadCompare();
 }
 
+let allViolations = [];
+let vSortCol = 'join_ts';
+let vSortDir = 'asc';
+
 async function loadCompare() {
   try {
-    const [inst1, inst2, tl1, tl2] = await Promise.all([
+    const [inst1, inst2, tl1, tl2, sess1, sess2] = await Promise.all([
       fetch(`/api/instances/${id1}`).then(r => r.json()),
       fetch(`/api/instances/${id2}`).then(r => r.json()),
       fetch(`/api/instances/${id1}/presence-timeline`).then(r => r.json()),
       fetch(`/api/instances/${id2}/presence-timeline`).then(r => r.json()),
+      fetch(`/api/instances/${id1}/sessions`).then(r => r.json()),
+      fetch(`/api/instances/${id2}/sessions`).then(r => r.json()),
     ]);
 
     renderInfo('inst1', inst1);
@@ -26,6 +32,16 @@ async function loadCompare() {
     const pts2 = buildPoints(tl2, inst2);
     renderCompareChart(pts1, tl1.length, pts2, tl2.length);
     renderDiffChart(pts1, pts2);
+
+    const sessMap1 = buildSessionMap(sess1);
+    const sessMap2 = buildSessionMap(sess2);
+    allViolations = [
+      ...detectViolations(tl1, pts2, sessMap1, 'blue'),
+      ...detectViolations(tl2, pts1, sessMap2, 'red'),
+    ].sort((a, b) => a.join_ts - b.join_ts);
+
+    initViolationsTable();
+    renderViolations();
   } catch (e) {
     const el = document.getElementById('error-msg');
     el.textContent = 'データの読み込みに失敗しました: ' + e.message;
@@ -132,6 +148,111 @@ function renderCompareChart(pts1, rawLen1, pts2, rawLen2) {
       }
     }
   });
+}
+
+// セッションマップ: user_id -> [{join_ms, duration_seconds}]
+function buildSessionMap(sessions) {
+  const map = new Map();
+  for (const s of sessions) {
+    const ms = new Date(s.join_ts).getTime();
+    if (!map.has(s.user_id)) map.set(s.user_id, []);
+    map.get(s.user_id).push({ join_ms: ms, duration_seconds: s.duration_seconds });
+  }
+  return map;
+}
+
+function lookupDuration(sessionsMap, user_id, join_ms) {
+  const arr = sessionsMap.get(user_id);
+  if (!arr) return null;
+  return arr.find(s => s.join_ms === join_ms)?.duration_seconds ?? null;
+}
+
+// instColor ('blue'|'red') のインスタンスへの違反Joinを検出
+// 違反 = 自インスタンスの方が相手より人が多い状態でJoinした
+function detectViolations(tl, otherPts, sessionsMap, instColor) {
+  const violations = [];
+  for (let i = 1; i < tl.length; i++) {
+    const pt = tl[i];
+    if (!pt.user_id) continue;
+    const countBefore = tl[i - 1].count; // このイベント直前の自インスタンス人数
+    if (pt.count <= countBefore) continue; // Joinでない (Leave)
+
+    const t = new Date(pt.timestamp).getTime();
+    const otherCount = stepValue(otherPts, t);
+    const diff = countBefore - otherCount;
+    if (diff <= 0) continue; // 相手の方が多い or 同数 → 違反なし
+
+    violations.push({
+      display_name: pt.display_name,
+      join_ts: new Date(pt.timestamp),
+      instance: instColor,
+      diff,
+      duration_seconds: lookupDuration(sessionsMap, pt.user_id, t),
+    });
+  }
+  return violations;
+}
+
+function initViolationsTable() {
+  document.querySelectorAll('#violations-table th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (vSortCol === col) {
+        vSortDir = vSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        vSortCol = col;
+        vSortDir = 'asc';
+      }
+      renderViolations();
+    });
+  });
+}
+
+function renderViolations() {
+  const tbody = document.getElementById('violations-tbody');
+  const empty = document.getElementById('violations-empty');
+  const countBadge = document.getElementById('violation-count');
+  countBadge.textContent = allViolations.length;
+
+  // ソートアイコン更新
+  document.querySelectorAll('#violations-table th[data-col]').forEach(th => {
+    const icon = th.querySelector('.v-sort-icon');
+    if (th.dataset.col === vSortCol) {
+      icon.textContent = vSortDir === 'asc' ? ' ↑' : ' ↓';
+    } else {
+      icon.textContent = ' ⇅';
+    }
+  });
+
+  if (allViolations.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+
+  const sorted = [...allViolations].sort((a, b) => {
+    let va = a[vSortCol];
+    let vb = b[vSortCol];
+    if (vSortCol === 'join_ts') { va = va.getTime(); vb = vb.getTime(); }
+    if (vSortCol === 'duration_seconds') { va = va ?? -1; vb = vb ?? -1; }
+    if (va < vb) return vSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return vSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = sorted.map(v => {
+    const color = v.instance === 'blue' ? '#0d6efd' : '#dc3545';
+    const label = v.instance === 'blue' ? '青' : '赤';
+    const dur = v.duration_seconds != null ? fmtDuration(v.duration_seconds) : '—';
+    return `<tr>
+      <td>${escHtml(v.display_name)}</td>
+      <td class="text-nowrap">${fmtDate(v.join_ts.toISOString())}</td>
+      <td><span class="badge" style="background:${color}">${label}</span></td>
+      <td>+${v.diff}</td>
+      <td class="text-nowrap">${dur}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderDiffChart(pts1, pts2) {
