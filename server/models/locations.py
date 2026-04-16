@@ -109,6 +109,8 @@ class PlayerListOut(BaseModel):
 class TimelinePoint(BaseModel):
     timestamp: UtcDatetime
     count: int
+    user_id: str | None
+    display_name: str | None
 
 
 class SessionOut(BaseModel):

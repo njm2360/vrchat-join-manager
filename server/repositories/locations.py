@@ -215,7 +215,12 @@ async def get_presence_timeline(
     where = " AND ".join(conditions)
 
     cursor = await db.execute(
-        f"SELECT event_type, timestamp FROM events WHERE {where} ORDER BY timestamp",
+        f"""
+        SELECT e.event_type, e.timestamp, e.user_id, p.display_name
+        FROM events e
+        JOIN players p ON p.user_id = e.user_id
+        WHERE {where} ORDER BY e.timestamp
+        """,
         params,
     )
     events = await cursor.fetchall()
@@ -224,11 +229,16 @@ async def get_presence_timeline(
     anchor = start_str or (events[0]["timestamp"] if events else None)
     if anchor is None:
         return []
-    points = [TimelinePoint(timestamp=anchor, count=initial_count)]
+    points = [TimelinePoint(timestamp=anchor, count=initial_count, user_id=None, display_name=None)]
     count = initial_count
     for event in events:
         count += 1 if event["event_type"] == "join" else -1
-        points.append(TimelinePoint(timestamp=event["timestamp"], count=count))
+        points.append(TimelinePoint(
+            timestamp=event["timestamp"],
+            count=count,
+            user_id=event["user_id"],
+            display_name=event["display_name"],
+        ))
 
     return points
 
