@@ -18,6 +18,28 @@ let graceMinutes = 15;
 // detectViolations の再実行に必要なデータを保持
 let _tl1, _tl2, _pts1, _pts2, _sessMap1, _sessMap2;
 
+let compareChart = null;
+
+const verticalLinePlugin = {
+  id: 'verticalLine',
+  afterDraw(chart) {
+    const x = chart.options.plugins?.verticalLine?.x;
+    if (x == null) return;
+    const { ctx, scales } = chart;
+    const xPos = scales.x.getPixelForValue(x);
+    if (xPos < scales.x.left || xPos > scales.x.right) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(xPos, scales.y.top);
+    ctx.lineTo(xPos, scales.y.bottom);
+    ctx.strokeStyle = 'rgba(255, 165, 0, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
+    ctx.stroke();
+    ctx.restore();
+  },
+};
+
 async function loadCompare() {
   try {
     const [inst1, inst2, tl1, tl2, sess1, sess2] = await Promise.all([
@@ -107,8 +129,9 @@ const COMMON_X_OPTIONS = {
 
 function renderCompareChart(pts1, rawLen1, pts2, rawLen2) {
   const ctx = document.getElementById('compare-chart').getContext('2d');
-  new Chart(ctx, {
+  compareChart = new Chart(ctx, {
     type: 'line',
+    plugins: [verticalLinePlugin],
     data: {
       datasets: [
         {
@@ -145,6 +168,7 @@ function renderCompareChart(pts1, rawLen1, pts2, rawLen2) {
         }
       },
       plugins: {
+        verticalLine: { x: null },
         legend: { display: false },
         tooltip: {
           callbacks: {
@@ -195,6 +219,10 @@ function recomputeViolations() {
     ...detectViolations(_tl1, _pts2, _sessMap1, 'blue', graceMs),
     ...detectViolations(_tl2, _pts1, _sessMap2, 'red', graceMs),
   ].sort((a, b) => a.join_ts - b.join_ts);
+  if (compareChart) {
+    compareChart.options.plugins.verticalLine.x = null;
+    compareChart.update('none');
+  }
 }
 
 // instColor ('blue'|'red') のインスタンスへの違反Joinを検出
@@ -283,7 +311,7 @@ function renderViolations() {
     const color = v.instance === 'blue' ? '#0d6efd' : '#dc3545';
     const label = v.instance === 'blue' ? '青' : '赤';
     const dur = v.duration_seconds != null ? fmtDuration(v.duration_seconds) : '—';
-    return `<tr>
+    return `<tr class="v-row" data-ts="${v.join_ts.getTime()}" style="cursor:pointer">
       <td>${escHtml(v.display_name)}</td>
       <td class="text-nowrap">${fmtDateFull(v.join_ts.toISOString())}</td>
       <td><span class="badge" style="background:${color}">${label}</span></td>
@@ -291,6 +319,22 @@ function renderViolations() {
       <td class="text-nowrap">${dur}</td>
     </tr>`;
   }).join('');
+
+  tbody.querySelectorAll('.v-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const t = Number(tr.dataset.ts);
+      const isSame = compareChart?.options.plugins.verticalLine.x === t;
+      tbody.querySelectorAll('.v-row').forEach(r => r.classList.remove('table-warning'));
+      if (compareChart) {
+        compareChart.options.plugins.verticalLine.x = isSame ? null : t;
+        compareChart.update('none');
+      }
+      if (!isSame) {
+        tr.classList.add('table-warning');
+        document.getElementById('compare-chart').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  });
 }
 
 function renderDiffChart(pts1, pts2) {
