@@ -84,7 +84,18 @@
     <div class="card">
       <div class="card-header py-2 small fw-semibold text-muted d-flex justify-content-between align-items-center">
         <span>ルール違反一覧</span>
-        <span class="badge bg-danger" id="violation-count">0</span>
+        <div class="d-flex align-items-center gap-2">
+          <label class="mb-0 fw-normal" for="grace-select">猶予</label>
+          <select id="grace-select" class="form-select form-select-sm" style="width:auto">
+            <option value="5">5分</option>
+            <option value="10">10分</option>
+            <option value="15" selected>15分</option>
+            <option value="20">20分</option>
+            <option value="25">25分</option>
+            <option value="30">30分</option>
+          </select>
+          <span class="badge bg-danger" id="violation-count">0</span>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">

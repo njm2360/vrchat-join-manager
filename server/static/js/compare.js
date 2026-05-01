@@ -13,6 +13,10 @@ if (!id1 || !id2) {
 let allViolations = [];
 let vSortCol = 'join_ts';
 let vSortDir = 'asc';
+let graceMinutes = 15;
+
+// detectViolations の再実行に必要なデータを保持
+let _tl1, _tl2, _pts1, _pts2, _sessMap1, _sessMap2;
 
 async function loadCompare() {
   try {
@@ -35,13 +39,19 @@ async function loadCompare() {
 
     const sessMap1 = buildSessionMap(sess1);
     const sessMap2 = buildSessionMap(sess2);
-    allViolations = [
-      ...detectViolations(tl1, pts2, sessMap1, 'blue'),
-      ...detectViolations(tl2, pts1, sessMap2, 'red'),
-    ].sort((a, b) => a.join_ts - b.join_ts);
+    _tl1 = tl1; _tl2 = tl2;
+    _pts1 = pts1; _pts2 = pts2;
+    _sessMap1 = sessMap1; _sessMap2 = sessMap2;
 
+    recomputeViolations();
     initViolationsTable();
     renderViolations();
+
+    document.getElementById('grace-select').addEventListener('change', e => {
+      graceMinutes = Number(e.target.value);
+      recomputeViolations();
+      renderViolations();
+    });
   } catch (e) {
     const el = document.getElementById('error-msg');
     el.textContent = 'データの読み込みに失敗しました: ' + e.message;
@@ -167,10 +177,32 @@ function lookupDuration(sessionsMap, user_id, join_ms) {
   return arr.find(s => s.join_ms === join_ms)?.duration_seconds ?? null;
 }
 
+const REJOIN_MS = 3 * 60 * 1000;
+
+function isRejoin(sessionsMap, user_id, t) {
+  const arr = sessionsMap.get(user_id);
+  if (!arr) return false;
+  return arr.some(s => {
+    if (s.join_ms >= t || s.duration_seconds == null) return false;
+    const leaveMs = s.join_ms + s.duration_seconds * 1000;
+    return leaveMs <= t && (t - leaveMs) <= REJOIN_MS;
+  });
+}
+
+function recomputeViolations() {
+  const graceMs = graceMinutes * 60 * 1000;
+  allViolations = [
+    ...detectViolations(_tl1, _pts2, _sessMap1, 'blue', graceMs),
+    ...detectViolations(_tl2, _pts1, _sessMap2, 'red', graceMs),
+  ].sort((a, b) => a.join_ts - b.join_ts);
+}
+
 // instColor ('blue'|'red') のインスタンスへの違反Joinを検出
 // 違反 = 自インスタンスの方が相手より人が多い状態でJoinした
-function detectViolations(tl, otherPts, sessionsMap, instColor) {
+// graceMs: 直前の同インスタンスへのJoinからこの時間以内なら人数表示未更新として許容
+function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
   const violations = [];
+  let lastJoinMs = null;
   for (let i = 1; i < tl.length; i++) {
     const pt = tl[i];
     if (!pt.user_id) continue;
@@ -178,6 +210,12 @@ function detectViolations(tl, otherPts, sessionsMap, instColor) {
     if (pt.count <= countBefore) continue; // Joinでない (Leave)
 
     const t = new Date(pt.timestamp).getTime();
+    const inGrace = lastJoinMs !== null && (t - lastJoinMs) <= graceMs;
+    lastJoinMs = t;
+
+    if (inGrace) continue; // 直前Joinから猶予時間内 → 人数未更新の可能性があるため除外
+    if (isRejoin(sessionsMap, pt.user_id, t)) continue; // 3分以内のRejoin → 除外
+
     const otherCount = stepValue(otherPts, t);
     const diff = countBefore - otherCount;
     if (diff <= 0) continue; // 相手の方が多い or 同数 → 違反なし
@@ -247,7 +285,7 @@ function renderViolations() {
     const dur = v.duration_seconds != null ? fmtDuration(v.duration_seconds) : '—';
     return `<tr>
       <td>${escHtml(v.display_name)}</td>
-      <td class="text-nowrap">${fmtDate(v.join_ts.toISOString())}</td>
+      <td class="text-nowrap">${fmtDateFull(v.join_ts.toISOString())}</td>
       <td><span class="badge" style="background:${color}">${label}</span></td>
       <td>+${v.diff}</td>
       <td class="text-nowrap">${dur}</td>
