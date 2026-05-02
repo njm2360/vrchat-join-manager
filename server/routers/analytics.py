@@ -42,9 +42,11 @@ async def get_join_violation_rankings(
     offset: int = Query(default=0, ge=0),
     allow_diff: int = Query(default=0, ge=0),
     min_duration: int | None = Query(default=None, ge=0),
+    rejoin_seconds: int = Query(default=180, ge=0),
+    grace_seconds: int = Query(default=900, ge=0),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[JoinViolationRankOut]:
-    return await repo.get_join_violation_rankings(db, group_id, start, end, order, limit, offset, allow_diff, min_duration)
+    return await repo.get_join_violation_rankings(db, group_id, start, end, order, limit, offset, allow_diff, min_duration, rejoin_seconds, grace_seconds)
 
 
 @router.get("/player-rankings", response_model=list[PlayerRankOut])

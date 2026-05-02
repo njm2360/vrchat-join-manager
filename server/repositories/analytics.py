@@ -214,8 +214,15 @@ async def get_join_violation_rankings(
     offset: int = 0,
     allow_diff: int = 0,
     min_duration: int | None = None,
+    rejoin_seconds: int = 180,
+    grace_seconds: int = 900,
 ) -> list[JoinViolationRankOut]:
-    params: dict = {"group_id": group_id, "allow_diff": allow_diff}
+    params: dict = {
+        "group_id": group_id,
+        "allow_diff": allow_diff,
+        "rejoin_seconds": rejoin_seconds,
+        "grace_seconds": grace_seconds,
+    }
     time_conditions: list[str] = []
     if start is not None:
         time_conditions.append("s.join_ts >= :start")
@@ -238,11 +245,12 @@ async def get_join_violation_rankings(
     cursor = await db.execute(
         f"""
         WITH
-        session_counts AS (
+        -- リジョイン除外済みのJoinイベント一覧
+        all_joins AS (
             SELECT
                 s.id          AS session_id,
                 s.user_id,
-                s.instance_id AS joined_iid,
+                s.instance_id,
                 s.join_ts,
                 (
                     SELECT COUNT(*) FROM sessions s2
@@ -262,26 +270,73 @@ async def get_join_violation_rankings(
             JOIN instances i ON i.id = s.instance_id
             WHERE i.group_id = :group_id
             {time_where}
+            AND NOT EXISTS (
+                SELECT 1 FROM sessions prev
+                WHERE prev.user_id = s.user_id
+                  AND prev.instance_id = s.instance_id
+                  AND prev.leave_ts IS NOT NULL
+                  AND prev.leave_ts <= s.join_ts
+                  AND CAST(ROUND((julianday(s.join_ts) - julianday(prev.leave_ts)) * 86400) AS INTEGER) <= :rejoin_seconds
+            )
         ),
+        -- 相手インスタンスの人数を付加 (stepValue相当: <= で同時参加者を含む)
         with_other AS (
             SELECT
-                sc.*,
+                aj.*,
                 (
                     SELECT COUNT(*) FROM sessions s3
-                    WHERE s3.instance_id = sc.other_iid
-                      AND s3.join_ts < sc.join_ts
-                      AND (s3.leave_ts IS NULL OR s3.leave_ts > sc.join_ts)
+                    WHERE s3.instance_id = aj.other_iid
+                      AND s3.join_ts <= aj.join_ts
+                      AND (s3.leave_ts IS NULL OR s3.leave_ts > aj.join_ts)
                 ) AS other_count
-            FROM session_counts sc
-            WHERE sc.other_iid IS NOT NULL
+            FROM all_joins aj
+            WHERE aj.other_iid IS NOT NULL
+        ),
+        -- ウィンドウ関数でdiffウィンドウのグループ番号を算出
+        -- run_grp: 同一インスタンス内でdiff<=allow_diffとなった累計回数 (リセット回数)
+        -- 連続してdiff>allow_diffの行は同じrun_grpになる
+        with_run AS (
+            SELECT
+                wo.*,
+                wo.my_count - wo.other_count AS diff,
+                SUM(CASE WHEN wo.my_count - wo.other_count <= :allow_diff THEN 1 ELSE 0 END)
+                    OVER (PARTITION BY wo.instance_id ORDER BY wo.join_ts
+                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS run_grp
+            FROM with_other wo
+        ),
+        -- diff > allow_diff の行に対し、同ウィンドウ内の最初のJoin時刻 (compare.jsのdiffStartMs相当) を付加
+        with_run_start AS (
+            SELECT
+                wr.*,
+                MIN(wr.join_ts) OVER (
+                    PARTITION BY wr.instance_id, wr.run_grp
+                ) AS diff_start_ts
+            FROM with_run wr
+            WHERE wr.diff > :allow_diff
+        ),
+        user_totals AS (
+            SELECT user_id, COUNT(*) AS total_joins
+            FROM with_other
+            GROUP BY user_id
+        ),
+        -- grace_seconds 経過後のみ違反としてカウント
+        user_violations AS (
+            SELECT
+                user_id,
+                SUM(
+                    CASE WHEN CAST(ROUND((julianday(join_ts) - julianday(diff_start_ts)) * 86400) AS INTEGER) > :grace_seconds
+                    THEN 1 ELSE 0 END
+                ) AS violation_count
+            FROM with_run_start
+            GROUP BY user_id
         ),
         user_stats AS (
             SELECT
-                user_id,
-                SUM(CASE WHEN my_count - other_count > :allow_diff THEN 1 ELSE 0 END) AS violation_count,
-                COUNT(*) AS total_joins
-            FROM with_other
-            GROUP BY user_id
+                ut.user_id,
+                COALESCE(uv.violation_count, 0) AS violation_count,
+                ut.total_joins
+            FROM user_totals ut
+            LEFT JOIN user_violations uv ON uv.user_id = ut.user_id
         )
         SELECT
             RANK() OVER (ORDER BY violation_count {order.upper()}) AS rank,
