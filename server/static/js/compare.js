@@ -230,7 +230,7 @@ function recomputeViolations() {
 // graceMs: 直前の同インスタンスへのJoinからこの時間以内なら人数表示未更新として許容
 function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
   const violations = [];
-  let lastJoinMs = null;
+  let diffStartMs = null;
   for (let i = 1; i < tl.length; i++) {
     const pt = tl[i];
     if (!pt.user_id) continue;
@@ -238,15 +238,18 @@ function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
     if (pt.count <= countBefore) continue; // Joinでない (Leave)
 
     const t = new Date(pt.timestamp).getTime();
-    const inGrace = lastJoinMs !== null && (t - lastJoinMs) <= graceMs;
-    lastJoinMs = t;
-
-    if (inGrace) continue; // 直前Joinから猶予時間内 → 人数未更新の可能性があるため除外
     if (isRejoin(sessionsMap, pt.user_id, t)) continue; // 3分以内のRejoin → 除外
 
     const otherCount = stepValue(otherPts, t);
     const diff = countBefore - otherCount;
-    if (diff <= 0) continue; // 相手の方が多い or 同数 → 違反なし
+
+    if (diff <= 0) {
+      diffStartMs = null; // 差が解消されたらリセット
+      continue;
+    }
+
+    if (diffStartMs === null) diffStartMs = t; // 差が生まれた最初の時刻を記録
+    if ((t - diffStartMs) <= graceMs) continue; // 差発生からgraceMs以内 → 人数未更新の可能性があるため除外
 
     violations.push({
       display_name: pt.display_name,
