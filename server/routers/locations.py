@@ -94,6 +94,17 @@ async def get_instances(
     )
 
 
+@router.delete("/instances/{instance_id}", status_code=204)
+async def delete_instance(
+    instance_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+) -> None:
+    deleted = await instances_repo.delete_instance(db, instance_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="instance not found")
+    await db.commit()
+
+
 @router.get("/instances/{instance_id}", response_model=InstanceOut)
 async def get_instance(
     instance_id: int,

@@ -117,6 +117,16 @@ async def resume_instance(
         )
 
 
+async def delete_instance(db: aiosqlite.Connection, instance_id: int) -> bool:
+    cur = await db.execute("SELECT id FROM instances WHERE id = ?", (instance_id,))
+    if not await cur.fetchone():
+        return False
+    await db.execute("DELETE FROM sessions WHERE instance_id = ?", (instance_id,))
+    await db.execute("DELETE FROM events WHERE instance_id = ?", (instance_id,))
+    await db.execute("DELETE FROM instances WHERE id = ?", (instance_id,))
+    return True
+
+
 async def close_location_sessions(
     db: aiosqlite.Connection, instance_id: int, ts: str, self_user_id: str | None = None
 ) -> int:
