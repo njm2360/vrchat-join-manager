@@ -92,6 +92,7 @@ class InstanceOut(BaseModel):
 class LocationPlayerOut(BaseModel):
     user_id: str
     display_name: str
+    discord_id: str | None
     internal_id: int | None
     join_ts: UtcDatetime
     join_count: int
@@ -118,6 +119,7 @@ class SessionOut(BaseModel):
     instance_id: int
     user_id: str
     display_name: str
+    discord_id: str | None
     join_ts: UtcDatetime
     leave_ts: UtcDatetime | None
     duration_seconds: int | None

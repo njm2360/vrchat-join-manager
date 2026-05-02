@@ -102,13 +102,14 @@ async def get_presence(
 ) -> list[SessionOut]:
     cursor = await db.execute(
         """
-        SELECT s.id, s.instance_id, s.user_id, p.display_name, s.join_ts, s.leave_ts,
+        SELECT s.id, s.instance_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
                COALESCE(s.duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
                s.is_estimated_leave
         FROM sessions s
         JOIN players p ON p.user_id = s.user_id
+        LEFT JOIN player_discord pd ON pd.user_id = s.user_id
         WHERE s.instance_id = :instance_id
           AND s.join_ts  <= :at
           AND (s.leave_ts IS NULL OR s.leave_ts >= :at)
@@ -128,11 +129,12 @@ async def get_location_players(
 ) -> list[LocationPlayerOut]:
     cursor = await db.execute(
         f"""
-        SELECT s.user_id, p.display_name, s.internal_id, s.join_ts,
+        SELECT s.user_id, p.display_name, pd.discord_id, s.internal_id, s.join_ts,
                (SELECT COUNT(*) FROM sessions s2
                 WHERE s2.user_id = s.user_id AND s2.instance_id = s.instance_id) AS join_count
         FROM sessions s
         JOIN players p ON p.user_id = s.user_id
+        LEFT JOIN player_discord pd ON pd.user_id = s.user_id
         WHERE s.instance_id = :instance_id
           AND s.leave_ts IS NULL
         ORDER BY {"p." + sort_by if sort_by == "display_name" else "s." + sort_by} {order.upper()}
@@ -307,13 +309,14 @@ async def get_location_sessions(
     )
     cursor = await db.execute(
         f"""
-        SELECT s.id, s.instance_id, s.user_id, p.display_name, s.join_ts, s.leave_ts,
+        SELECT s.id, s.instance_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
                COALESCE(s.duration_seconds,
                    CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
                ) AS duration_seconds,
                s.is_estimated_leave
         FROM sessions s
         JOIN players p ON p.user_id = s.user_id
+        LEFT JOIN player_discord pd ON pd.user_id = s.user_id
         WHERE {where}
         ORDER BY {sort_by} {order.upper()}
         {limit_clause}

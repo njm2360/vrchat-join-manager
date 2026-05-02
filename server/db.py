@@ -58,6 +58,19 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_instance_time ON events(instance_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_user_time     ON events(user_id, timestamp);
 
+CREATE TABLE IF NOT EXISTS player_discord (
+    user_id    TEXT PRIMARY KEY,
+    discord_id TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_player_discord_updated
+AFTER UPDATE OF discord_id ON player_discord
+BEGIN
+    UPDATE player_discord SET updated_at = CURRENT_TIMESTAMP WHERE user_id = NEW.user_id;
+END;
+
 CREATE TABLE IF NOT EXISTS sessions (
     id                    INTEGER PRIMARY KEY,
     instance_id           INTEGER NOT NULL REFERENCES instances(id),

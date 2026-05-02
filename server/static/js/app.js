@@ -215,12 +215,13 @@ function renderEventTable(events) {
 // ── 在室中 ──────────────────────────────────────────────────────
 
 const plSort = { by: 'internal_id', order: 'asc' };
+let currentPlayers = [];
 
 async function loadPlayers() {
   if (!currentInstanceId) return;
   const params = new URLSearchParams({ sort_by: plSort.by, order: plSort.order });
   const res = await fetch(`/api/instances/${currentInstanceId}/players?${params}`);
-  const players = await res.json();
+  currentPlayers = await res.json();
   const tbody = document.getElementById('player-tbody');
 
   document.querySelectorAll('#player-thead th[data-sort]').forEach(th => {
@@ -228,14 +229,15 @@ async function loadPlayers() {
       ? (plSort.order === 'asc' ? ' ▲' : ' ▼') : '';
   });
 
-  document.getElementById('pl-count').textContent = `${players.length} 人`;
-  if (players.length === 0) {
+  document.getElementById('pl-count').textContent = `${currentPlayers.length} 人`;
+  if (currentPlayers.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">在室中のプレイヤーなし</td></tr>';
     return;
   }
-  tbody.innerHTML = players.map(p => `<tr>
+  tbody.innerHTML = currentPlayers.map(p => `<tr>
     <td class="text-end text-muted">${p.internal_id ?? '—'}</td>
     <td>${escHtml(p.display_name)}</td>
+    <td class="small">${p.discord_id ? escHtml(p.discord_id) : '<span class="text-muted">未登録</span>'}</td>
     <td class="small text-nowrap">${fmtDateFull(p.join_ts)}</td>
   </tr>`).join('');
 }
@@ -530,5 +532,35 @@ document.getElementById('ev-update-btn').addEventListener('click', loadEvents);
 document.getElementById('ss-update-btn').addEventListener('click', loadSessions);
 document.getElementById('pl-reload-btn').addEventListener('click', loadPlayers);
 document.getElementById('vi-reload-btn').addEventListener('click', loadVisitors);
+
+document.getElementById('pl-copy-discord-btn').addEventListener('click', () => {
+  const mentions = currentPlayers
+    .filter(p => p.discord_id)
+    .map(p => `@${p.discord_id}`);
+  const btn = document.getElementById('pl-copy-discord-btn');
+  if (mentions.length === 0) {
+    btn.textContent = 'IDなし';
+    setTimeout(() => { btn.textContent = '全員のDiscordIDをコピー'; }, 2000);
+    return;
+  }
+  const text = mentions.join(' ') + ' ';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = `コピー済み (${mentions.length}人)`;
+      setTimeout(() => { btn.textContent = '全員のDiscordIDをコピー'; }, 2000);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = `コピー済み (${mentions.length}人)`;
+    setTimeout(() => { btn.textContent = '全員のDiscordIDをコピー'; }, 2000);
+  }
+});
 
 loadLocations();
