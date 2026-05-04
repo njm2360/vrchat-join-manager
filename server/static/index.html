@@ -72,7 +72,8 @@
                   <button class="nav-link" data-tab="visitors">訪れた人</button>
                 </li>
               </ul>
-              <button id="delete-instance-btn" class="btn btn-sm btn-outline-danger d-none flex-shrink-0">削除</button>
+              <button id="close-instance-btn" class="btn btn-sm btn-warning d-none flex-shrink-0">クローズ</button>
+              <button id="delete-instance-btn" class="btn btn-sm btn-danger d-none flex-shrink-0">削除</button>
             </div>
           </div>
 
@@ -228,12 +229,38 @@
               </div>
             </div>
 
+            <!-- ── インスタンスクローズ確認モーダル ── -->
+            <div class="modal fade" id="close-instance-modal" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">インスタンスのクローズ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="mb-2">進行中のままになっているインスタンスを手動でクローズします。在室中のセッションは指定時刻で退室扱いになります。</p>
+                    <p class="mb-2 small text-muted" id="close-instance-info"></p>
+                    <label class="form-label small mb-1">クローズ時刻</label>
+                    <input type="datetime-local" id="close-instance-at" class="form-control mb-3">
+                    <label class="form-label small mb-1">確認のため、インスタンス番号 <code id="close-instance-id-hint"></code> を入力してください</label>
+                    <input type="text" inputmode="numeric" autocomplete="off" id="close-instance-confirm-input"
+                      class="form-control">
+                    <div id="close-instance-error" class="text-danger small mt-2 d-none"></div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" id="close-instance-confirm-btn" class="btn btn-warning" disabled>クローズ</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- ── インスタンス削除確認モーダル ── -->
             <div class="modal fade" id="delete-instance-modal" tabindex="-1">
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title text-danger">インスタンスの削除</h5>
+                    <h5 class="modal-title">インスタンスの削除</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                   </div>
                   <div class="modal-body">

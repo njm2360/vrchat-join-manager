@@ -93,6 +93,7 @@ function selectInstance(inst) {
   history.replaceState(null, '', url);
   showTab(currentTab);
   document.getElementById('delete-instance-btn').classList.remove('d-none');
+  document.getElementById('close-instance-btn').classList.toggle('d-none', !!inst.closed_at);
   // モバイル: 詳細画面へ切り替え
   if (window.innerWidth < 768) {
     document.getElementById('col-sidebar').classList.add('d-none');
@@ -564,6 +565,86 @@ document.getElementById('pl-copy-discord-btn').addEventListener('click', () => {
   }
 });
 
+// ── インスタンスクローズ ────────────────────────────────────────
+
+function nowLocalDatetimeValue() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+document.getElementById('close-instance-btn').addEventListener('click', () => {
+  if (!currentInstanceId || !currentInstanceData || currentInstanceData.closed_at) return;
+  document.getElementById('close-instance-info').textContent =
+    `${currentInstanceData.world_id} / ${currentInstanceData.location_id}`;
+  document.getElementById('close-instance-at').value = nowLocalDatetimeValue();
+  const instNum = extractInstanceNumber(currentInstanceData.location_id);
+  document.getElementById('close-instance-id-hint').textContent = instNum;
+  const input = document.getElementById('close-instance-confirm-input');
+  input.value = '';
+  document.getElementById('close-instance-confirm-btn').disabled = true;
+  const err = document.getElementById('close-instance-error');
+  err.classList.add('d-none');
+  err.textContent = '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('close-instance-modal')).show();
+});
+
+document.getElementById('close-instance-confirm-input').addEventListener('input', e => {
+  const expected = extractInstanceNumber(currentInstanceData?.location_id);
+  const ok = expected !== '' && e.target.value.trim() === expected;
+  document.getElementById('close-instance-confirm-btn').disabled = !ok;
+});
+
+document.getElementById('close-instance-confirm-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('close-instance-confirm-btn').disabled) {
+    e.preventDefault();
+    document.getElementById('close-instance-confirm-btn').click();
+  }
+});
+
+document.getElementById('close-instance-confirm-btn').addEventListener('click', async () => {
+  if (!currentInstanceData || currentInstanceData.closed_at) return;
+  const locId = currentInstanceData.location_id;
+  const atVal = document.getElementById('close-instance-at').value;
+  const btn = document.getElementById('close-instance-confirm-btn');
+  const err = document.getElementById('close-instance-error');
+  const expected = extractInstanceNumber(locId);
+  const confirmInput = document.getElementById('close-instance-confirm-input').value.trim();
+  if (!expected || confirmInput !== expected) return;
+  if (!atVal) {
+    err.textContent = 'クローズ時刻を入力してください';
+    err.classList.remove('d-none');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'クローズ中...';
+  err.classList.add('d-none');
+  try {
+    const res = await fetch(`/api/locations/${encodeURIComponent(locId)}/close`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ at: toISO(atVal) }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    bootstrap.Modal.getInstance(document.getElementById('close-instance-modal')).hide();
+    // 再取得して反映
+    const r2 = await fetch(`/api/instances/${currentInstanceId}`);
+    if (r2.ok) {
+      const fresh = await r2.json();
+      currentInstanceData = fresh;
+      document.getElementById('close-instance-btn').classList.toggle('d-none', !!fresh.closed_at);
+    }
+    await loadLocations();
+    showTab(currentTab);
+  } catch (e) {
+    err.textContent = `クローズに失敗しました: ${e.message}`;
+    err.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'クローズ';
+  }
+});
+
 // ── インスタンス削除 ────────────────────────────────────────────
 
 function extractInstanceNumber(locationId) {
@@ -623,6 +704,7 @@ document.getElementById('delete-instance-confirm-btn').addEventListener('click',
     url.searchParams.delete('instance');
     history.replaceState(null, '', url);
     document.getElementById('delete-instance-btn').classList.add('d-none');
+    document.getElementById('close-instance-btn').classList.add('d-none');
     document.getElementById('main-placeholder').classList.remove('d-none');
     ['tab-timeline', 'tab-events', 'tab-sessions', 'tab-players', 'tab-visitors']
       .forEach(id => document.getElementById(id).classList.add('d-none'));
