@@ -12,6 +12,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 
 <body class="bg-light">
@@ -62,6 +64,9 @@
     <!-- 人数推移グラフ -->
     <div class="card mb-3">
       <div class="card-body">
+        <div class="d-flex justify-content-end mb-2">
+          <button id="compare-reset-zoom-btn" class="btn btn-outline-secondary btn-sm">ズームリセット</button>
+        </div>
         <div id="chart-wrapper">
           <canvas id="compare-chart"></canvas>
         </div>

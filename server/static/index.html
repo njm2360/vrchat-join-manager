@@ -12,6 +12,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 
 <body>
@@ -91,6 +93,7 @@
                 <span class="text-muted small">〜</span>
                 <input type="datetime-local" id="tl-end" class="form-control form-control-sm" style="width:auto">
                 <button id="tl-update-btn" class="btn btn-primary btn-sm">更新</button>
+                <button id="tl-reset-zoom-btn" class="btn btn-outline-secondary btn-sm">ズームリセット</button>
                 <button id="tl-compare-btn" class="btn btn-outline-secondary btn-sm ms-auto">他のインスタンスと比較</button>
               </div>
               <div id="chart-wrapper">

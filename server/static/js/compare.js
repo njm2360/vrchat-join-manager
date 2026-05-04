@@ -19,6 +19,7 @@ let graceMinutes = 15;
 let _tl1, _tl2, _pts1, _pts2, _sessMap1, _sessMap2;
 
 let compareChart = null;
+let diffChart = null;
 
 const verticalLinePlugin = {
   id: 'verticalLine',
@@ -58,6 +59,7 @@ async function loadCompare() {
     const pts2 = buildPoints(tl2, inst2);
     renderCompareChart(pts1, tl1.length, pts2, tl2.length);
     renderDiffChart(pts1, pts2);
+    setupZoomSync(compareChart, diffChart);
 
     const sessMap1 = buildSessionMap(sess1);
     const sessMap2 = buildSessionMap(sess2);
@@ -131,7 +133,7 @@ function renderCompareChart(pts1, rawLen1, pts2, rawLen2) {
   const ctx = document.getElementById('compare-chart').getContext('2d');
   compareChart = new Chart(ctx, {
     type: 'line',
-    plugins: [verticalLinePlugin],
+    plugins: [verticalLinePlugin, visibleYRangePlugin],
     data: {
       datasets: [
         {
@@ -178,7 +180,8 @@ function renderCompareChart(pts1, rawLen1, pts2, rawLen2) {
               return ` ${color}: ${items.parsed.y} 人`;
             }
           }
-        }
+        },
+        zoom: chartZoomPlugin()
       }
     }
   });
@@ -348,8 +351,9 @@ function renderDiffChart(pts1, pts2) {
   const negPts = diffPts.map(p => ({ x: p.x, y: Math.min(0, p.y) }));
   const r = diffPts.length < 200 ? 2 : 0;
 
-  new Chart(ctx, {
+  diffChart = new Chart(ctx, {
     type: 'line',
+    plugins: [visibleYRangePlugin],
     data: {
       datasets: [
         {
@@ -397,8 +401,43 @@ function renderDiffChart(pts1, pts2) {
               return ' 同数';
             }
           }
-        }
+        },
+        zoom: chartZoomPlugin()
       }
     }
   });
 }
+
+let _syncingZoom = false;
+
+function setupZoomSync(a, b) {
+  const sync = (src, dst) => {
+    if (_syncingZoom || !src || !dst) return;
+    _syncingZoom = true;
+    try {
+      const sx = src.scales.x;
+      dst.zoomScale('x', { min: sx.min, max: sx.max }, 'none');
+    } finally {
+      _syncingZoom = false;
+    }
+  };
+  const attach = (chart, other) => {
+    const z = chart.options.plugins.zoom;
+    z.zoom.onZoom = ({ chart: c }) => sync(c, other);
+    z.pan.onPan = ({ chart: c }) => sync(c, other);
+  };
+  attach(a, b);
+  attach(b, a);
+}
+
+function resetBothZoom() {
+  _syncingZoom = true;
+  try {
+    if (compareChart) compareChart.resetZoom('none');
+    if (diffChart) diffChart.resetZoom('none');
+  } finally {
+    _syncingZoom = false;
+  }
+}
+
+document.getElementById("compare-reset-zoom-btn")?.addEventListener("click", resetBothZoom);

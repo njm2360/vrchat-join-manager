@@ -132,6 +132,7 @@ function renderChart(data) {
   }
   chart = new Chart(ctx, {
     type: 'line',
+    plugins: [visibleYRangePlugin],
     data: {
       datasets: [{
         label: '人数',
@@ -170,7 +171,8 @@ function renderChart(data) {
             }
           }
         },
-        legend: { display: false }
+        legend: { display: false },
+        zoom: chartZoomPlugin(),
       }
     }
   });
@@ -530,6 +532,9 @@ document.getElementById('tl-compare-btn').addEventListener('click', async () => 
 
 document.getElementById('loc-search-btn').addEventListener('click', loadLocations);
 document.getElementById('tl-update-btn').addEventListener('click', loadTimeline);
+document.getElementById('tl-reset-zoom-btn').addEventListener('click', () => {
+  if (chart) chart.resetZoom();
+});
 document.getElementById('ev-update-btn').addEventListener('click', loadEvents);
 document.getElementById('ss-update-btn').addEventListener('click', loadSessions);
 document.getElementById('pl-reload-btn').addEventListener('click', loadPlayers);
