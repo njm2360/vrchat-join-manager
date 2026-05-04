@@ -54,23 +54,26 @@
           <!-- タブ + モバイル戻るボタン -->
           <div class="card-header">
             <button id="back-btn" class="btn btn-sm btn-outline-secondary d-md-none mb-2">&#8592; 一覧に戻る</button>
-            <ul class="nav nav-tabs card-header-tabs flex-nowrap" id="main-tabs">
-              <li class="nav-item">
-                <button class="nav-link active" data-tab="timeline">人数推移</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-tab="events">入退場ログ</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-tab="sessions">セッション一覧</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-tab="players">在室中</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-tab="visitors">訪れた人</button>
-              </li>
-            </ul>
+            <div class="d-flex align-items-center gap-2 flex-nowrap">
+              <ul class="nav nav-tabs card-header-tabs flex-nowrap flex-grow-1 mb-0" id="main-tabs">
+                <li class="nav-item">
+                  <button class="nav-link active" data-tab="timeline">人数推移</button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link" data-tab="events">入退場ログ</button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link" data-tab="sessions">セッション一覧</button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link" data-tab="players">在室中</button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link" data-tab="visitors">訪れた人</button>
+                </li>
+              </ul>
+              <button id="delete-instance-btn" class="btn btn-sm btn-outline-danger d-none flex-shrink-0">削除</button>
+            </div>
           </div>
 
           <div class="card-body">
@@ -220,6 +223,30 @@
                     <div id="compare-instance-list" class="list-group list-group-flush">
                       <div class="list-group-item text-muted small">読み込み中...</div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── インスタンス削除確認モーダル ── -->
+            <div class="modal fade" id="delete-instance-modal" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-danger">インスタンスの削除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="mb-2">この操作は取り消せません。インスタンスとそれに紐づくセッション・イベントなどがすべて削除されます。</p>
+                    <p class="mb-2 small text-muted" id="delete-instance-info"></p>
+                    <label class="form-label small mb-1">確認のため、インスタンス番号 <code id="delete-instance-id-hint"></code> を入力してください</label>
+                    <input type="text" inputmode="numeric" autocomplete="off" id="delete-instance-confirm-input"
+                      class="form-control">
+                    <div id="delete-instance-error" class="text-danger small mt-2 d-none"></div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" id="delete-instance-confirm-btn" class="btn btn-danger" disabled>削除</button>
                   </div>
                 </div>
               </div>

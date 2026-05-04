@@ -92,6 +92,7 @@ function selectInstance(inst) {
   url.searchParams.set('instance', inst.id);
   history.replaceState(null, '', url);
   showTab(currentTab);
+  document.getElementById('delete-instance-btn').classList.remove('d-none');
   // モバイル: 詳細画面へ切り替え
   if (window.innerWidth < 768) {
     document.getElementById('col-sidebar').classList.add('d-none');
@@ -560,6 +561,82 @@ document.getElementById('pl-copy-discord-btn').addEventListener('click', () => {
     document.body.removeChild(ta);
     btn.textContent = `コピー済み (${mentions.length}人)`;
     setTimeout(() => { btn.textContent = '全員のDiscordIDをコピー'; }, 2000);
+  }
+});
+
+// ── インスタンス削除 ────────────────────────────────────────────
+
+function extractInstanceNumber(locationId) {
+  const m = String(locationId || '').match(/:(\d+)/);
+  return m ? m[1] : '';
+}
+
+document.getElementById('delete-instance-btn').addEventListener('click', () => {
+  if (!currentInstanceId || !currentInstanceData) return;
+  const instNum = extractInstanceNumber(currentInstanceData.location_id);
+  document.getElementById('delete-instance-id-hint').textContent = instNum;
+  const info = document.getElementById('delete-instance-info');
+  info.textContent = `${currentInstanceData.world_id} / ${currentInstanceData.location_id}`;
+  const input = document.getElementById('delete-instance-confirm-input');
+  const btn = document.getElementById('delete-instance-confirm-btn');
+  const err = document.getElementById('delete-instance-error');
+  input.value = '';
+  btn.disabled = true;
+  err.classList.add('d-none');
+  err.textContent = '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('delete-instance-modal')).show();
+  setTimeout(() => input.focus(), 200);
+});
+
+document.getElementById('delete-instance-confirm-input').addEventListener('input', e => {
+  const expected = extractInstanceNumber(currentInstanceData?.location_id);
+  const ok = expected !== '' && e.target.value.trim() === expected;
+  document.getElementById('delete-instance-confirm-btn').disabled = !ok;
+});
+
+document.getElementById('delete-instance-confirm-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('delete-instance-confirm-btn').disabled) {
+    e.preventDefault();
+    document.getElementById('delete-instance-confirm-btn').click();
+  }
+});
+
+document.getElementById('delete-instance-confirm-btn').addEventListener('click', async () => {
+  if (!currentInstanceId) return;
+  const input = document.getElementById('delete-instance-confirm-input');
+  const expected = extractInstanceNumber(currentInstanceData?.location_id);
+  if (!expected || input.value.trim() !== expected) return;
+  const btn = document.getElementById('delete-instance-confirm-btn');
+  const err = document.getElementById('delete-instance-error');
+  btn.disabled = true;
+  btn.textContent = '削除中...';
+  err.classList.add('d-none');
+  try {
+    const res = await fetch(`/api/instances/${currentInstanceId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('delete-instance-modal')).hide();
+    currentInstanceId = null;
+    currentInstanceData = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('instance');
+    history.replaceState(null, '', url);
+    document.getElementById('delete-instance-btn').classList.add('d-none');
+    document.getElementById('main-placeholder').classList.remove('d-none');
+    ['tab-timeline', 'tab-events', 'tab-sessions', 'tab-players', 'tab-visitors']
+      .forEach(id => document.getElementById(id).classList.add('d-none'));
+    if (window.innerWidth < 768) {
+      document.getElementById('col-main').classList.add('d-none');
+      document.getElementById('col-sidebar').classList.remove('d-none');
+    }
+    await loadLocations();
+  } catch (e) {
+    err.textContent = `削除に失敗しました: ${e.message}`;
+    err.classList.remove('d-none');
+    btn.disabled = false;
+  } finally {
+    btn.textContent = '削除';
   }
 });
 
