@@ -228,12 +228,47 @@ function recomputeViolations() {
   }
 }
 
+// 両インスタンスの全イベント時刻を走査し、「自インスタンスが相手より多い状態の開始時刻」を
+// 任意の時刻 t に対して返すルックアップ関数を構築する。
+// diffStartMs をJoinイベント依存で追跡すると、長期間Joinがなかった場合に
+// タイマーが null のままとなり、最初のJoinで常にグレース期間が与えられる漏れを防ぐ。
+function buildDiffStartLookup(tl, otherPts) {
+  const selfPts = tl.map(d => ({ x: new Date(d.timestamp), y: d.count }));
+  const times = [...new Set([
+    ...selfPts.map(p => p.x.getTime()),
+    ...otherPts.map(p => p.x.getTime()),
+  ])].sort((a, b) => a - b);
+
+  let streakStart = null;
+  const snapshots = [];
+  for (const t of times) {
+    const diff = stepValue(selfPts, t) - stepValue(otherPts, t);
+    if (diff > 0) {
+      if (streakStart === null) streakStart = t;
+    } else {
+      streakStart = null;
+    }
+    snapshots.push({ t, streakStart });
+  }
+
+  return (t) => {
+    if (snapshots.length === 0 || snapshots[0].t > t) return null;
+    let lo = 0, hi = snapshots.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (snapshots[mid].t <= t) lo = mid;
+      else hi = mid - 1;
+    }
+    return snapshots[lo].streakStart;
+  };
+}
+
 // instColor ('blue'|'red') のインスタンスへの違反Joinを検出
 // 違反 = 自インスタンスの方が相手より人が多い状態でJoinした
-// graceMs: 直前の同インスタンスへのJoinからこの時間以内なら人数表示未更新として許容
+// graceMs: 差が発生してからこの時間以内なら人数表示未更新として許容
 function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
   const violations = [];
-  let diffStartMs = null;
+  const getDiffStart = buildDiffStartLookup(tl, otherPts);
   for (let i = 1; i < tl.length; i++) {
     const pt = tl[i];
     if (!pt.user_id) continue;
@@ -245,14 +280,10 @@ function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
 
     const otherCount = stepValue(otherPts, t);
     const diff = countBefore - otherCount;
+    if (diff <= 0) continue;
 
-    if (diff <= 0) {
-      diffStartMs = null; // 差が解消されたらリセット
-      continue;
-    }
-
-    if (diffStartMs === null) diffStartMs = t; // 差が生まれた最初の時刻を記録
-    if ((t - diffStartMs) <= graceMs) continue; // 差発生からgraceMs以内 → 人数未更新の可能性があるため除外
+    const diffStart = getDiffStart(t);
+    if (diffStart === null || (t - diffStart) <= graceMs) continue; // 差発生からgraceMs以内 → 除外
 
     violations.push({
       display_name: pt.display_name,
