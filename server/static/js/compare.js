@@ -285,12 +285,15 @@ function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
     const diffStart = getDiffStart(t);
     if (diffStart === null || (t - diffStart) <= graceMs) continue; // 差発生からgraceMs以内 → 除外
 
+    const duration_seconds = lookupDuration(sessionsMap, pt.user_id, t);
+    if (duration_seconds != null && duration_seconds <= 180) continue; // 3分以内に退出 → 違反に気付き離脱として許容
+
     violations.push({
       display_name: pt.display_name,
       join_ts: new Date(pt.timestamp),
       instance: instColor,
       diff,
-      duration_seconds: lookupDuration(sessionsMap, pt.user_id, t),
+      duration_seconds,
     });
   }
   return violations;
