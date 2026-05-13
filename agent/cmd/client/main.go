@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -16,7 +18,7 @@ import (
 	"github.com/joho/godotenv"
 	"golang.org/x/sys/windows/svc"
 
-	"jm-client/internal/core"
+	"github.com/njm2360/vrchat-join-manager/agent/internal/core"
 )
 
 func run(ctx context.Context, appDir string) error {

@@ -99,7 +99,7 @@ func matchSessions(potential []PotentialSession, preJoins []preJoinEntry) map[st
 	}
 	set := make(map[key]bool, len(potential))
 	for _, e := range potential {
-		set[key{e.UserID, e.InternalID}] = true
+		set[key{e.UserId, e.InternalId}] = true
 	}
 	matched := make(map[string]bool)
 	for _, pre := range preJoins {
@@ -120,12 +120,12 @@ func keys(m map[string]bool) []string {
 
 func (p *LogParser) sendJoin(name, userID string, internalID int, ts time.Time) {
 	log.Printf("JOIN  [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-	p.api.SendEvent("join", p.location, name, userID, &internalID, ts)
+	p.api.SendEvent("join", p.location, name, userID, internalID, ts)
 }
 
 func (p *LogParser) sendLeave(name, userID string, internalID int, ts time.Time) {
 	log.Printf("LEAVE [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-	p.api.SendEvent("leave", p.location, name, userID, &internalID, ts)
+	p.api.SendEvent("leave", p.location, name, userID, internalID, ts)
 }
 
 func (p *LogParser) closeCurrentLocation(ts time.Time) {

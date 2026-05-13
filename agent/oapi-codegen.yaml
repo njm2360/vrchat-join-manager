@@ -1,0 +1,12 @@
+package: gen
+output: internal/gen/api.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  skip-prune: true
+  include-operation-ids:
+    - receiveEvent
+    - closeLocation
+    - getPotentialSessions
+    - resumeInstance

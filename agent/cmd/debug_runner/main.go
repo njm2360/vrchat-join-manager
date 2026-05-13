@@ -12,7 +12,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"jm-client/internal/core"
+	"github.com/njm2360/vrchat-join-manager/agent/internal/core"
 )
 
 // csvToVrcLine は GrayLog CSV のタイムスタンプ（UTC ISO 8601）を

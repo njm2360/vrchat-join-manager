@@ -1,76 +1,71 @@
 package core
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/njm2360/vrchat-join-manager/agent/internal/gen"
 )
 
 type ApiClient struct {
-	baseURL string
-	client  *http.Client
+	c *gen.Client
 }
+
+type PotentialSession = gen.PotentialSession
 
 func NewApiClient(baseURL string) *ApiClient {
-	return &ApiClient{
-		baseURL: baseURL,
-		client:  &http.Client{Timeout: 10 * time.Second},
-	}
-}
-
-type eventPayload struct {
-	Event      string `json:"event"`
-	LocationID string `json:"location_id"`
-	Name       string `json:"name"`
-	UserID     string `json:"user_id"`
-	InternalID *int   `json:"internal_id"`
-	Timestamp  string `json:"timestamp"`
-}
-
-func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID *int, ts time.Time) {
-	payload := eventPayload{
-		Event:      event,
-		LocationID: locationID,
-		Name:       name,
-		UserID:     userID,
-		InternalID: internalID,
-		Timestamp:  ts.UTC().Format("2006-01-02T15:04:05Z"),
-	}
-	body, err := json.Marshal(payload)
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	c, err := gen.NewClient(baseURL, gen.WithHTTPClient(httpClient))
 	if err != nil {
-		log.Printf("SendEvent marshal: %v", err)
+		log.Fatalf("NewApiClient: %v", err)
+	}
+	return &ApiClient{c: c}
+}
+
+func drain(resp *http.Response) {
+	if resp == nil {
 		return
 	}
-	resp, err := a.client.Post(a.baseURL+"/api/events", "application/json", bytes.NewReader(body))
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+}
+
+func okStatus(code int) bool {
+	return code >= 200 && code < 300
+}
+
+func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time) {
+	body := gen.PlayerEvent{
+		Event:      gen.PlayerEventEvent(event),
+		LocationId: locationID,
+		Name:       name,
+		UserId:     userID,
+		InternalId: internalID,
+		Timestamp:  ts.UTC(),
+	}
+	resp, err := a.c.ReceiveEvent(context.Background(), body)
 	if err != nil {
 		log.Printf("SendEvent failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	defer drain(resp)
+	if !okStatus(resp.StatusCode) {
 		log.Printf("SendEvent unexpected status: %d", resp.StatusCode)
 	}
 }
 
-type PotentialSession struct {
-	UserID     string `json:"user_id"`
-	InternalID int    `json:"internal_id"`
-}
-
 func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession, error) {
-	url := fmt.Sprintf("%s/api/locations/%s/potential-sessions", a.baseURL, locationID)
-	resp, err := a.client.Get(url)
+	resp, err := a.c.GetPotentialSessions(context.Background(), locationID)
 	if err != nil {
 		return nil, fmt.Errorf("GetPotentialSessions request: %w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		io.Copy(io.Discard, resp.Body)
+	defer drain(resp)
+	if !okStatus(resp.StatusCode) {
 		return nil, fmt.Errorf("GetPotentialSessions unexpected status: %d", resp.StatusCode)
 	}
 	var result []PotentialSession
@@ -81,49 +76,32 @@ func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession,
 }
 
 func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
-	type payload struct {
-		UserIDs []string `json:"user_ids"`
-	}
-	body, err := json.Marshal(payload{UserIDs: userIDs})
-	if err != nil {
-		return fmt.Errorf("ResumeInstance marshal: %w", err)
-	}
-	url := fmt.Sprintf("%s/api/locations/%s/resume", a.baseURL, locationID)
-	resp, err := a.client.Post(url, "application/json", bytes.NewReader(body))
+	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.RestoreRequest{UserIds: userIDs})
 	if err != nil {
 		return fmt.Errorf("ResumeInstance request: %w", err)
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	defer drain(resp)
+	if !okStatus(resp.StatusCode) {
 		return fmt.Errorf("ResumeInstance unexpected status: %d", resp.StatusCode)
 	}
 	return nil
 }
 
 func (a *ApiClient) CloseLocation(locationID string, userID string, ts time.Time) {
-	type closeBody struct {
-		At     string `json:"at"`
-		UserID string `json:"user_id,omitempty"`
+	body := gen.CloseLocationRequest{At: ts.UTC()}
+	if userID != "" {
+		body.UserId = &userID
 	}
-	payload := closeBody{
-		At:     ts.UTC().Format("2006-01-02T15:04:05Z"),
-		UserID: userID,
-	}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("CloseLocation marshal: %v", err)
-		return
-	}
-	url := fmt.Sprintf("%s/api/locations/%s/close", a.baseURL, locationID)
-	resp, err := a.client.Post(url, "application/json", bytes.NewReader(body))
+	resp, err := a.c.CloseLocation(context.Background(), locationID, body)
 	if err != nil {
 		log.Printf("CloseLocation failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	defer drain(resp)
+	if resp.StatusCode == http.StatusNotFound {
+		return
+	}
+	if !okStatus(resp.StatusCode) {
 		log.Printf("CloseLocation unexpected status: %d", resp.StatusCode)
 	}
 }
