@@ -31,4 +31,6 @@ go.work.sum
 # .idea/
 # .vscode/
 
-dist/
+server/data
+*/bin
+*/dist

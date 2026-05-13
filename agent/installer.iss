@@ -21,7 +21,7 @@ UsedUserAreasWarning=no
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [Files]
-Source: "{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "bin\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{localappdata}\{#MyAppName}"
