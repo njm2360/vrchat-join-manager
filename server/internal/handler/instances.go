@@ -1,0 +1,209 @@
+package handler
+
+import (
+	"context"
+
+	"github.com/njm2360/vrchat-join-manager/server/internal/gen"
+	"github.com/njm2360/vrchat-join-manager/server/internal/repository"
+)
+
+func instanceRowToOut(r repository.InstanceRow) gen.InstanceOut {
+	return gen.InstanceOut{
+		Id:              r.ID,
+		LocationId:      r.LocationID,
+		WorldId:         r.WorldID,
+		WorldName:       strPtr(r.WorldName),
+		InstanceId:      strPtr(r.InstanceID),
+		GroupId:         strPtr(r.GroupID),
+		GroupName:       strPtr(r.GroupName),
+		GroupAccessType: strPtr(r.GroupAccessType),
+		Region:          strPtr(r.Region),
+		Friends:         strPtr(r.Friends),
+		Hidden:          strPtr(r.Hidden),
+		Private:         strPtr(r.Private),
+		OpenedAt:        r.OpenedAt,
+		ClosedAt:        strPtr(r.ClosedAt),
+		UserCount:       r.UserCount,
+	}
+}
+
+func sessionRowToOut(r repository.SessionRow) gen.SessionOut {
+	return gen.SessionOut{
+		Id:               r.ID,
+		InstanceId:       r.InstanceID,
+		UserId:           r.UserID,
+		DisplayName:      r.DisplayName,
+		DiscordId:        strPtr(r.DiscordID),
+		JoinTs:           r.JoinTs,
+		LeaveTs:          strPtr(r.LeaveTs),
+		DurationSeconds:  intPtr(r.DurationSeconds),
+		IsEstimatedLeave: r.IsEstimatedLeave,
+	}
+}
+
+func (s *Server) ListInstances(ctx context.Context, request gen.ListInstancesRequestObject) (gen.ListInstancesResponseObject, error) {
+	start := timePtrToStrPtr(request.Params.Start)
+	end := timePtrToStrPtr(request.Params.End)
+	order := enumStrOr(request.Params.Order, "desc")
+	sortBy := enumStrOr(request.Params.SortBy, "opened_at")
+	offset := derefInt(request.Params.Offset)
+	rows, err := s.Locations.ListInstances(ctx,
+		start, end,
+		request.Params.IsOpen,
+		request.Params.WorldId,
+		request.Params.GroupId,
+		request.Params.Region,
+		sortBy, order,
+		request.Params.Limit,
+		offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.ListInstances200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, instanceRowToOut(r))
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstance(ctx context.Context, request gen.GetInstanceRequestObject) (gen.GetInstanceResponseObject, error) {
+	r, err := s.Locations.GetInstance(ctx, request.InstanceId)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return gen.GetInstance404Response{}, nil
+	}
+	return gen.GetInstance200JSONResponse(instanceRowToOut(*r)), nil
+}
+
+func (s *Server) DeleteInstance(ctx context.Context, request gen.DeleteInstanceRequestObject) (gen.DeleteInstanceResponseObject, error) {
+	ok, err := s.Instances.Delete(ctx, request.InstanceId)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return gen.DeleteInstance404Response{}, nil
+	}
+	return gen.DeleteInstance204Response{}, nil
+}
+
+func (s *Server) GetInstancePresence(ctx context.Context, request gen.GetInstancePresenceRequestObject) (gen.GetInstancePresenceResponseObject, error) {
+	at := timeToStr(request.Params.At)
+	rows, err := s.Locations.GetPresence(ctx, request.InstanceId, at)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstancePresence200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, sessionRowToOut(r))
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstancePlayers(ctx context.Context, request gen.GetInstancePlayersRequestObject) (gen.GetInstancePlayersResponseObject, error) {
+	rows, err := s.Locations.GetLocationPlayers(ctx,
+		request.InstanceId,
+		enumStrOr(request.Params.SortBy, "internal_id"),
+		enumStrOr(request.Params.Order, "asc"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstancePlayers200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, gen.LocationPlayerOut{
+			UserId:      r.UserID,
+			DisplayName: r.DisplayName,
+			DiscordId:   strPtr(r.DiscordID),
+			InternalId:  r.InternalID,
+			JoinTs:      r.JoinTs,
+			JoinCount:   r.JoinCount,
+		})
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstanceVisitors(ctx context.Context, request gen.GetInstanceVisitorsRequestObject) (gen.GetInstanceVisitorsResponseObject, error) {
+	offset := derefInt(request.Params.Offset)
+	rows, err := s.Locations.GetLocationVisitors(ctx,
+		request.InstanceId,
+		enumStrOr(request.Params.SortBy, "last_seen"),
+		enumStrOr(request.Params.Order, "desc"),
+		request.Params.Limit,
+		offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstanceVisitors200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, gen.PlayerListOut{
+			UserId:               r.UserID,
+			DisplayName:          r.DisplayName,
+			FirstSeen:            r.FirstSeen,
+			LastSeen:             r.LastSeen,
+			JoinCount:            r.JoinCount,
+			TotalDurationSeconds: intPtr(r.TotalDurationSeconds),
+		})
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstancePresenceTimeline(ctx context.Context, request gen.GetInstancePresenceTimelineRequestObject) (gen.GetInstancePresenceTimelineResponseObject, error) {
+	start := timePtrToStrPtr(request.Params.Start)
+	end := timePtrToStrPtr(request.Params.End)
+	rows, err := s.Locations.GetPresenceTimeline(ctx, request.InstanceId, start, end)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstancePresenceTimeline200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, gen.TimelinePoint{
+			Timestamp:   r.Timestamp,
+			Count:       r.Count,
+			UserId:      strPtr(r.UserID),
+			DisplayName: strPtr(r.DisplayName),
+		})
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstanceEvents(ctx context.Context, request gen.GetInstanceEventsRequestObject) (gen.GetInstanceEventsResponseObject, error) {
+	start := timePtrToStrPtr(request.Params.Start)
+	end := timePtrToStrPtr(request.Params.End)
+	offset := derefInt(request.Params.Offset)
+	rows, err := s.Locations.GetLocationEvents(ctx, request.InstanceId, start, end, enumStrOr(request.Params.Order, "desc"), request.Params.Limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstanceEvents200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, gen.EventOut{
+			Id:          r.ID,
+			EventType:   r.EventType,
+			InstanceId:  r.InstanceID,
+			WorldId:     r.WorldID,
+			UserId:      r.UserID,
+			DisplayName: r.DisplayName,
+			Timestamp:   r.Timestamp,
+		})
+	}
+	return out, nil
+}
+
+func (s *Server) GetInstanceSessions(ctx context.Context, request gen.GetInstanceSessionsRequestObject) (gen.GetInstanceSessionsResponseObject, error) {
+	start := timePtrToStrPtr(request.Params.Start)
+	end := timePtrToStrPtr(request.Params.End)
+	offset := derefInt(request.Params.Offset)
+	rows, err := s.Locations.GetLocationSessions(ctx, request.InstanceId, start, end, enumStrOr(request.Params.SortBy, "join_ts"), enumStrOr(request.Params.Order, "asc"), request.Params.Limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	out := make(gen.GetInstanceSessions200JSONResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, sessionRowToOut(r))
+	}
+	return out, nil
+}

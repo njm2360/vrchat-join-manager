@@ -1,0 +1,800 @@
+openapi: 3.0.3
+info:
+  title: VRChat Join Manager API
+  version: 1.0.0
+  description: VRChat Join Manager API
+servers:
+  - url: /
+tags:
+  - name: analytics
+  - name: events
+  - name: groups
+  - name: instances
+  - name: players
+  - name: worlds
+
+paths:
+  /api/analytics/daily-active-users:
+    get:
+      operationId: getDailyActiveUsers
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+      responses:
+        '200':
+          description: 日次アクティブユーザー
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyActiveUsersPoint'
+
+  /api/analytics/hourly-active-users:
+    get:
+      operationId: getHourlyActiveUsers
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+      responses:
+        '200':
+          description: 時間別アクティブユーザー
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HourlyActiveUsersPoint'
+
+  /api/analytics/join-violation-rankings:
+    get:
+      operationId: getJoinViolationRankings
+      tags: [analytics]
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+        - name: allow_diff
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: min_duration
+          in: query
+          schema: { type: integer, minimum: 0, nullable: true }
+        - name: rejoin_seconds
+          in: query
+          schema: { type: integer, minimum: 0, default: 180 }
+        - name: grace_seconds
+          in: query
+          schema: { type: integer, minimum: 0, default: 900 }
+      responses:
+        '200':
+          description: 違反回数ランキング
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JoinViolationRankOut'
+
+  /api/analytics/player-rankings:
+    get:
+      operationId: getPlayerRankings
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: 滞在時間ランキング
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerRankOut'
+
+  /api/events:
+    post:
+      operationId: receiveEvent
+      tags: [events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerEvent'
+      responses:
+        '200':
+          description: OK
+
+  /api/groups:
+    get:
+      operationId: listGroups
+      tags: [groups]
+      parameters:
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: グループ一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupOut'
+
+  /api/groups/{group_id}:
+    parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      operationId: renameGroup
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRenameIn'
+      responses:
+        '204':
+          description: 名前を更新
+        '404':
+          description: 見つからない
+    delete:
+      operationId: deleteGroup
+      tags: [groups]
+      responses:
+        '204':
+          description: 削除
+        '404':
+          description: 見つからない
+
+  /api/locations/{location_id}/close:
+    parameters:
+      - $ref: '#/components/parameters/LocationIdPath'
+    post:
+      operationId: closeLocation
+      tags: [instances]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseLocationRequest'
+      responses:
+        '204':
+          description: クローズ
+        '404':
+          description: オープン中のインスタンスがない
+
+  /api/locations/{location_id}/potential-sessions:
+    parameters:
+      - $ref: '#/components/parameters/LocationIdPath'
+    get:
+      operationId: getPotentialSessions
+      tags: [instances]
+      responses:
+        '200':
+          description: 直近クローズインスタンスの推定退室セッション
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PotentialSession'
+
+  /api/locations/{location_id}/resume:
+    parameters:
+      - $ref: '#/components/parameters/LocationIdPath'
+    post:
+      operationId: resumeInstance
+      tags: [instances]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreRequest'
+      responses:
+        '204':
+          description: 復元
+
+  /api/instances:
+    get:
+      operationId: listInstances
+      tags: [instances]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - name: is_open
+          in: query
+          schema: { type: boolean, nullable: true }
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - name: region
+          in: query
+          schema: { type: string, nullable: true }
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [opened_at, closed_at]
+            default: opened_at
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: インスタンス一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstanceOut'
+
+  /api/instances/{instance_id}:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstance
+      tags: [instances]
+      responses:
+        '200':
+          description: インスタンス詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceOut'
+        '404':
+          description: 見つからない
+    delete:
+      operationId: deleteInstance
+      tags: [instances]
+      responses:
+        '204':
+          description: 削除
+        '404':
+          description: 見つからない
+
+  /api/instances/{instance_id}/presence:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstancePresence
+      tags: [instances]
+      parameters:
+        - name: at
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: 在席プレイヤー
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionOut'
+
+  /api/instances/{instance_id}/players:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstancePlayers
+      tags: [instances]
+      parameters:
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [internal_id, display_name, join_ts]
+            default: internal_id
+        - $ref: '#/components/parameters/OrderAscQuery'
+      responses:
+        '200':
+          description: 在席プレイヤー一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationPlayerOut'
+
+  /api/instances/{instance_id}/visitors:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstanceVisitors
+      tags: [instances]
+      parameters:
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [display_name, first_seen, last_seen, join_count, total_duration_seconds]
+            default: last_seen
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: 訪問者一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerListOut'
+
+  /api/instances/{instance_id}/presence-timeline:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstancePresenceTimeline
+      tags: [instances]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+      responses:
+        '200':
+          description: 在席タイムライン
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimelinePoint'
+
+  /api/instances/{instance_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstanceEvents
+      tags: [instances]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: イベント一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOut'
+
+  /api/instances/{instance_id}/sessions:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstanceSessions
+      tags: [instances]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [display_name, join_ts, leave_ts, duration_seconds]
+            default: join_ts
+        - $ref: '#/components/parameters/OrderAscQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: セッション一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionOut'
+
+  /api/players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string, nullable: true }
+        - $ref: '#/components/parameters/OrderAscQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: プレイヤー一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerOut'
+
+  /api/players/{user_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    get:
+      operationId: getPlayerEvents
+      tags: [players]
+      parameters:
+        - name: instance_id
+          in: query
+          schema: { type: integer, nullable: true }
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/OrderAscQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: プレイヤーイベント一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOut'
+
+  /api/players/{user_id}/sessions:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    get:
+      operationId: getPlayerSessions
+      tags: [players]
+      parameters:
+        - name: instance_id
+          in: query
+          schema: { type: integer, nullable: true }
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/OrderAscQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: プレイヤーセッション一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerSessionOut'
+
+  /api/worlds:
+    get:
+      operationId: listWorlds
+      tags: [worlds]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/OrderDescQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: ワールド一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorldOut'
+
+  /api/worlds/{world_id}:
+    parameters:
+      - name: world_id
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      operationId: renameWorld
+      tags: [worlds]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorldRenameIn'
+      responses:
+        '204':
+          description: 名前を更新
+        '404':
+          description: 見つからない
+    delete:
+      operationId: deleteWorld
+      tags: [worlds]
+      responses:
+        '204':
+          description: 削除
+        '404':
+          description: 見つからない
+
+components:
+  parameters:
+    LocationIdPath:
+      name: location_id
+      in: path
+      required: true
+      schema: { type: string }
+    InstanceIdPath:
+      name: instance_id
+      in: path
+      required: true
+      schema: { type: integer }
+    UserIdPath:
+      name: user_id
+      in: path
+      required: true
+      schema: { type: string }
+    WorldIdQuery:
+      name: world_id
+      in: query
+      schema: { type: string, nullable: true }
+    GroupIdQuery:
+      name: group_id
+      in: query
+      schema: { type: string, nullable: true }
+    StartQuery:
+      name: start
+      in: query
+      schema: { type: string, format: date-time, nullable: true }
+    EndQuery:
+      name: end
+      in: query
+      schema: { type: string, format: date-time, nullable: true }
+    OrderAscQuery:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+    OrderDescQuery:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+    LimitQuery:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, nullable: true }
+    OffsetQuery:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+
+  schemas:
+    Order:
+      type: string
+      enum: [asc, desc]
+
+    EventOut:
+      type: object
+      required: [id, event_type, instance_id, world_id, user_id, display_name, timestamp]
+      properties:
+        id: { type: integer }
+        event_type: { type: string }
+        instance_id: { type: integer }
+        world_id: { type: string }
+        user_id: { type: string }
+        display_name: { type: string }
+        timestamp: { type: string }
+
+    PlayerEvent:
+      type: object
+      required: [event, location_id, name, user_id, internal_id, timestamp]
+      properties:
+        event:
+          type: string
+          enum: [join, leave]
+        location_id: { type: string }
+        name: { type: string }
+        user_id: { type: string }
+        internal_id: { type: integer }
+        timestamp: { type: string, format: date-time }
+
+    GroupOut:
+      type: object
+      required: [group_id, created_at, updated_at]
+      properties:
+        group_id: { type: string }
+        name: { type: string, nullable: true }
+        created_at: { type: string }
+        updated_at: { type: string }
+
+    GroupRenameIn:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+
+    WorldOut:
+      type: object
+      required: [world_id, created_at, updated_at, session_count]
+      properties:
+        world_id: { type: string }
+        name: { type: string, nullable: true }
+        created_at: { type: string }
+        updated_at: { type: string }
+        last_seen: { type: string, nullable: true }
+        session_count: { type: integer }
+
+    WorldRenameIn:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+
+    PlayerOut:
+      type: object
+      required: [user_id, display_name, created_at, updated_at]
+      properties:
+        user_id: { type: string }
+        display_name: { type: string }
+        created_at: { type: string }
+        updated_at: { type: string }
+
+    PlayerSessionOut:
+      type: object
+      required: [id, instance_id, world_id, join_ts, is_estimated_leave]
+      properties:
+        id: { type: integer }
+        instance_id: { type: integer }
+        world_id: { type: string }
+        join_ts: { type: string }
+        leave_ts: { type: string, nullable: true }
+        duration_seconds: { type: integer, nullable: true }
+        is_estimated_leave: { type: boolean }
+
+    CloseLocationRequest:
+      type: object
+      required: [at]
+      properties:
+        at: { type: string, format: date-time }
+        user_id: { type: string, nullable: true }
+
+    PotentialSession:
+      type: object
+      required: [user_id, internal_id]
+      properties:
+        user_id: { type: string }
+        internal_id: { type: integer }
+
+    RestoreRequest:
+      type: object
+      required: [user_ids]
+      properties:
+        user_ids:
+          type: array
+          items: { type: string }
+
+    InstanceOut:
+      type: object
+      required: [id, location_id, world_id, opened_at, user_count]
+      properties:
+        id: { type: integer }
+        location_id: { type: string }
+        world_id: { type: string }
+        world_name: { type: string, nullable: true }
+        instance_id: { type: string, nullable: true }
+        group_id: { type: string, nullable: true }
+        group_name: { type: string, nullable: true }
+        group_access_type: { type: string, nullable: true }
+        region: { type: string, nullable: true }
+        friends: { type: string, nullable: true }
+        hidden: { type: string, nullable: true }
+        private: { type: string, nullable: true }
+        opened_at: { type: string }
+        closed_at: { type: string, nullable: true }
+        user_count: { type: integer }
+
+    LocationPlayerOut:
+      type: object
+      required: [user_id, display_name, internal_id, join_ts, join_count]
+      properties:
+        user_id: { type: string }
+        display_name: { type: string }
+        discord_id: { type: string, nullable: true }
+        internal_id: { type: integer }
+        join_ts: { type: string }
+        join_count: { type: integer }
+
+    PlayerListOut:
+      type: object
+      required: [user_id, display_name, first_seen, last_seen, join_count]
+      properties:
+        user_id: { type: string }
+        display_name: { type: string }
+        first_seen: { type: string }
+        last_seen: { type: string }
+        join_count: { type: integer }
+        total_duration_seconds: { type: integer, nullable: true }
+
+    TimelinePoint:
+      type: object
+      required: [timestamp, count]
+      properties:
+        timestamp: { type: string }
+        count: { type: integer }
+        user_id: { type: string, nullable: true }
+        display_name: { type: string, nullable: true }
+
+    SessionOut:
+      type: object
+      required: [id, instance_id, user_id, display_name, join_ts, is_estimated_leave]
+      properties:
+        id: { type: integer }
+        instance_id: { type: integer }
+        user_id: { type: string }
+        display_name: { type: string }
+        discord_id: { type: string, nullable: true }
+        join_ts: { type: string }
+        leave_ts: { type: string, nullable: true }
+        duration_seconds: { type: integer, nullable: true }
+        is_estimated_leave: { type: boolean }
+
+    DailyActiveUsersPoint:
+      type: object
+      required: [day, active_users]
+      properties:
+        day: { type: string }
+        active_users: { type: integer }
+
+    HourlyActiveUsersPoint:
+      type: object
+      required: [hour, active_users]
+      properties:
+        hour: { type: string }
+        active_users: { type: integer }
+
+    PlayerRankOut:
+      type: object
+      required: [rank, user_id, display_name, total_duration_seconds, session_count]
+      properties:
+        rank: { type: integer }
+        user_id: { type: string }
+        display_name: { type: string }
+        total_duration_seconds: { type: integer }
+        session_count: { type: integer }
+
+    JoinViolationRankOut:
+      type: object
+      required: [rank, user_id, display_name, violation_count, total_joins]
+      properties:
+        rank: { type: integer }
+        user_id: { type: string }
+        display_name: { type: string }
+        violation_count: { type: integer }
+        total_joins: { type: integer }
