@@ -118,10 +118,12 @@ function buildDiffPoints(pts1, pts2) {
     ...pts2.map(p => p.x.getTime()),
   ])].sort((a, b) => a - b);
 
-  return times.map(t => ({
-    x: new Date(t),
-    y: stepValue(pts1, t) - stepValue(pts2, t),
-  }));
+  return times
+    .filter(t => stepValue(pts1, t) > 0 && stepValue(pts2, t) > 0)
+    .map(t => ({
+      x: new Date(t),
+      y: stepValue(pts1, t) - stepValue(pts2, t),
+    }));
 }
 
 const COMMON_X_OPTIONS = {
@@ -381,6 +383,11 @@ function renderViolations() {
 function renderDiffChart(pts1, pts2) {
   const ctx = document.getElementById('diff-chart').getContext('2d');
   const diffPts = buildDiffPoints(pts1, pts2);
+
+  // compareChartと同じX軸範囲にそろえる
+  const allTimes = [...pts1, ...pts2].map(p => p.x.getTime());
+  const xMin = allTimes.length ? new Date(Math.min(...allTimes)) : undefined;
+  const xMax = allTimes.length ? new Date(Math.max(...allTimes)) : undefined;
   // 正値（青が多い）と負値（赤が多い）を別データセットに分割
   const posPts = diffPts.map(p => ({ x: p.x, y: Math.max(0, p.y) }));
   const negPts = diffPts.map(p => ({ x: p.x, y: Math.min(0, p.y) }));
@@ -415,7 +422,7 @@ function renderDiffChart(pts1, pts2) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: COMMON_X_OPTIONS,
+        x: { ...COMMON_X_OPTIONS, min: xMin, max: xMax },
         y: {
           ticks: { stepSize: 1 },
           title: { display: true, text: '差分 (人)' }
