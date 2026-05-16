@@ -279,6 +279,7 @@ function detectViolations(tl, otherPts, sessionsMap, instColor, graceMs) {
     if (isRejoin(sessionsMap, pt.user_id, t)) continue; // 3分以内のRejoin → 除外
 
     const otherCount = stepValue(otherPts, t);
+    if (otherCount === 0) continue; // 相手インスタンスがまだ存在しない期間は除外
     const diff = countBefore - otherCount;
     if (diff <= 0) continue;
 
