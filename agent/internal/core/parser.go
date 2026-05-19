@@ -2,7 +2,9 @@ package core
 
 import (
 	"log"
+	"maps"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -18,34 +20,74 @@ var (
 	reOnLeftRoom = regexp.MustCompile(`\[Behaviour\] OnLeftRoom`)
 )
 
-type preJoinEntry struct {
+type player struct {
 	name       string
 	userID     string
 	internalID int
-	ts         time.Time
+	restored   bool
+}
+
+type instance struct {
+	locationID string
+	local      *player
+	players    map[string]*player
+
+	pendingRestored []string
+	preJoins        []*player
+
+	selfLeftRoom bool
+}
+
+func newInstance(locationID string) *instance {
+	return &instance{
+		locationID: locationID,
+		players:    make(map[string]*player),
+	}
+}
+
+func (s *instance) player(name string) *player {
+	pl, ok := s.players[name]
+	if !ok {
+		pl = &player{name: name}
+		s.players[name] = pl
+	}
+	return pl
+}
+
+func (s *instance) popPendingRestored() (string, bool) {
+	if len(s.pendingRestored) == 0 {
+		return "", false
+	}
+	name := s.pendingRestored[0]
+	s.pendingRestored = s.pendingRestored[1:]
+	return name, true
+}
+
+func (s *instance) removePendingRestored(name string) {
+	if i := slices.Index(s.pendingRestored, name); i >= 0 {
+		s.pendingRestored = slices.Delete(s.pendingRestored, i, i+1)
+	}
+}
+
+func (s *instance) localRestored() bool {
+	return s.local != nil && s.local.restored
+}
+
+type apiClient interface {
+	SendEvent(event, locationID, name, userID string, internalID int, ts time.Time)
+	GetPotentialSessions(locationID string) ([]PotentialSession, error)
+	ResumeInstance(locationID string, userIDs []string) error
+	CloseLocation(locationID string, userID string, ts time.Time)
 }
 
 type LogParser struct {
-	api            *ApiClient
-	loc            *time.Location
-	location       string
-	localName      string
-	localUserID    string
-	pendingNames   []string          // FIFO queue
-	internalIDs    map[string]int    // name -> internal player ID
-	pendingJoins   map[string]string // name -> userID
-	preJoinPlayers []preJoinEntry
-	selfRestored   bool
-	selfLeftRoom   bool
+	api      apiClient
+	loc      *time.Location
+	instance *instance
 }
 
 func NewLogParser(api *ApiClient, loc *time.Location) *LogParser {
-	return &LogParser{
-		api:          api,
-		loc:          loc,
-		internalIDs:  make(map[string]int),
-		pendingJoins: make(map[string]string),
-	}
+	return &LogParser{api: api, loc: loc}
 }
 
 func (p *LogParser) parseTimestamp(line string) (time.Time, bool) {
@@ -60,81 +102,6 @@ func (p *LogParser) parseTimestamp(line string) (time.Time, bool) {
 	return t.UTC(), true
 }
 
-func (p *LogParser) flushPreJoins() {
-	if len(p.preJoinPlayers) == 0 {
-		return
-	}
-	potential, err := p.api.GetPotentialSessions(p.location)
-	if err != nil {
-		log.Printf("GetPotentialSessions failed: %v (treating all as new)", err)
-	}
-	matchedUserIDs := matchSessions(potential, p.preJoinPlayers)
-
-	if len(matchedUserIDs) >= 1 {
-		// Same instance -> resume instance and sessions
-		if err := p.api.ResumeInstance(p.location, keys(matchedUserIDs)); err != nil {
-			log.Printf("RestoreInstance failed: %v", err)
-		}
-		// During absense join users
-		for _, pre := range p.preJoinPlayers {
-			if !matchedUserIDs[pre.userID] {
-				p.sendJoin(pre.name, pre.userID, pre.internalID, pre.ts)
-			}
-		}
-		log.Printf("Rejoin: same instance, resumed=%d new=%d", len(matchedUserIDs), len(p.preJoinPlayers)-len(matchedUserIDs))
-	} else {
-		// New instance -> All send
-		for _, pre := range p.preJoinPlayers {
-			p.sendJoin(pre.name, pre.userID, pre.internalID, pre.ts)
-		}
-	}
-
-	p.preJoinPlayers = nil
-}
-
-func matchSessions(potential []PotentialSession, preJoins []preJoinEntry) map[string]bool {
-	type key struct {
-		userID     string
-		internalID int
-	}
-	set := make(map[key]bool, len(potential))
-	for _, e := range potential {
-		set[key{e.UserId, e.InternalId}] = true
-	}
-	matched := make(map[string]bool)
-	for _, pre := range preJoins {
-		if set[key{pre.userID, pre.internalID}] {
-			matched[pre.userID] = true
-		}
-	}
-	return matched
-}
-
-func keys(m map[string]bool) []string {
-	result := make([]string, 0, len(m))
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
-func (p *LogParser) sendJoin(name, userID string, internalID int, ts time.Time) {
-	log.Printf("JOIN  [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-	p.api.SendEvent("join", p.location, name, userID, internalID, ts)
-}
-
-func (p *LogParser) sendLeave(name, userID string, internalID int, ts time.Time) {
-	log.Printf("LEAVE [%s] %s (%s) internal_id=%d", ts.In(p.loc).Format("2006-01-02 15:04:05"), name, userID, internalID)
-	p.api.SendEvent("leave", p.location, name, userID, internalID, ts)
-}
-
-func (p *LogParser) closeCurrentLocation(ts time.Time) {
-	if p.location != "" {
-		log.Printf("Closing location %s at %s", p.location, ts)
-		p.api.CloseLocation(p.location, p.localUserID, ts)
-	}
-}
-
 func (p *LogParser) OnLine(_ string, line string) {
 	ts, ok := p.parseTimestamp(line)
 	if !ok {
@@ -144,7 +111,7 @@ func (p *LogParser) OnLine(_ string, line string) {
 		p.handleJoining(m[1], ts)
 		return
 	}
-	if p.location == "" {
+	if p.instance == nil {
 		return
 	}
 	if m := rePlayerJoin.FindStringSubmatch(line); m != nil {
@@ -152,115 +119,190 @@ func (p *LogParser) OnLine(_ string, line string) {
 		return
 	}
 	if m := rePlayerAPI.FindStringSubmatch(line); m != nil {
-		p.handlePlayerAPI(m[1], m[2])
+		p.handlePlayerAPI(m[1], m[2] == "local")
 		return
 	}
 	if m := reRestored.FindStringSubmatch(line); m != nil {
-		p.handleRestored(m[1], ts)
+		id, _ := strconv.Atoi(m[1])
+		p.handleRestored(id, ts)
 		return
 	}
 	if reOnLeftRoom.MatchString(line) {
-		p.selfLeftRoom = true
+		p.instance.selfLeftRoom = true
 		return
 	}
 	if m := rePlayerLeft.FindStringSubmatch(line); m != nil {
-		p.handlePlayerLeft(m[1], m[2], ts)
+		p.handlePlayerLeft(m[1], ts)
 		return
 	}
-	if p.localName != "" {
-		m := reDestroying.FindStringSubmatch(line)
-		if m != nil && m[1] == p.localName {
-			p.handleDestroying(ts)
-		}
+	if m := reDestroying.FindStringSubmatch(line); m != nil {
+		p.handleDestroying(m[1], ts)
+		return
 	}
 }
 
-func (p *LogParser) handleJoining(worldID string, ts time.Time) {
-	p.closeCurrentLocation(ts) // Destroying が発火しないことがあるためここでもcloseを呼ぶ
-	p.location = worldID
-	p.pendingJoins = make(map[string]string)
-	p.pendingNames = nil
-	p.internalIDs = make(map[string]int)
-	p.localName = ""
-	p.localUserID = ""
-	p.preJoinPlayers = nil
-	p.selfRestored = false
-	p.selfLeftRoom = false
-	log.Printf("Location: %s", p.location)
+func (p *LogParser) handleJoining(locationID string, ts time.Time) {
+	// Destroyingが稀に発火しないことがあるためここでもcloseを呼ぶ
+	if p.instance != nil {
+		p.closeLocation(ts)
+	}
+	p.instance = newInstance(locationID)
+	log.Printf("OPEN  [%s] location=%s", p.fmtTs(ts), locationID)
 }
 
+// 1st [Behaviour] OnPlayerJoined {Name} ({UserID})
 func (p *LogParser) handlePlayerJoin(name, userID string) {
-	p.pendingJoins[name] = userID
+	p.instance.player(name).userID = userID
 }
 
-func (p *LogParser) handlePlayerAPI(name, kind string) {
-	p.pendingNames = append(p.pendingNames, name)
-	if kind == "local" {
-		p.localName = name
+// 2nd [Behaviour] Initialized PlayerAPI {Name} is [local|remote]
+func (p *LogParser) handlePlayerAPI(name string, isLocal bool) {
+	pl := p.instance.player(name)
+	if isLocal {
+		p.instance.local = pl
 	}
+	p.instance.pendingRestored = append(p.instance.pendingRestored, name)
 }
 
-func (p *LogParser) handleRestored(rawID string, ts time.Time) {
-	if len(p.pendingNames) == 0 {
-		return
-	}
-	name := p.pendingNames[0]
-	p.pendingNames = p.pendingNames[1:]
-	internalID, _ := strconv.Atoi(rawID)
-	p.internalIDs[name] = internalID
-
-	userID, ok := p.pendingJoins[name]
+// 3rd [Behaviour] Restored player {InternalID}
+// Note: 異常Joinが起きた人はこれは出ない
+func (p *LogParser) handleRestored(internalID int, ts time.Time) {
+	name, ok := p.instance.popPendingRestored()
 	if !ok {
 		return
 	}
-	delete(p.pendingJoins, name)
+	pl := p.instance.player(name)
+	pl.internalID = internalID
+	pl.restored = true
 
-	if name == p.localName {
-		// Self Join
-		p.localUserID = userID
-		p.flushPreJoins()
-		p.sendJoin(p.localName, userID, internalID, ts)
-		p.selfRestored = true
-	} else if !p.selfRestored {
-		// Before self
-		p.preJoinPlayers = append(p.preJoinPlayers, preJoinEntry{
-			name:       name,
-			userID:     userID,
-			internalID: internalID,
-			ts:         ts,
-		})
-	} else {
-		// After self
-		p.sendJoin(name, userID, internalID, ts)
+	// 1stが抜けない限り無いが念のためガード
+	if pl.userID == "" {
+		return
+	}
+
+	s := p.instance
+	switch {
+	case pl == s.local:
+		// 自分自身のイベント
+		p.flushPreJoins(ts)
+		p.sendJoin(pl, ts)
+	case !s.localRestored():
+		// 自分より前に滞在しているプレイヤー
+		s.preJoins = append(s.preJoins, pl)
+	default:
+		// 自分のRestore後は通常送信
+		p.sendJoin(pl, ts)
 	}
 }
 
-func (p *LogParser) handlePlayerLeft(name, userID string, ts time.Time) {
-	delete(p.pendingJoins, name)
-	// pendingNames から削除（正常にJoinされなかったユーザーの対応）
-	for i, n := range p.pendingNames {
-		if n == name {
-			p.pendingNames = append(p.pendingNames[:i], p.pendingNames[i+1:]...)
-			break
+// 4th [Behaviour] OnPlayerLeft {Name} ({UserID})
+// ※バツでとじるとこの行は出てこない (Destroyingは出る)
+func (p *LogParser) handlePlayerLeft(name string, ts time.Time) {
+	s := p.instance
+	pl, ok := s.players[name]
+	if !ok {
+		return
+	}
+	// 自分のLeaveはDestroyingで送るためここでは処理しない
+	if pl == s.local {
+		return
+	}
+	s.removePendingRestored(name)
+	delete(s.players, name)
+	// Restoredしてない異常プレイヤーはLeaveイベントを送信しない
+	if !pl.restored {
+		return
+	}
+	// OnLeftRoomの検知後はLeaveイベントを送らない
+	// ※後に他人のOnPlayerLeftが一括で出るが推定Leaveのため送らない
+	if s.selfLeftRoom {
+		return
+	}
+	p.sendLeave(pl, ts)
+}
+
+// アプリの終了、インスタンスを抜けるケースであればどんな条件でもここが走る
+func (p *LogParser) handleDestroying(name string, ts time.Time) {
+	local := p.instance.local
+	if local == nil || name != local.name {
+		return
+	}
+	if local.restored {
+		p.sendLeave(local, ts)
+	}
+	p.closeLocation(ts)
+	p.instance = nil
+}
+
+func (p *LogParser) flushPreJoins(ts time.Time) {
+	s := p.instance
+	if len(s.preJoins) == 0 {
+		return
+	}
+	potential, err := p.api.GetPotentialSessions(s.locationID)
+	if err != nil {
+		log.Printf("ERROR GetPotentialSessions failed: %v (treating all as new)", err)
+	}
+	matched := matchSessions(potential, s.preJoins)
+
+	// Note: 既存プレイヤーの正確なJoin時間は知れないため、自分のJoin時間で投げる
+	if len(matched) > 0 {
+		// 同一インスタンスはインスタンスとセッションを復元する
+		if err := p.api.ResumeInstance(s.locationID, slices.Collect(maps.Keys(matched))); err != nil {
+			log.Printf("ERROR ResumeInstance failed: %v", err)
+		}
+		for _, pre := range s.preJoins {
+			if _, ok := matched[pre.userID]; !ok {
+				p.sendJoin(pre, ts)
+			}
+		}
+		log.Printf("REJOIN location=%s resumed=%d new=%d", s.locationID, len(matched), len(s.preJoins)-len(matched))
+	} else {
+		// 新規インスタンスは全員送信する
+		for _, pre := range s.preJoins {
+			p.sendJoin(pre, ts)
 		}
 	}
-	// Restored player が出ていないユーザーはLEAVE判定をスキップ
-	internalID, hasID := p.internalIDs[name]
-	if !hasID {
-		return
-	}
-	// OnLeftRoom後は自分以外のleaveを送らない
-	if p.selfLeftRoom && name != p.localName {
-		delete(p.internalIDs, name)
-		return
-	}
-	p.sendLeave(name, userID, internalID, ts)
-	delete(p.internalIDs, name)
+	s.preJoins = nil
 }
 
-func (p *LogParser) handleDestroying(ts time.Time) {
-	if id, ok := p.internalIDs[p.localName]; ok {
-		p.sendLeave(p.localName, p.localUserID, id, ts)
+func matchSessions(potential []PotentialSession, preJoins []*player) map[string]struct{} {
+	type key struct {
+		userID     string
+		internalID int
 	}
-	p.closeCurrentLocation(ts)
+	set := make(map[key]struct{}, len(potential))
+	for _, e := range potential {
+		set[key{e.UserId, e.InternalId}] = struct{}{}
+	}
+	matched := make(map[string]struct{})
+	for _, pre := range preJoins {
+		if _, ok := set[key{pre.userID, pre.internalID}]; ok {
+			matched[pre.userID] = struct{}{}
+		}
+	}
+	return matched
+}
+
+func (p *LogParser) fmtTs(ts time.Time) string {
+	return ts.In(p.loc).Format("2006-01-02 15:04:05")
+}
+
+func (p *LogParser) sendJoin(pl *player, ts time.Time) {
+	log.Printf("JOIN  [%s] %s (%s) internal_id=%d", p.fmtTs(ts), pl.name, pl.userID, pl.internalID)
+	p.api.SendEvent("join", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts)
+}
+
+func (p *LogParser) sendLeave(pl *player, ts time.Time) {
+	log.Printf("LEAVE [%s] %s (%s) internal_id=%d", p.fmtTs(ts), pl.name, pl.userID, pl.internalID)
+	p.api.SendEvent("leave", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts)
+}
+
+func (p *LogParser) closeLocation(ts time.Time) {
+	var localUserID string
+	if local := p.instance.local; local != nil {
+		localUserID = local.userID
+	}
+	log.Printf("CLOSE [%s] location=%s", p.fmtTs(ts), p.instance.locationID)
+	p.api.CloseLocation(p.instance.locationID, localUserID, ts)
 }
