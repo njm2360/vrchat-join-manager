@@ -37,13 +37,13 @@ func run(ctx context.Context, appDir string) error {
 	}
 	logDir = abs
 
-	tzName := os.Getenv("LOG_TZ")
-	if tzName == "" {
-		return fmt.Errorf("LOG_TZ environment variable not set")
-	}
-	loc, err := time.LoadLocation(tzName)
-	if err != nil {
-		return fmt.Errorf("LOG_TZ: %w", err)
+	loc := time.Local
+	if tzName := os.Getenv("LOG_TZ"); tzName != "" {
+		l, err := time.LoadLocation(tzName)
+		if err != nil {
+			return fmt.Errorf("LOG_TZ: %w", err)
+		}
+		loc = l
 	}
 
 	apiClient := core.NewApiClient(baseURL)

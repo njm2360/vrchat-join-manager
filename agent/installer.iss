@@ -44,10 +44,8 @@ begin
   SettingsPage := CreateInputQueryPage(wpSelectDir,
     '接続設定', 'サーバーへの接続情報を入力してください', '');
   SettingsPage.Add('API Base URL (例: http://192.168.1.1:8080):', False);
-  SettingsPage.Add('タイムゾーン (例: Asia/Tokyo):', False);
 
   SettingsPage.Values[0] := '';
-  SettingsPage.Values[1] := 'Asia/Tokyo';
 
   LogDirPage := CreateInputDirPage(SettingsPage.ID,
     'ログディレクトリ', 'VRChatのログフォルダを選択してください',
@@ -66,11 +64,6 @@ begin
   if CurPageID = SettingsPage.ID then begin
     if Trim(SettingsPage.Values[0]) = '' then begin
       MsgBox('API Base URLを入力してください。', mbError, MB_OK);
-      Result := False;
-      Exit;
-    end;
-    if Trim(SettingsPage.Values[1]) = '' then begin
-      MsgBox('タイムゾーンを入力してください。', mbError, MB_OK);
       Result := False;
       Exit;
     end;
@@ -95,10 +88,9 @@ var
   Lines: TArrayOfString;
 begin
   EnvPath := ExpandConstant('{localappdata}\{#MyAppName}\.env');
-  SetArrayLength(Lines, 3);
+  SetArrayLength(Lines, 2);
   Lines[0] := 'API_BASE=' + Trim(SettingsPage.Values[0]);
-  Lines[1] := 'LOG_TZ=' + Trim(SettingsPage.Values[1]);
-  Lines[2] := 'LOG_DIR=' + Trim(LogDirPage.Values[0]);
+  Lines[1] := 'LOG_DIR=' + Trim(LogDirPage.Values[0]);
   SaveStringsToFile(EnvPath, Lines, False);
 end;
 

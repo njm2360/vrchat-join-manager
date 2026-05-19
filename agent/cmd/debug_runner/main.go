@@ -15,8 +15,6 @@ import (
 	"github.com/njm2360/vrchat-join-manager/agent/internal/core"
 )
 
-// csvToVrcLine は GrayLog CSV のタイムスタンプ（UTC ISO 8601）を
-// VRChat ログ形式に変換して message と結合する。
 func csvToVrcLine(timestampUTC, message string, loc *time.Location) (string, error) {
 	t, err := time.Parse(time.RFC3339, timestampUTC)
 	if err != nil {
@@ -125,13 +123,13 @@ func main() {
 		log.Fatal("API_BASE environment variable not set")
 	}
 
-	tzName := os.Getenv("LOG_TZ")
-	if tzName == "" {
-		log.Fatal("LOG_TZ environment variable not set")
-	}
-	loc, err := time.LoadLocation(tzName)
-	if err != nil {
-		log.Fatalf("LOG_TZ: %v", err)
+	loc := time.Local
+	if tzName := os.Getenv("LOG_TZ"); tzName != "" {
+		l, err := time.LoadLocation(tzName)
+		if err != nil {
+			log.Fatalf("LOG_TZ: %v", err)
+		}
+		loc = l
 	}
 
 	parser := core.NewLogParser(core.NewApiClient(baseURL), loc)
