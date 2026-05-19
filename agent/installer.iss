@@ -1,5 +1,5 @@
 #define MyAppName "VRChat Join Manager Agent"
-#define MyAppVersion "v1.0.0"
+#define MyAppVersion "v1.1.0"
 #define MyAppExeName "vjm-agent.exe"
 
 [Setup]

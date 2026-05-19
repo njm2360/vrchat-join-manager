@@ -15,8 +15,9 @@ vet:
 run:
 	go run ./cmd/client
 
+build: export GOOS=windows
 build:
-	GOOS=windows go build -trimpath -ldflags="-s -w" -o bin/vjm-agent.exe ./cmd/client
+	go build -trimpath -ldflags="-s -w" -o bin/vjm-agent.exe ./cmd/client
 
 installer: build
 	$(ISCC) installer.iss
