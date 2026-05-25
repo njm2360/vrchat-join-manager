@@ -13,7 +13,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import type { Dayjs } from 'dayjs'
 import { api } from '../api/client'
 import type { InstanceOut } from '../api/schemas'
-import { fmtDate } from '../utils/format'
+import { fmtDate, extractInstanceNumber } from '../utils/format'
 
 type Range = { start: Dayjs | null; end: Dayjs | null }
 
@@ -109,9 +109,12 @@ function LocationItem({ inst, selected, onClick }: ItemProps) {
 
   return (
     <ListItemButton selected={selected} onClick={onClick} className="block! py-2!">
-      <Typography variant="body2" className="font-medium truncate" title={inst.world_id}>
-        {inst.world_name || inst.world_id}
+      <Typography variant="body2" color="text.secondary" className="block font-mono">
+        {extractInstanceNumber(inst.location_id) || '—'}
       </Typography>
+      {/* <Typography variant="body2" className="font-medium truncate" title={inst.world_id}>
+        {inst.world_name || inst.world_id}
+      </Typography> */}
       <Typography variant="caption" color="text.secondary" className="block truncate">
         {inst.location_id}
       </Typography>

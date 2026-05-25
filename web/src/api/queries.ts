@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   EventOut,
@@ -54,6 +54,7 @@ export function useTimeline(
       if (error) throw new Error('failed to load timeline')
       return data ?? []
     },
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -77,6 +78,7 @@ export function useEvents(
       if (error) throw new Error('failed to load events')
       return data ?? []
     },
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -105,6 +107,7 @@ export function useSessions(
       if (error) throw new Error('failed to load sessions')
       return data ?? []
     },
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -128,6 +131,7 @@ export function usePlayers(
       if (error) throw new Error('failed to load players')
       return data ?? []
     },
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -151,6 +155,7 @@ export function useVisitors(
       if (error) throw new Error('failed to load visitors')
       return data ?? []
     },
+    placeholderData: keepPreviousData,
   })
 }
 
