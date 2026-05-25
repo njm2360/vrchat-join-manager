@@ -1,0 +1,174 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  Chip,
+  IconButton,
+  Stack,
+  Typography,
+} from '@mui/material'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import { usePlayerSessions } from '../api/queries'
+import { fmtDateFull, fmtDuration } from '../utils/format'
+
+const DOW = ['日', '月', '火', '水', '木', '金', '土']
+
+export default function PlayerPage() {
+  const { userId = '' } = useParams<{ userId: string }>()
+  const [params] = useSearchParams()
+  const displayName = params.get('display_name') || userId
+  const worldId = params.get('world_id') || ''
+
+  const now = useMemo(() => new Date(), [])
+  const [{ year, month }, setYM] = useState({
+    year: now.getFullYear(),
+    month: now.getMonth(),
+  })
+
+  useEffect(() => {
+    document.title = `${displayName} — セッション履歴`
+  }, [displayName])
+
+  // 前月末日から翌月1日まで取得 (月をまたぐセッションも拾う)
+  const start = new Date(year, month, 0).toISOString()
+  const end = new Date(year, month + 1, 1).toISOString()
+
+  const { data: sessions = [] } = usePlayerSessions(userId, {
+    start, end, order: 'asc', limit: 2000,
+    world_id: worldId || undefined,
+  })
+
+  const prev = () => setYM((s) => (s.month === 0 ? { year: s.year - 1, month: 11 } : { ...s, month: s.month - 1 }))
+  const next = () => setYM((s) => (s.month === 11 ? { year: s.year + 1, month: 0 } : { ...s, month: s.month + 1 }))
+
+  return (
+    <Box className="h-full overflow-auto p-3">
+      <Card className="max-w-[960px] mx-auto">
+        <CardHeader
+          title={
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <Typography
+                component={Link}
+                to="/"
+                variant="subtitle1"
+                className="font-medium no-underline text-inherit hover:underline"
+              >
+                {displayName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">のセッション履歴</Typography>
+              {worldId && (
+                <Chip
+                  size="small"
+                  label={worldId}
+                  title={worldId}
+                  className="max-w-[320px]"
+                />
+              )}
+              <Box className="flex-1" />
+              <IconButton size="small" onClick={prev}>
+                <ChevronLeftIcon />
+              </IconButton>
+              <Typography variant="subtitle2" className="min-w-[6em] text-center font-semibold">
+                {year}年{String(month + 1).padStart(2, '0')}月
+              </Typography>
+              <IconButton size="small" onClick={next}>
+                <ChevronRightIcon />
+              </IconButton>
+            </Stack>
+          }
+        />
+        <CardContent>
+          <HourScale />
+          <MonthCalendar year={year} month={month} sessions={sessions} />
+        </CardContent>
+      </Card>
+    </Box>
+  )
+}
+
+function HourScale() {
+  return (
+    <Box className="flex items-center h-5 mb-1">
+      <Box className="basis-[84px] shrink-0" />
+      <Box className="flex-1 relative text-[10px] text-neutral-500">
+        <span className="absolute left-0">0:00</span>
+        <span className="absolute left-1/4 -translate-x-1/2">6:00</span>
+        <span className="absolute left-1/2 -translate-x-1/2">12:00</span>
+        <span className="absolute left-3/4 -translate-x-1/2">18:00</span>
+        <span className="absolute right-0 translate-x-0">24:00</span>
+      </Box>
+    </Box>
+  )
+}
+
+interface MonthProps {
+  year: number
+  month: number
+  sessions: Array<{ join_ts: string; leave_ts?: string | null; duration_seconds?: number | null; is_estimated_leave: boolean }>
+}
+
+function MonthCalendar({ year, month, sessions }: MonthProps) {
+  const days = new Date(year, month + 1, 0).getDate()
+  const nowMs = Date.now()
+  const DAY_MS = 86_400_000
+
+  return (
+    <Box className="text-[13px]">
+      {Array.from({ length: days }, (_, i) => i + 1).map((d) => {
+        const dayStart = new Date(year, month, d).getTime()
+        const dayEnd = dayStart + DAY_MS
+        const dow = new Date(year, month, d).getDay()
+        const color = dow === 0 ? 'text-red-600' : dow === 6 ? 'text-blue-600' : 'text-inherit'
+
+        const segs = sessions
+          .map((s) => {
+            const sStart = new Date(s.join_ts).getTime()
+            const sEnd = s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs
+            if (sStart >= dayEnd || sEnd <= dayStart) return null
+            const segStart = Math.max(sStart, dayStart)
+            const segEnd = Math.min(sEnd, dayEnd)
+            return {
+              s,
+              leftPct: ((segStart - dayStart) / DAY_MS) * 100,
+              widthPct: Math.max(0.2, ((segEnd - segStart) / DAY_MS) * 100),
+            }
+          })
+          .filter((x): x is NonNullable<typeof x> => x !== null)
+
+        return (
+          <Box key={d} className="flex items-center h-[30px] border-b border-neutral-100">
+            <Box className={`basis-[84px] shrink-0 text-right pr-2 text-xs tabular-nums select-none ${color}`}>
+              {String(month + 1).padStart(2, '0')}/{String(d).padStart(2, '0')} ({DOW[dow]})
+            </Box>
+            <Box
+              className="flex-1 relative h-[18px] rounded-sm"
+              sx={{
+                background:
+                  'linear-gradient(#c8cdd2,#c8cdd2) no-repeat 25%/1px 100%, ' +
+                  'linear-gradient(#c8cdd2,#c8cdd2) no-repeat 50%/1px 100%, ' +
+                  'linear-gradient(#c8cdd2,#c8cdd2) no-repeat 75%/1px 100%, #dee2e6',
+              }}
+            >
+              {segs.map(({ s, leftPct, widthPct }, idx) => (
+                <Box
+                  key={idx}
+                  title={`入室: ${fmtDateFull(s.join_ts)}\n退室: ${s.leave_ts ? fmtDateFull(s.leave_ts) : '在室中'}${s.is_estimated_leave ? ' (推定)' : ''}\n滞在: ${s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—'}`}
+                  className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] bg-[rgba(13,110,253,0.6)] hover:bg-[rgba(13,110,253,0.95)] transition-colors cursor-pointer"
+                  sx={{
+                    left: `${leftPct.toFixed(3)}%`,
+                    width: `${widthPct.toFixed(3)}%`,
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+

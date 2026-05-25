@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -80,10 +81,18 @@ func main() {
 	})
 	e.File("/docs", "static/swagger.html")
 
-	e.Static("/", "static")
-	e.GET("/", func(c echo.Context) error {
-		return c.File("static/index.html")
-	})
+	// SPA配信: 実ファイルがあればそれを返し、無ければ index.html にフォールバック。
+	// /api/*, /openapi.json, /docs は登録済みハンドラに任せる。
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:   "static",
+		Index:  "index.html",
+		HTML5:  true,
+		Browse: false,
+		Skipper: func(c echo.Context) bool {
+			p := c.Request().URL.Path
+			return strings.HasPrefix(p, "/api/") || p == "/openapi.json" || p == "/docs"
+		},
+	}))
 
 	httpServer := &http.Server{
 		Addr:              addr,
