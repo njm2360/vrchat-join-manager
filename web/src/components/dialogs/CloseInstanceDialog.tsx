@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -13,6 +12,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSnackbar } from 'notistack'
 import { api } from '../../api/client'
 import type { InstanceOut } from '../../api/schemas'
 import { extractInstanceNumber } from '../../utils/format'
@@ -27,14 +27,13 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
   const expected = extractInstanceNumber(instance.location_id)
   const [confirmText, setConfirmText] = useState('')
   const [at, setAt] = useState<Dayjs | null>(dayjs())
-  const [error, setError] = useState<string | null>(null)
   const qc = useQueryClient()
+  const { enqueueSnackbar } = useSnackbar()
 
   useEffect(() => {
     if (open) {
       setConfirmText('')
       setAt(dayjs())
-      setError(null)
     }
   }, [open])
 
@@ -50,9 +49,10 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['instance', instance.id] })
       qc.invalidateQueries({ queryKey: ['instances'] })
+      enqueueSnackbar('インスタンスをクローズしました', { variant: 'success' })
       onClose()
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => enqueueSnackbar(e.message, { variant: 'error' }),
   })
 
   const canConfirm = !!expected && confirmText.trim() === expected && !closeMut.isPending
@@ -84,7 +84,6 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
             }}
             slotProps={{ htmlInput: { inputMode: 'numeric', autoComplete: 'off' } }}
           />
-          {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions>

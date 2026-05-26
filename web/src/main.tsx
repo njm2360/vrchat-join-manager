@@ -6,6 +6,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { SnackbarProvider } from 'notistack'
 import 'dayjs/locale/ja'
 
 import '@fontsource/roboto/300.css'
@@ -33,9 +34,15 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <SnackbarProvider
+            maxSnack={3}
+            autoHideDuration={3500}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </SnackbarProvider>
         </LocalizationProvider>
       </ThemeProvider>
     </QueryClientProvider>

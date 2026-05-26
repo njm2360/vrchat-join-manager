@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -11,6 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSnackbar } from 'notistack'
 import { api } from '../../api/client'
 import type { InstanceOut } from '../../api/schemas'
 import { extractInstanceNumber } from '../../utils/format'
@@ -25,14 +25,13 @@ interface Props {
 export default function DeleteInstanceDialog({ open, onClose, instance, onDeleted }: Props) {
   const expected = extractInstanceNumber(instance.location_id)
   const [confirmText, setConfirmText] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const qc = useQueryClient()
+  const { enqueueSnackbar } = useSnackbar()
 
   useEffect(() => {
     if (open) {
       setConfirmText('')
-      setError(null)
       setTimeout(() => inputRef.current?.focus(), 200)
     }
   }, [open])
@@ -46,10 +45,11 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['instances'] })
+      enqueueSnackbar('インスタンスを削除しました', { variant: 'success' })
       onClose()
       onDeleted()
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => enqueueSnackbar(e.message, { variant: 'error' }),
   })
 
   const canConfirm = !!expected && confirmText.trim() === expected && !deleteMut.isPending
@@ -76,7 +76,6 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
             }}
             slotProps={{ htmlInput: { inputMode: 'numeric', autoComplete: 'off' } }}
           />
-          {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions>

@@ -13,6 +13,7 @@ import {
   Paper,
   Typography,
 } from '@mui/material'
+import { useSnackbar } from 'notistack'
 import { usePlayers } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
 
@@ -30,7 +31,7 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 export default function PlayersTab({ instanceId }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('internal_id')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
-  const [copyLabel, setCopyLabel] = useState('全員のDiscordIDをコピー')
+  const { enqueueSnackbar } = useSnackbar()
 
   const { data: players = [], refetch } = usePlayers(instanceId, {
     sort_by: sortBy,
@@ -57,17 +58,15 @@ export default function PlayersTab({ instanceId }: Props) {
   const copyDiscord = async () => {
     const count = players.filter((p) => p.discord_id).length
     if (count === 0) {
-      setCopyLabel('IDなし')
-      setTimeout(() => setCopyLabel('全員のDiscordIDをコピー'), 2000)
+      enqueueSnackbar('Discord IDが登録されているプレイヤーがいません', { variant: 'info' })
       return
     }
     try {
       await navigator.clipboard.writeText(mentionText)
-      setCopyLabel(`コピー済み (${count}人)`)
+      enqueueSnackbar(`${count}人分のDiscord IDをコピーしました`, { variant: 'success' })
     } catch {
-      setCopyLabel('コピー失敗')
+      enqueueSnackbar('クリップボードへのコピーに失敗しました', { variant: 'error' })
     }
-    setTimeout(() => setCopyLabel('全員のDiscordIDをコピー'), 2000)
   }
 
   return (
@@ -77,7 +76,7 @@ export default function PlayersTab({ instanceId }: Props) {
           更新
         </Button>
         <Button variant="outlined" size="small" onClick={copyDiscord}>
-          {copyLabel}
+          全員のDiscord IDをコピー
         </Button>
         <Typography variant="h6" className="font-bold">
           {players.length} 人
