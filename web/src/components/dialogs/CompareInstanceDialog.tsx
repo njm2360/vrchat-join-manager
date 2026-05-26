@@ -23,24 +23,22 @@ interface Props {
 }
 
 export default function CompareInstanceDialog({ open, onClose, current }: Props) {
+  const start = current.opened_at
+  const end = current.closed_at ?? new Date().toISOString()
+
   const { data: instances = [], isLoading } = useQuery<InstanceOut[]>({
-    queryKey: ['instances', 'all'],
+    queryKey: ['instances', 'overlap', current.id, start, end],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await api.GET('/api/instances', {})
+      const { data, error } = await api.GET('/api/instances', {
+        params: { query: { start, end } },
+      })
       if (error) throw new Error('failed to load instances')
       return data ?? []
     },
   })
 
-  const curStart = new Date(current.opened_at).getTime()
-  const curEnd = current.closed_at ? new Date(current.closed_at).getTime() : Date.now()
-  const overlapping = instances.filter((inst) => {
-    if (inst.id === current.id) return false
-    const s = new Date(inst.opened_at).getTime()
-    const e = inst.closed_at ? new Date(inst.closed_at).getTime() : Date.now()
-    return curStart < e && s < curEnd
-  })
+  const overlapping = instances.filter((inst) => inst.id !== current.id)
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">

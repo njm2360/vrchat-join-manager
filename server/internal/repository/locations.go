@@ -37,7 +37,7 @@ func (r *LocationsRepo) ListInstances(
 	conditions := []string{}
 	args := map[string]interface{}{}
 	if start != nil {
-		conditions = append(conditions, "i.opened_at >= :start")
+		conditions = append(conditions, "(i.closed_at IS NULL OR i.closed_at >= :start)")
 		args["start"] = *start
 	}
 	if end != nil {

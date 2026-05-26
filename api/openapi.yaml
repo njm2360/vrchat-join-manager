@@ -223,6 +223,10 @@ paths:
     get:
       operationId: listInstances
       tags: [instances]
+      description: |
+        インスタンス一覧。`start`/`end` を指定した場合は、インスタンスのオープン期間
+        `[opened_at, closed_at)` が `[start, end]` と重なるものを返す
+        (closed_at が NULL の進行中インスタンスは end の制約のみで判定)。
       parameters:
         - $ref: '#/components/parameters/StartQuery'
         - $ref: '#/components/parameters/EndQuery'
