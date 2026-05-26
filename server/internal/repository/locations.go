@@ -299,14 +299,14 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 		"leave_ts":         "s.leave_ts",
 		"duration_seconds": "duration_seconds",
 	}, "s.join_ts")
-	conditions := []string{"instance_id = :instance_id"}
+	conditions := []string{"s.instance_id = :instance_id"}
 	args := map[string]interface{}{"instance_id": instanceID}
 	if start != nil {
-		conditions = append(conditions, "join_ts >= :start")
+		conditions = append(conditions, "(s.leave_ts IS NULL OR s.leave_ts >= :start)")
 		args["start"] = *start
 	}
 	if end != nil {
-		conditions = append(conditions, "join_ts <= :end")
+		conditions = append(conditions, "s.join_ts <= :end")
 		args["end"] = *end
 	}
 	where := strings.Join(conditions, " AND ")

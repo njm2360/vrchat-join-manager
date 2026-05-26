@@ -399,6 +399,10 @@ paths:
     get:
       operationId: getInstanceSessions
       tags: [instances]
+      description: |
+        セッション一覧。`start`/`end` を指定した場合は、セッション期間
+        `[join_ts, leave_ts)` が `[start, end]` と重なるものを返す
+        (leave_ts が NULL の在室中セッションは end の制約のみで判定)。
       parameters:
         - $ref: '#/components/parameters/StartQuery'
         - $ref: '#/components/parameters/EndQuery'
