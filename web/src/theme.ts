@@ -1,6 +1,5 @@
 import { createTheme } from '@mui/material/styles'
 import { jaJP as coreJaJP } from '@mui/material/locale'
-import { jaJP as gridJaJP } from '@mui/x-data-grid/locales'
 import { jaJP as pickersJaJP } from '@mui/x-date-pickers/locales'
 
 export const theme = createTheme(
@@ -24,6 +23,5 @@ export const theme = createTheme(
     shape: { borderRadius: 6 },
   },
   coreJaJP,
-  gridJaJP,
   pickersJaJP,
 )

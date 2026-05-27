@@ -23,5 +23,19 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../server/static'),
     emptyOutDir: true,
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        advancedChunks: {
+          groups: [
+            { name: 'mui-icons', test: /node_modules\/@mui\/icons-material\// },
+            { name: 'mui-pickers', test: /node_modules\/@mui\/x-date-pickers\// },
+            { name: 'mui-core', test: /node_modules\/(@mui|@emotion)\// },
+            { name: 'router', test: /node_modules\/(react-router|react-router-dom)\// },
+            { name: 'query', test: /node_modules\/@tanstack\// },
+            { name: 'react', test: /node_modules\/(react|react-dom|scheduler)\// },
+          ],
+        },
+      },
+    },
   },
 })
