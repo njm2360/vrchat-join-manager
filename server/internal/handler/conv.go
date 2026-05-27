@@ -4,8 +4,45 @@ import (
 	"database/sql"
 	"time"
 
+	openapi_types "github.com/oapi-codegen/runtime/types"
+
 	"github.com/njm2360/vrchat-join-manager/server/internal/timeutil"
 )
+
+// parseTime は DB 由来の ISO 8601 文字列 (例: "2026-05-28T01:23:45Z") を time.Time にする。
+// 不正な値はゼロ値を返す。
+func parseTime(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, timeutil.Layout, "2006-01-02T15:04:05"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC()
+		}
+	}
+	return time.Time{}
+}
+
+func parseTimePtr(s string) *time.Time {
+	if s == "" {
+		return nil
+	}
+	t := parseTime(s)
+	return &t
+}
+
+func parseTimeFromNullable(n sql.NullString) *time.Time {
+	if !n.Valid {
+		return nil
+	}
+	return parseTimePtr(n.String)
+}
+
+// parseDate は "YYYY-MM-DD" 形式の文字列を openapi_types.Date に変換する。
+func parseDate(s string) openapi_types.Date {
+	t, _ := time.Parse("2006-01-02", s)
+	return openapi_types.Date{Time: t}
+}
 
 func strPtr(n sql.NullString) *string {
 	if !n.Valid {

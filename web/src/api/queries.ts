@@ -4,6 +4,7 @@ import type {
   EventOut,
   InstanceOut,
   LocationPlayerOut,
+  PlayerDetailOut,
   PlayerSessionOut,
   SessionOut,
   TimelinePoint,
@@ -19,6 +20,20 @@ export type VisitorSortKey =
   | 'last_seen'
   | 'join_count'
   | 'total_duration_seconds'
+
+export function usePlayerDetail(userId: string, options?: { enabled?: boolean }) {
+  return useQuery<PlayerDetailOut>({
+    queryKey: ['player', userId],
+    enabled: (options?.enabled ?? true) && !!userId,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/players/{user_id}', {
+        params: { path: { user_id: userId } },
+      })
+      if (error || !data) throw new Error('failed to load player')
+      return data
+    },
+  })
+}
 
 export function useInstance(id: number | null, options?: { enabled?: boolean }) {
   return useQuery<InstanceOut>({

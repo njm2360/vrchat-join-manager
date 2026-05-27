@@ -4,6 +4,7 @@ export type Point = { x: Date; y: number }
 export type InstColor = 'blue' | 'red'
 
 export interface Violation {
+  user_id: string
   display_name: string
   join_ts: Date
   instance: InstColor
@@ -125,6 +126,7 @@ export function detectViolations(
     if (duration_seconds != null && duration_seconds <= 180) continue
 
     violations.push({
+      user_id: pt.user_id,
       display_name: pt.display_name ?? '',
       join_ts: new Date(pt.timestamp),
       instance: color,

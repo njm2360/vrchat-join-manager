@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  Link,
   Stack,
   Table,
   TableBody,
@@ -19,6 +20,7 @@ import type { Dayjs } from 'dayjs'
 import { useSessions } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
 import type { SessionOut } from '../../api/schemas'
+import { usePlayerDetailDialog } from '../PlayerDetailProvider'
 
 interface Props {
   instanceId: number
@@ -30,12 +32,13 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
   { key: 'display_name', label: '名前' },
   { key: 'join_ts', label: '入室', width: 160 },
   { key: 'leave_ts', label: '退室', width: 160 },
-  { key: 'duration_seconds', label: '滞在時間', width: 110, align: 'right' },
+  { key: 'duration_seconds', label: '滞在時間', width: 120, align: 'right' },
 ]
 
 export default function SessionsTab({ instanceId }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('leave_ts')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+  const { open: openPlayer } = usePlayerDetailDialog()
   const [start, setStart] = useState<Dayjs | null>(null)
   const [end, setEnd] = useState<Dayjs | null>(null)
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
@@ -112,7 +115,21 @@ export default function SessionsTab({ instanceId }: Props) {
             ) : (
               sessions.map((s) => (
                 <TableRow key={s.id} hover>
-                  <TableCell className="truncate max-w-[200px]">{s.display_name}</TableCell>
+                  <TableCell className="truncate max-w-[200px]">
+                    <Link
+                      component="button"
+                      underline="hover"
+                      onClick={() =>
+                        openPlayer({
+                          userId: s.user_id,
+                          displayName: s.display_name,
+                          instanceId,
+                        })
+                      }
+                    >
+                      {s.display_name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
                   <TableCell><LeaveCell s={s} /></TableCell>
                   <TableCell align="right">

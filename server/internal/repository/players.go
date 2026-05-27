@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -12,6 +14,38 @@ type PlayersRepo struct {
 }
 
 func NewPlayersRepo(db *sqlx.DB) *PlayersRepo { return &PlayersRepo{DB: db} }
+
+// GetDetail はプレイヤーのプロフィール (Discord含む) と通算統計を1リクエストで返す。
+func (r *PlayersRepo) GetDetail(ctx context.Context, userID string) (*PlayerDetailRow, error) {
+	q := `
+		SELECT p.user_id,
+		       p.display_name,
+		       pd.discord_id                                        AS discord_id,
+		       p.created_at,
+		       p.updated_at,
+		       COUNT(s.id)                                          AS total_visits,
+		       COALESCE(SUM(COALESCE(s.duration_seconds,
+		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
+		       )), 0)                                               AS total_duration_seconds,
+		       MIN(s.join_ts)                                       AS first_seen,
+		       MAX(s.join_ts)                                       AS last_seen,
+		       EXISTS(SELECT 1 FROM sessions s2
+		              WHERE s2.user_id = p.user_id AND s2.leave_ts IS NULL) AS in_room
+		FROM players p
+		LEFT JOIN player_discord pd ON pd.user_id = p.user_id
+		LEFT JOIN sessions s         ON s.user_id = p.user_id
+		WHERE p.user_id = ?
+		GROUP BY p.user_id`
+
+	var row PlayerDetailRow
+	if err := r.DB.GetContext(ctx, &row, q, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &row, nil
+}
 
 func (r *PlayersRepo) List(ctx context.Context, name *string, order string, limit *int, offset int) ([]PlayerRow, error) {
 	var (

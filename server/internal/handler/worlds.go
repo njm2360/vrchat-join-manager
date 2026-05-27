@@ -22,9 +22,9 @@ func (s *Server) ListWorlds(ctx context.Context, request gen.ListWorldsRequestOb
 		out = append(out, gen.WorldOut{
 			WorldId:      r.WorldID,
 			Name:         strPtr(r.Name),
-			CreatedAt:    r.CreatedAt,
-			UpdatedAt:    r.UpdatedAt,
-			LastSeen:     strPtr(r.LastSeen),
+			CreatedAt:    parseTime(r.CreatedAt),
+			UpdatedAt:    parseTime(r.UpdatedAt),
+			LastSeen:     parseTimeFromNullable(r.LastSeen),
 			SessionCount: r.SessionCount,
 		})
 	}

@@ -32,6 +32,19 @@ type PlayerRow struct {
 	UpdatedAt   string `db:"updated_at"`
 }
 
+type PlayerDetailRow struct {
+	UserID               string         `db:"user_id"`
+	DisplayName          string         `db:"display_name"`
+	DiscordID            sql.NullString `db:"discord_id"`
+	CreatedAt            string         `db:"created_at"`
+	UpdatedAt            string         `db:"updated_at"`
+	TotalVisits          int            `db:"total_visits"`
+	TotalDurationSeconds int            `db:"total_duration_seconds"`
+	FirstSeen            sql.NullString `db:"first_seen"`
+	LastSeen             sql.NullString `db:"last_seen"`
+	InRoom               bool           `db:"in_room"`
+}
+
 type EventRow struct {
 	ID          int    `db:"id"`
 	EventType   string `db:"event_type"`
@@ -81,13 +94,13 @@ type LocationPlayerRow struct {
 	JoinCount   int            `db:"join_count"`
 }
 
-type PlayerListRow struct {
-	UserID               string        `db:"user_id"`
-	DisplayName          string        `db:"display_name"`
-	FirstSeen            string        `db:"first_seen"`
-	LastSeen             string        `db:"last_seen"`
-	JoinCount            int           `db:"join_count"`
-	TotalDurationSeconds sql.NullInt64 `db:"total_duration_seconds"`
+type VisitorRow struct {
+	UserID               string `db:"user_id"`
+	DisplayName          string `db:"display_name"`
+	FirstSeen            string `db:"first_seen"`
+	LastSeen             string `db:"last_seen"`
+	JoinCount            int    `db:"join_count"`
+	TotalDurationSeconds int    `db:"total_duration_seconds"`
 }
 
 type PlayerSessionRow struct {

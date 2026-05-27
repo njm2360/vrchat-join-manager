@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  Link,
   Stack,
   Table,
   TableBody,
@@ -18,6 +19,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import type { Dayjs } from 'dayjs'
 import { useEvents } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
+import { usePlayerDetailDialog } from '../PlayerDetailProvider'
 
 interface Props {
   instanceId: number
@@ -25,6 +27,7 @@ interface Props {
 
 export default function EventsTab({ instanceId }: Props) {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
+  const { open: openPlayer } = usePlayerDetailDialog()
   const [start, setStart] = useState<Dayjs | null>(null)
   const [end, setEnd] = useState<Dayjs | null>(null)
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
@@ -93,7 +96,21 @@ export default function EventsTab({ instanceId }: Props) {
                       className="w-[72px]"
                     />
                   </TableCell>
-                  <TableCell>{ev.display_name}</TableCell>
+                  <TableCell>
+                    <Link
+                      component="button"
+                      underline="hover"
+                      onClick={() =>
+                        openPlayer({
+                          userId: ev.user_id,
+                          displayName: ev.display_name,
+                          instanceId,
+                        })
+                      }
+                    >
+                      {ev.display_name}
+                    </Link>
+                  </TableCell>
                 </TableRow>
               ))
             )}

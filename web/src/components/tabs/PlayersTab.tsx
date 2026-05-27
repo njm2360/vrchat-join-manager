@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
+  Link,
   Stack,
   Table,
   TableBody,
@@ -16,6 +17,7 @@ import {
 import { useSnackbar } from 'notistack'
 import { usePlayers } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
+import { usePlayerDetailDialog } from '../PlayerDetailProvider'
 
 interface Props {
   instanceId: number
@@ -32,6 +34,7 @@ export default function PlayersTab({ instanceId }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('internal_id')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const { enqueueSnackbar } = useSnackbar()
+  const { open: openPlayer } = usePlayerDetailDialog()
 
   const { data: players = [], refetch } = usePlayers(instanceId, {
     sort_by: sortBy,
@@ -124,7 +127,21 @@ export default function PlayersTab({ instanceId }: Props) {
                   <TableCell align="right" className="text-neutral-500">
                     {p.internal_id ?? '—'}
                   </TableCell>
-                  <TableCell>{p.display_name}</TableCell>
+                  <TableCell>
+                    <Link
+                      component="button"
+                      underline="hover"
+                      onClick={() =>
+                        openPlayer({
+                          userId: p.user_id,
+                          displayName: p.display_name,
+                          instanceId,
+                        })
+                      }
+                    >
+                      {p.display_name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     {p.discord_id ? (
                       p.discord_id

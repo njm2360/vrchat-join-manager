@@ -180,7 +180,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CloseLocationRequest'
+              $ref: '#/components/schemas/CloseLocationIn'
       responses:
         '204':
           description: クローズ
@@ -214,7 +214,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RestoreRequest'
+              $ref: '#/components/schemas/RestoreIn'
       responses:
         '204':
           description: 復元
@@ -350,7 +350,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlayerListOut'
+                  $ref: '#/components/schemas/VisitorOut'
 
   /api/instances/{instance_id}/presence-timeline:
     parameters:
@@ -445,6 +445,23 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PlayerOut'
+
+  /api/players/{user_id}:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    get:
+      operationId: getPlayer
+      tags: [players]
+      description: プレイヤーの詳細情報 (プロフィール + 通算統計)。
+      responses:
+        '200':
+          description: プレイヤー詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerDetailOut'
+        '404':
+          description: 見つからない
 
   /api/players/{user_id}/events:
     parameters:
@@ -584,15 +601,15 @@ components:
       name: order
       in: query
       schema:
-        type: string
-        enum: [asc, desc]
+        allOf:
+          - $ref: '#/components/schemas/Order'
         default: asc
     OrderDescQuery:
       name: order
       in: query
       schema:
-        type: string
-        enum: [asc, desc]
+        allOf:
+          - $ref: '#/components/schemas/Order'
         default: desc
     LimitQuery:
       name: limit
@@ -613,12 +630,14 @@ components:
       required: [id, event_type, instance_id, world_id, user_id, display_name, timestamp]
       properties:
         id: { type: integer }
-        event_type: { type: string }
+        event_type:
+          type: string
+          enum: [join, leave]
         instance_id: { type: integer }
         world_id: { type: string }
         user_id: { type: string }
         display_name: { type: string }
-        timestamp: { type: string }
+        timestamp: { type: string, format: date-time }
 
     PlayerEvent:
       type: object
@@ -639,8 +658,8 @@ components:
       properties:
         group_id: { type: string }
         name: { type: string, nullable: true }
-        created_at: { type: string }
-        updated_at: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
 
     GroupRenameIn:
       type: object
@@ -654,9 +673,9 @@ components:
       properties:
         world_id: { type: string }
         name: { type: string, nullable: true }
-        created_at: { type: string }
-        updated_at: { type: string }
-        last_seen: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time, nullable: true }
         session_count: { type: integer }
 
     WorldRenameIn:
@@ -671,8 +690,27 @@ components:
       properties:
         user_id: { type: string }
         display_name: { type: string }
-        created_at: { type: string }
-        updated_at: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    PlayerDetailOut:
+      type: object
+      description: |
+        プレイヤーの詳細情報。プロフィール + 通算統計を返す。
+      required:
+        [user_id, display_name, created_at, updated_at,
+         total_visits, total_duration_seconds, in_room]
+      properties:
+        user_id: { type: string }
+        display_name: { type: string }
+        discord_id: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        total_visits: { type: integer, description: 通算訪問回数 }
+        total_duration_seconds: { type: integer, description: 通算滞在秒数 }
+        first_seen: { type: string, format: date-time, nullable: true }
+        last_seen: { type: string, format: date-time, nullable: true }
+        in_room: { type: boolean, description: 現在 leave_ts なしのセッションがあるか }
 
     PlayerSessionOut:
       type: object
@@ -681,12 +719,12 @@ components:
         id: { type: integer }
         instance_id: { type: integer }
         world_id: { type: string }
-        join_ts: { type: string }
-        leave_ts: { type: string, nullable: true }
+        join_ts: { type: string, format: date-time }
+        leave_ts: { type: string, format: date-time, nullable: true }
         duration_seconds: { type: integer, nullable: true }
         is_estimated_leave: { type: boolean }
 
-    CloseLocationRequest:
+    CloseLocationIn:
       type: object
       required: [at]
       properties:
@@ -700,7 +738,7 @@ components:
         user_id: { type: string }
         internal_id: { type: integer }
 
-    RestoreRequest:
+    RestoreIn:
       type: object
       required: [user_ids]
       properties:
@@ -724,8 +762,8 @@ components:
         friends: { type: string, nullable: true }
         hidden: { type: string, nullable: true }
         private: { type: string, nullable: true }
-        opened_at: { type: string }
-        closed_at: { type: string, nullable: true }
+        opened_at: { type: string, format: date-time }
+        closed_at: { type: string, format: date-time, nullable: true }
         user_count: { type: integer }
 
     LocationPlayerOut:
@@ -736,25 +774,27 @@ components:
         display_name: { type: string }
         discord_id: { type: string, nullable: true }
         internal_id: { type: integer }
-        join_ts: { type: string }
+        join_ts: { type: string, format: date-time }
         join_count: { type: integer }
 
-    PlayerListOut:
+    VisitorOut:
       type: object
-      required: [user_id, display_name, first_seen, last_seen, join_count]
+      description: インスタンス訪問者の集計レコード。
+      required:
+        [user_id, display_name, first_seen, last_seen, join_count, total_duration_seconds]
       properties:
         user_id: { type: string }
         display_name: { type: string }
-        first_seen: { type: string }
-        last_seen: { type: string }
+        first_seen: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time }
         join_count: { type: integer }
-        total_duration_seconds: { type: integer, nullable: true }
+        total_duration_seconds: { type: integer }
 
     TimelinePoint:
       type: object
       required: [timestamp, count]
       properties:
-        timestamp: { type: string }
+        timestamp: { type: string, format: date-time }
         count: { type: integer }
         user_id: { type: string, nullable: true }
         display_name: { type: string, nullable: true }
@@ -768,8 +808,8 @@ components:
         user_id: { type: string }
         display_name: { type: string }
         discord_id: { type: string, nullable: true }
-        join_ts: { type: string }
-        leave_ts: { type: string, nullable: true }
+        join_ts: { type: string, format: date-time }
+        leave_ts: { type: string, format: date-time, nullable: true }
         duration_seconds: { type: integer, nullable: true }
         is_estimated_leave: { type: boolean }
 
@@ -777,14 +817,14 @@ components:
       type: object
       required: [day, active_users]
       properties:
-        day: { type: string }
+        day: { type: string, format: date }
         active_users: { type: integer }
 
     HourlyActiveUsersPoint:
       type: object
       required: [hour, active_users]
       properties:
-        hour: { type: string }
+        hour: { type: string, format: date-time }
         active_users: { type: integer }
 
     PlayerRankOut:

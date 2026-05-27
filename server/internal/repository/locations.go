@@ -147,7 +147,7 @@ func (r *LocationsRepo) GetLocationPlayers(ctx context.Context, instanceID int, 
 	return rows, nil
 }
 
-func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int, sortBy, order string, limit *int, offset int) ([]PlayerListRow, error) {
+func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int, sortBy, order string, limit *int, offset int) ([]VisitorRow, error) {
 	sortCol := pickSortColumn(sortBy, map[string]string{
 		"display_name":           "display_name",
 		"first_seen":             "first_seen",
@@ -160,9 +160,9 @@ func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int,
 		       MIN(s.join_ts)          AS first_seen,
 		       MAX(s.join_ts)          AS last_seen,
 		       COUNT(*)                AS join_count,
-		       SUM(COALESCE(s.duration_seconds,
+		       COALESCE(SUM(COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
-		       ))                      AS total_duration_seconds
+		       )), 0)                  AS total_duration_seconds
 		FROM sessions s
 		JOIN players p ON p.user_id = s.user_id
 		WHERE s.instance_id = ?
@@ -170,7 +170,7 @@ func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int,
 		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
-	rows := []PlayerListRow{}
+	rows := []VisitorRow{}
 	if err := r.DB.SelectContext(ctx, &rows, q, instanceID); err != nil {
 		return nil, err
 	}

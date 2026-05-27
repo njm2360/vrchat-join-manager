@@ -19,7 +19,6 @@ import VisitorsTab from './tabs/VisitorsTab'
 import CompareInstanceDialog from './dialogs/CompareInstanceDialog'
 import CloseInstanceDialog from './dialogs/CloseInstanceDialog'
 import DeleteInstanceDialog from './dialogs/DeleteInstanceDialog'
-import SessionDialog from './dialogs/SessionDialog'
 
 type TabKey = 'timeline' | 'events' | 'sessions' | 'players' | 'visitors'
 
@@ -35,10 +34,6 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
   const [compareOpen, setCompareOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [sessionDialog, setSessionDialog] = useState<{ userId: string; displayName: string } | null>(null)
-
-  const openPlayerSessions = (userId: string, displayName: string) =>
-    setSessionDialog({ userId, displayName })
 
   return (
     <Box className="h-full overflow-auto p-3">
@@ -107,9 +102,7 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
           {tab === 'events' && <EventsTab instanceId={instanceId} />}
           {tab === 'sessions' && <SessionsTab instanceId={instanceId} />}
           {tab === 'players' && <PlayersTab instanceId={instanceId} />}
-          {tab === 'visitors' && (
-            <VisitorsTab instanceId={instanceId} onSelect={openPlayerSessions} />
-          )}
+          {tab === 'visitors' && <VisitorsTab instanceId={instanceId} />}
         </CardContent>
       </Card>
 
@@ -133,15 +126,6 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
           onClose={() => setDeleteOpen(false)}
           instance={instance}
           onDeleted={onBack}
-        />
-      )}
-      {sessionDialog && instance && (
-        <SessionDialog
-          open={!!sessionDialog}
-          onClose={() => setSessionDialog(null)}
-          userId={sessionDialog.userId}
-          displayName={sessionDialog.displayName}
-          instance={instance}
         />
       )}
     </Box>

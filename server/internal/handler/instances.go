@@ -21,8 +21,8 @@ func instanceRowToOut(r repository.InstanceRow) gen.InstanceOut {
 		Friends:         strPtr(r.Friends),
 		Hidden:          strPtr(r.Hidden),
 		Private:         strPtr(r.Private),
-		OpenedAt:        r.OpenedAt,
-		ClosedAt:        strPtr(r.ClosedAt),
+		OpenedAt:        parseTime(r.OpenedAt),
+		ClosedAt:        parseTimeFromNullable(r.ClosedAt),
 		UserCount:       r.UserCount,
 	}
 }
@@ -34,8 +34,8 @@ func sessionRowToOut(r repository.SessionRow) gen.SessionOut {
 		UserId:           r.UserID,
 		DisplayName:      r.DisplayName,
 		DiscordId:        strPtr(r.DiscordID),
-		JoinTs:           r.JoinTs,
-		LeaveTs:          strPtr(r.LeaveTs),
+		JoinTs:           parseTime(r.JoinTs),
+		LeaveTs:          parseTimeFromNullable(r.LeaveTs),
 		DurationSeconds:  intPtr(r.DurationSeconds),
 		IsEstimatedLeave: r.IsEstimatedLeave,
 	}
@@ -118,7 +118,7 @@ func (s *Server) GetInstancePlayers(ctx context.Context, request gen.GetInstance
 			DisplayName: r.DisplayName,
 			DiscordId:   strPtr(r.DiscordID),
 			InternalId:  r.InternalID,
-			JoinTs:      r.JoinTs,
+			JoinTs:      parseTime(r.JoinTs),
 			JoinCount:   r.JoinCount,
 		})
 	}
@@ -139,13 +139,13 @@ func (s *Server) GetInstanceVisitors(ctx context.Context, request gen.GetInstanc
 	}
 	out := make(gen.GetInstanceVisitors200JSONResponse, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, gen.PlayerListOut{
+		out = append(out, gen.VisitorOut{
 			UserId:               r.UserID,
 			DisplayName:          r.DisplayName,
-			FirstSeen:            r.FirstSeen,
-			LastSeen:             r.LastSeen,
+			FirstSeen:            parseTime(r.FirstSeen),
+			LastSeen:             parseTime(r.LastSeen),
 			JoinCount:            r.JoinCount,
-			TotalDurationSeconds: intPtr(r.TotalDurationSeconds),
+			TotalDurationSeconds: r.TotalDurationSeconds,
 		})
 	}
 	return out, nil
@@ -161,7 +161,7 @@ func (s *Server) GetInstancePresenceTimeline(ctx context.Context, request gen.Ge
 	out := make(gen.GetInstancePresenceTimeline200JSONResponse, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, gen.TimelinePoint{
-			Timestamp:   r.Timestamp,
+			Timestamp:   parseTime(r.Timestamp),
 			Count:       r.Count,
 			UserId:      strPtr(r.UserID),
 			DisplayName: strPtr(r.DisplayName),
@@ -182,12 +182,12 @@ func (s *Server) GetInstanceEvents(ctx context.Context, request gen.GetInstanceE
 	for _, r := range rows {
 		out = append(out, gen.EventOut{
 			Id:          r.ID,
-			EventType:   r.EventType,
+			EventType:   gen.EventOutEventType(r.EventType),
 			InstanceId:  r.InstanceID,
 			WorldId:     r.WorldID,
 			UserId:      r.UserID,
 			DisplayName: r.DisplayName,
-			Timestamp:   r.Timestamp,
+			Timestamp:   parseTime(r.Timestamp),
 		})
 	}
 	return out, nil

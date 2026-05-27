@@ -35,7 +35,7 @@ func (s *Server) ReceiveEvent(ctx context.Context, request gen.ReceiveEventReque
 	}
 
 	switch body.Event {
-	case gen.Join:
+	case gen.PlayerEventEventJoin:
 		// Update world list
 		if err := s.Events.UpsertWorld(ctx, tx, loc.WorldID, ts); err != nil {
 			return nil, err
@@ -75,7 +75,7 @@ func (s *Server) ReceiveEvent(ctx context.Context, request gen.ReceiveEventReque
 			}
 		}
 
-	case gen.Leave:
+	case gen.PlayerEventEventLeave:
 		instID, err := s.Instances.GetOpenInstanceID(ctx, tx, body.LocationId)
 		if err != nil {
 			return nil, err

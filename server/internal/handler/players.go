@@ -6,6 +6,28 @@ import (
 	"github.com/njm2360/vrchat-join-manager/server/internal/gen"
 )
 
+func (s *Server) GetPlayer(ctx context.Context, request gen.GetPlayerRequestObject) (gen.GetPlayerResponseObject, error) {
+	r, err := s.Players.GetDetail(ctx, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return gen.GetPlayer404Response{}, nil
+	}
+	return gen.GetPlayer200JSONResponse{
+		UserId:               r.UserID,
+		DisplayName:          r.DisplayName,
+		DiscordId:            strPtr(r.DiscordID),
+		CreatedAt:            parseTime(r.CreatedAt),
+		UpdatedAt:            parseTime(r.UpdatedAt),
+		TotalVisits:          r.TotalVisits,
+		TotalDurationSeconds: r.TotalDurationSeconds,
+		FirstSeen:            parseTimeFromNullable(r.FirstSeen),
+		LastSeen:             parseTimeFromNullable(r.LastSeen),
+		InRoom:               r.InRoom,
+	}, nil
+}
+
 func (s *Server) ListPlayers(ctx context.Context, request gen.ListPlayersRequestObject) (gen.ListPlayersResponseObject, error) {
 	order := enumStrOr(request.Params.Order, "asc")
 	offset := derefInt(request.Params.Offset)
@@ -18,8 +40,8 @@ func (s *Server) ListPlayers(ctx context.Context, request gen.ListPlayersRequest
 		out = append(out, gen.PlayerOut{
 			UserId:      r.UserID,
 			DisplayName: r.DisplayName,
-			CreatedAt:   r.CreatedAt,
-			UpdatedAt:   r.UpdatedAt,
+			CreatedAt:   parseTime(r.CreatedAt),
+			UpdatedAt:   parseTime(r.UpdatedAt),
 		})
 	}
 	return out, nil
@@ -38,12 +60,12 @@ func (s *Server) GetPlayerEvents(ctx context.Context, request gen.GetPlayerEvent
 	for _, r := range rows {
 		out = append(out, gen.EventOut{
 			Id:          r.ID,
-			EventType:   r.EventType,
+			EventType:   gen.EventOutEventType(r.EventType),
 			InstanceId:  r.InstanceID,
 			WorldId:     r.WorldID,
 			UserId:      r.UserID,
 			DisplayName: r.DisplayName,
-			Timestamp:   r.Timestamp,
+			Timestamp:   parseTime(r.Timestamp),
 		})
 	}
 	return out, nil
@@ -73,8 +95,8 @@ func (s *Server) GetPlayerSessions(ctx context.Context, request gen.GetPlayerSes
 			Id:               r.ID,
 			InstanceId:       r.InstanceID,
 			WorldId:          r.WorldID,
-			JoinTs:           r.JoinTs,
-			LeaveTs:          strPtr(r.LeaveTs),
+			JoinTs:           parseTime(r.JoinTs),
+			LeaveTs:          parseTimeFromNullable(r.LeaveTs),
 			DurationSeconds:  intPtr(r.DurationSeconds),
 			IsEstimatedLeave: r.IsEstimatedLeave,
 		})

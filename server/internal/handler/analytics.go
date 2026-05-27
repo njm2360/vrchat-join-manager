@@ -17,7 +17,7 @@ func (s *Server) GetDailyActiveUsers(ctx context.Context, request gen.GetDailyAc
 	out := make(gen.GetDailyActiveUsers200JSONResponse, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, gen.DailyActiveUsersPoint{
-			Day:         r.Day,
+			Day:         parseDate(r.Day),
 			ActiveUsers: r.ActiveUsers,
 		})
 	}
@@ -34,7 +34,7 @@ func (s *Server) GetHourlyActiveUsers(ctx context.Context, request gen.GetHourly
 	out := make(gen.GetHourlyActiveUsers200JSONResponse, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, gen.HourlyActiveUsersPoint{
-			Hour:        r.Hour,
+			Hour:        parseTime(r.Hour),
 			ActiveUsers: r.ActiveUsers,
 		})
 	}

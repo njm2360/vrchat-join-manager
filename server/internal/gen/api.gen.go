@@ -19,20 +19,39 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for EventOutEventType.
+const (
+	EventOutEventTypeJoin  EventOutEventType = "join"
+	EventOutEventTypeLeave EventOutEventType = "leave"
+)
+
+// Valid indicates whether the value is a known member of the EventOutEventType enum.
+func (e EventOutEventType) Valid() bool {
+	switch e {
+	case EventOutEventTypeJoin:
+		return true
+	case EventOutEventTypeLeave:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for Order.
 const (
-	OrderAsc  Order = "asc"
-	OrderDesc Order = "desc"
+	Asc  Order = "asc"
+	Desc Order = "desc"
 )
 
 // Valid indicates whether the value is a known member of the Order enum.
 func (e Order) Valid() bool {
 	switch e {
-	case OrderAsc:
+	case Asc:
 		return true
-	case OrderDesc:
+	case Desc:
 		return true
 	default:
 		return false
@@ -41,106 +60,16 @@ func (e Order) Valid() bool {
 
 // Defines values for PlayerEventEvent.
 const (
-	Join  PlayerEventEvent = "join"
-	Leave PlayerEventEvent = "leave"
+	PlayerEventEventJoin  PlayerEventEvent = "join"
+	PlayerEventEventLeave PlayerEventEvent = "leave"
 )
 
 // Valid indicates whether the value is a known member of the PlayerEventEvent enum.
 func (e PlayerEventEvent) Valid() bool {
 	switch e {
-	case Join:
+	case PlayerEventEventJoin:
 		return true
-	case Leave:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrderAscQuery.
-const (
-	OrderAscQueryAsc  OrderAscQuery = "asc"
-	OrderAscQueryDesc OrderAscQuery = "desc"
-)
-
-// Valid indicates whether the value is a known member of the OrderAscQuery enum.
-func (e OrderAscQuery) Valid() bool {
-	switch e {
-	case OrderAscQueryAsc:
-		return true
-	case OrderAscQueryDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrderDescQuery.
-const (
-	OrderDescQueryAsc  OrderDescQuery = "asc"
-	OrderDescQueryDesc OrderDescQuery = "desc"
-)
-
-// Valid indicates whether the value is a known member of the OrderDescQuery enum.
-func (e OrderDescQuery) Valid() bool {
-	switch e {
-	case OrderDescQueryAsc:
-		return true
-	case OrderDescQueryDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetJoinViolationRankingsParamsOrder.
-const (
-	GetJoinViolationRankingsParamsOrderAsc  GetJoinViolationRankingsParamsOrder = "asc"
-	GetJoinViolationRankingsParamsOrderDesc GetJoinViolationRankingsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetJoinViolationRankingsParamsOrder enum.
-func (e GetJoinViolationRankingsParamsOrder) Valid() bool {
-	switch e {
-	case GetJoinViolationRankingsParamsOrderAsc:
-		return true
-	case GetJoinViolationRankingsParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetPlayerRankingsParamsOrder.
-const (
-	GetPlayerRankingsParamsOrderAsc  GetPlayerRankingsParamsOrder = "asc"
-	GetPlayerRankingsParamsOrderDesc GetPlayerRankingsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetPlayerRankingsParamsOrder enum.
-func (e GetPlayerRankingsParamsOrder) Valid() bool {
-	switch e {
-	case GetPlayerRankingsParamsOrderAsc:
-		return true
-	case GetPlayerRankingsParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ListGroupsParamsOrder.
-const (
-	ListGroupsParamsOrderAsc  ListGroupsParamsOrder = "asc"
-	ListGroupsParamsOrderDesc ListGroupsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the ListGroupsParamsOrder enum.
-func (e ListGroupsParamsOrder) Valid() bool {
-	switch e {
-	case ListGroupsParamsOrderAsc:
-		return true
-	case ListGroupsParamsOrderDesc:
+	case PlayerEventEventLeave:
 		return true
 	default:
 		return false
@@ -159,42 +88,6 @@ func (e ListInstancesParamsSortBy) Valid() bool {
 	case ClosedAt:
 		return true
 	case OpenedAt:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ListInstancesParamsOrder.
-const (
-	ListInstancesParamsOrderAsc  ListInstancesParamsOrder = "asc"
-	ListInstancesParamsOrderDesc ListInstancesParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the ListInstancesParamsOrder enum.
-func (e ListInstancesParamsOrder) Valid() bool {
-	switch e {
-	case ListInstancesParamsOrderAsc:
-		return true
-	case ListInstancesParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetInstanceEventsParamsOrder.
-const (
-	GetInstanceEventsParamsOrderAsc  GetInstanceEventsParamsOrder = "asc"
-	GetInstanceEventsParamsOrderDesc GetInstanceEventsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetInstanceEventsParamsOrder enum.
-func (e GetInstanceEventsParamsOrder) Valid() bool {
-	switch e {
-	case GetInstanceEventsParamsOrderAsc:
-		return true
-	case GetInstanceEventsParamsOrderDesc:
 		return true
 	default:
 		return false
@@ -222,24 +115,6 @@ func (e GetInstancePlayersParamsSortBy) Valid() bool {
 	}
 }
 
-// Defines values for GetInstancePlayersParamsOrder.
-const (
-	GetInstancePlayersParamsOrderAsc  GetInstancePlayersParamsOrder = "asc"
-	GetInstancePlayersParamsOrderDesc GetInstancePlayersParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetInstancePlayersParamsOrder enum.
-func (e GetInstancePlayersParamsOrder) Valid() bool {
-	switch e {
-	case GetInstancePlayersParamsOrderAsc:
-		return true
-	case GetInstancePlayersParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for GetInstanceSessionsParamsSortBy.
 const (
 	GetInstanceSessionsParamsSortByDisplayName     GetInstanceSessionsParamsSortBy = "display_name"
@@ -258,24 +133,6 @@ func (e GetInstanceSessionsParamsSortBy) Valid() bool {
 	case GetInstanceSessionsParamsSortByJoinTs:
 		return true
 	case GetInstanceSessionsParamsSortByLeaveTs:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetInstanceSessionsParamsOrder.
-const (
-	GetInstanceSessionsParamsOrderAsc  GetInstanceSessionsParamsOrder = "asc"
-	GetInstanceSessionsParamsOrderDesc GetInstanceSessionsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetInstanceSessionsParamsOrder enum.
-func (e GetInstanceSessionsParamsOrder) Valid() bool {
-	switch e {
-	case GetInstanceSessionsParamsOrderAsc:
-		return true
-	case GetInstanceSessionsParamsOrderDesc:
 		return true
 	default:
 		return false
@@ -309,125 +166,38 @@ func (e GetInstanceVisitorsParamsSortBy) Valid() bool {
 	}
 }
 
-// Defines values for GetInstanceVisitorsParamsOrder.
-const (
-	GetInstanceVisitorsParamsOrderAsc  GetInstanceVisitorsParamsOrder = "asc"
-	GetInstanceVisitorsParamsOrderDesc GetInstanceVisitorsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetInstanceVisitorsParamsOrder enum.
-func (e GetInstanceVisitorsParamsOrder) Valid() bool {
-	switch e {
-	case GetInstanceVisitorsParamsOrderAsc:
-		return true
-	case GetInstanceVisitorsParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ListPlayersParamsOrder.
-const (
-	ListPlayersParamsOrderAsc  ListPlayersParamsOrder = "asc"
-	ListPlayersParamsOrderDesc ListPlayersParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the ListPlayersParamsOrder enum.
-func (e ListPlayersParamsOrder) Valid() bool {
-	switch e {
-	case ListPlayersParamsOrderAsc:
-		return true
-	case ListPlayersParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetPlayerEventsParamsOrder.
-const (
-	GetPlayerEventsParamsOrderAsc  GetPlayerEventsParamsOrder = "asc"
-	GetPlayerEventsParamsOrderDesc GetPlayerEventsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetPlayerEventsParamsOrder enum.
-func (e GetPlayerEventsParamsOrder) Valid() bool {
-	switch e {
-	case GetPlayerEventsParamsOrderAsc:
-		return true
-	case GetPlayerEventsParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for GetPlayerSessionsParamsOrder.
-const (
-	GetPlayerSessionsParamsOrderAsc  GetPlayerSessionsParamsOrder = "asc"
-	GetPlayerSessionsParamsOrderDesc GetPlayerSessionsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the GetPlayerSessionsParamsOrder enum.
-func (e GetPlayerSessionsParamsOrder) Valid() bool {
-	switch e {
-	case GetPlayerSessionsParamsOrderAsc:
-		return true
-	case GetPlayerSessionsParamsOrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ListWorldsParamsOrder.
-const (
-	Asc  ListWorldsParamsOrder = "asc"
-	Desc ListWorldsParamsOrder = "desc"
-)
-
-// Valid indicates whether the value is a known member of the ListWorldsParamsOrder enum.
-func (e ListWorldsParamsOrder) Valid() bool {
-	switch e {
-	case Asc:
-		return true
-	case Desc:
-		return true
-	default:
-		return false
-	}
-}
-
-// CloseLocationRequest defines model for CloseLocationRequest.
-type CloseLocationRequest struct {
+// CloseLocationIn defines model for CloseLocationIn.
+type CloseLocationIn struct {
 	At     time.Time `json:"at"`
 	UserId *string   `json:"user_id,omitempty"`
 }
 
 // DailyActiveUsersPoint defines model for DailyActiveUsersPoint.
 type DailyActiveUsersPoint struct {
-	ActiveUsers int    `json:"active_users"`
-	Day         string `json:"day"`
+	ActiveUsers int                `json:"active_users"`
+	Day         openapi_types.Date `json:"day"`
 }
 
 // EventOut defines model for EventOut.
 type EventOut struct {
-	DisplayName string `json:"display_name"`
-	EventType   string `json:"event_type"`
-	Id          int    `json:"id"`
-	InstanceId  int    `json:"instance_id"`
-	Timestamp   string `json:"timestamp"`
-	UserId      string `json:"user_id"`
-	WorldId     string `json:"world_id"`
+	DisplayName string            `json:"display_name"`
+	EventType   EventOutEventType `json:"event_type"`
+	Id          int               `json:"id"`
+	InstanceId  int               `json:"instance_id"`
+	Timestamp   time.Time         `json:"timestamp"`
+	UserId      string            `json:"user_id"`
+	WorldId     string            `json:"world_id"`
 }
+
+// EventOutEventType defines model for EventOut.EventType.
+type EventOutEventType string
 
 // GroupOut defines model for GroupOut.
 type GroupOut struct {
-	CreatedAt string  `json:"created_at"`
-	GroupId   string  `json:"group_id"`
-	Name      *string `json:"name,omitempty"`
-	UpdatedAt string  `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	GroupId   string    `json:"group_id"`
+	Name      *string   `json:"name,omitempty"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // GroupRenameIn defines model for GroupRenameIn.
@@ -437,27 +207,27 @@ type GroupRenameIn struct {
 
 // HourlyActiveUsersPoint defines model for HourlyActiveUsersPoint.
 type HourlyActiveUsersPoint struct {
-	ActiveUsers int    `json:"active_users"`
-	Hour        string `json:"hour"`
+	ActiveUsers int       `json:"active_users"`
+	Hour        time.Time `json:"hour"`
 }
 
 // InstanceOut defines model for InstanceOut.
 type InstanceOut struct {
-	ClosedAt        *string `json:"closed_at,omitempty"`
-	Friends         *string `json:"friends,omitempty"`
-	GroupAccessType *string `json:"group_access_type,omitempty"`
-	GroupId         *string `json:"group_id,omitempty"`
-	GroupName       *string `json:"group_name,omitempty"`
-	Hidden          *string `json:"hidden,omitempty"`
-	Id              int     `json:"id"`
-	InstanceId      *string `json:"instance_id,omitempty"`
-	LocationId      string  `json:"location_id"`
-	OpenedAt        string  `json:"opened_at"`
-	Private         *string `json:"private,omitempty"`
-	Region          *string `json:"region,omitempty"`
-	UserCount       int     `json:"user_count"`
-	WorldId         string  `json:"world_id"`
-	WorldName       *string `json:"world_name,omitempty"`
+	ClosedAt        *time.Time `json:"closed_at,omitempty"`
+	Friends         *string    `json:"friends,omitempty"`
+	GroupAccessType *string    `json:"group_access_type,omitempty"`
+	GroupId         *string    `json:"group_id,omitempty"`
+	GroupName       *string    `json:"group_name,omitempty"`
+	Hidden          *string    `json:"hidden,omitempty"`
+	Id              int        `json:"id"`
+	InstanceId      *string    `json:"instance_id,omitempty"`
+	LocationId      string     `json:"location_id"`
+	OpenedAt        time.Time  `json:"opened_at"`
+	Private         *string    `json:"private,omitempty"`
+	Region          *string    `json:"region,omitempty"`
+	UserCount       int        `json:"user_count"`
+	WorldId         string     `json:"world_id"`
+	WorldName       *string    `json:"world_name,omitempty"`
 }
 
 // JoinViolationRankOut defines model for JoinViolationRankOut.
@@ -471,16 +241,36 @@ type JoinViolationRankOut struct {
 
 // LocationPlayerOut defines model for LocationPlayerOut.
 type LocationPlayerOut struct {
-	DiscordId   *string `json:"discord_id,omitempty"`
-	DisplayName string  `json:"display_name"`
-	InternalId  int     `json:"internal_id"`
-	JoinCount   int     `json:"join_count"`
-	JoinTs      string  `json:"join_ts"`
-	UserId      string  `json:"user_id"`
+	DiscordId   *string   `json:"discord_id,omitempty"`
+	DisplayName string    `json:"display_name"`
+	InternalId  int       `json:"internal_id"`
+	JoinCount   int       `json:"join_count"`
+	JoinTs      time.Time `json:"join_ts"`
+	UserId      string    `json:"user_id"`
 }
 
 // Order defines model for Order.
 type Order string
+
+// PlayerDetailOut プレイヤーの詳細情報。プロフィール + 通算統計を返す。
+type PlayerDetailOut struct {
+	CreatedAt   time.Time  `json:"created_at"`
+	DiscordId   *string    `json:"discord_id,omitempty"`
+	DisplayName string     `json:"display_name"`
+	FirstSeen   *time.Time `json:"first_seen,omitempty"`
+
+	// InRoom 現在 leave_ts なしのセッションがあるか
+	InRoom   bool       `json:"in_room"`
+	LastSeen *time.Time `json:"last_seen,omitempty"`
+
+	// TotalDurationSeconds 通算滞在秒数
+	TotalDurationSeconds int `json:"total_duration_seconds"`
+
+	// TotalVisits 通算訪問回数
+	TotalVisits int       `json:"total_visits"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UserId      string    `json:"user_id"`
+}
 
 // PlayerEvent defines model for PlayerEvent.
 type PlayerEvent struct {
@@ -495,22 +285,12 @@ type PlayerEvent struct {
 // PlayerEventEvent defines model for PlayerEvent.Event.
 type PlayerEventEvent string
 
-// PlayerListOut defines model for PlayerListOut.
-type PlayerListOut struct {
-	DisplayName          string `json:"display_name"`
-	FirstSeen            string `json:"first_seen"`
-	JoinCount            int    `json:"join_count"`
-	LastSeen             string `json:"last_seen"`
-	TotalDurationSeconds *int   `json:"total_duration_seconds,omitempty"`
-	UserId               string `json:"user_id"`
-}
-
 // PlayerOut defines model for PlayerOut.
 type PlayerOut struct {
-	CreatedAt   string `json:"created_at"`
-	DisplayName string `json:"display_name"`
-	UpdatedAt   string `json:"updated_at"`
-	UserId      string `json:"user_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	DisplayName string    `json:"display_name"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UserId      string    `json:"user_id"`
 }
 
 // PlayerRankOut defines model for PlayerRankOut.
@@ -524,13 +304,13 @@ type PlayerRankOut struct {
 
 // PlayerSessionOut defines model for PlayerSessionOut.
 type PlayerSessionOut struct {
-	DurationSeconds  *int    `json:"duration_seconds,omitempty"`
-	Id               int     `json:"id"`
-	InstanceId       int     `json:"instance_id"`
-	IsEstimatedLeave bool    `json:"is_estimated_leave"`
-	JoinTs           string  `json:"join_ts"`
-	LeaveTs          *string `json:"leave_ts,omitempty"`
-	WorldId          string  `json:"world_id"`
+	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
+	Id               int        `json:"id"`
+	InstanceId       int        `json:"instance_id"`
+	IsEstimatedLeave bool       `json:"is_estimated_leave"`
+	JoinTs           time.Time  `json:"join_ts"`
+	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
+	WorldId          string     `json:"world_id"`
 }
 
 // PotentialSession defines model for PotentialSession.
@@ -539,40 +319,50 @@ type PotentialSession struct {
 	UserId     string `json:"user_id"`
 }
 
-// RestoreRequest defines model for RestoreRequest.
-type RestoreRequest struct {
+// RestoreIn defines model for RestoreIn.
+type RestoreIn struct {
 	UserIds []string `json:"user_ids"`
 }
 
 // SessionOut defines model for SessionOut.
 type SessionOut struct {
-	DiscordId        *string `json:"discord_id,omitempty"`
-	DisplayName      string  `json:"display_name"`
-	DurationSeconds  *int    `json:"duration_seconds,omitempty"`
-	Id               int     `json:"id"`
-	InstanceId       int     `json:"instance_id"`
-	IsEstimatedLeave bool    `json:"is_estimated_leave"`
-	JoinTs           string  `json:"join_ts"`
-	LeaveTs          *string `json:"leave_ts,omitempty"`
-	UserId           string  `json:"user_id"`
+	DiscordId        *string    `json:"discord_id,omitempty"`
+	DisplayName      string     `json:"display_name"`
+	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
+	Id               int        `json:"id"`
+	InstanceId       int        `json:"instance_id"`
+	IsEstimatedLeave bool       `json:"is_estimated_leave"`
+	JoinTs           time.Time  `json:"join_ts"`
+	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
+	UserId           string     `json:"user_id"`
 }
 
 // TimelinePoint defines model for TimelinePoint.
 type TimelinePoint struct {
-	Count       int     `json:"count"`
-	DisplayName *string `json:"display_name,omitempty"`
-	Timestamp   string  `json:"timestamp"`
-	UserId      *string `json:"user_id,omitempty"`
+	Count       int       `json:"count"`
+	DisplayName *string   `json:"display_name,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+	UserId      *string   `json:"user_id,omitempty"`
+}
+
+// VisitorOut インスタンス訪問者の集計レコード。
+type VisitorOut struct {
+	DisplayName          string    `json:"display_name"`
+	FirstSeen            time.Time `json:"first_seen"`
+	JoinCount            int       `json:"join_count"`
+	LastSeen             time.Time `json:"last_seen"`
+	TotalDurationSeconds int       `json:"total_duration_seconds"`
+	UserId               string    `json:"user_id"`
 }
 
 // WorldOut defines model for WorldOut.
 type WorldOut struct {
-	CreatedAt    string  `json:"created_at"`
-	LastSeen     *string `json:"last_seen,omitempty"`
-	Name         *string `json:"name,omitempty"`
-	SessionCount int     `json:"session_count"`
-	UpdatedAt    string  `json:"updated_at"`
-	WorldId      string  `json:"world_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastSeen     *time.Time `json:"last_seen,omitempty"`
+	Name         *string    `json:"name,omitempty"`
+	SessionCount int        `json:"session_count"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	WorldId      string     `json:"world_id"`
 }
 
 // WorldRenameIn defines model for WorldRenameIn.
@@ -599,10 +389,10 @@ type LocationIdPath = string
 type OffsetQuery = int
 
 // OrderAscQuery defines model for OrderAscQuery.
-type OrderAscQuery string
+type OrderAscQuery = Order
 
 // OrderDescQuery defines model for OrderDescQuery.
-type OrderDescQuery string
+type OrderDescQuery = Order
 
 // StartQuery defines model for StartQuery.
 type StartQuery = time.Time
@@ -631,42 +421,33 @@ type GetHourlyActiveUsersParams struct {
 
 // GetJoinViolationRankingsParams defines parameters for GetJoinViolationRankings.
 type GetJoinViolationRankingsParams struct {
-	GroupId       string                               `form:"group_id" json:"group_id"`
-	Start         *StartQuery                          `form:"start,omitempty" json:"start,omitempty"`
-	End           *EndQuery                            `form:"end,omitempty" json:"end,omitempty"`
-	Order         *GetJoinViolationRankingsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit         *LimitQuery                          `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset        *OffsetQuery                         `form:"offset,omitempty" json:"offset,omitempty"`
-	AllowDiff     *int                                 `form:"allow_diff,omitempty" json:"allow_diff,omitempty"`
-	MinDuration   *int                                 `form:"min_duration,omitempty" json:"min_duration,omitempty"`
-	RejoinSeconds *int                                 `form:"rejoin_seconds,omitempty" json:"rejoin_seconds,omitempty"`
-	GraceSeconds  *int                                 `form:"grace_seconds,omitempty" json:"grace_seconds,omitempty"`
+	GroupId       string          `form:"group_id" json:"group_id"`
+	Start         *StartQuery     `form:"start,omitempty" json:"start,omitempty"`
+	End           *EndQuery       `form:"end,omitempty" json:"end,omitempty"`
+	Order         *OrderDescQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit         *LimitQuery     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset        *OffsetQuery    `form:"offset,omitempty" json:"offset,omitempty"`
+	AllowDiff     *int            `form:"allow_diff,omitempty" json:"allow_diff,omitempty"`
+	MinDuration   *int            `form:"min_duration,omitempty" json:"min_duration,omitempty"`
+	RejoinSeconds *int            `form:"rejoin_seconds,omitempty" json:"rejoin_seconds,omitempty"`
+	GraceSeconds  *int            `form:"grace_seconds,omitempty" json:"grace_seconds,omitempty"`
 }
-
-// GetJoinViolationRankingsParamsOrder defines parameters for GetJoinViolationRankings.
-type GetJoinViolationRankingsParamsOrder string
 
 // GetPlayerRankingsParams defines parameters for GetPlayerRankings.
 type GetPlayerRankingsParams struct {
-	WorldId *WorldIdQuery                 `form:"world_id,omitempty" json:"world_id,omitempty"`
-	GroupId *GroupIdQuery                 `form:"group_id,omitempty" json:"group_id,omitempty"`
-	Order   *GetPlayerRankingsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit   *LimitQuery                   `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset  *OffsetQuery                  `form:"offset,omitempty" json:"offset,omitempty"`
+	WorldId *WorldIdQuery   `form:"world_id,omitempty" json:"world_id,omitempty"`
+	GroupId *GroupIdQuery   `form:"group_id,omitempty" json:"group_id,omitempty"`
+	Order   *OrderDescQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit   *LimitQuery     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset  *OffsetQuery    `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// GetPlayerRankingsParamsOrder defines parameters for GetPlayerRankings.
-type GetPlayerRankingsParamsOrder string
 
 // ListGroupsParams defines parameters for ListGroups.
 type ListGroupsParams struct {
-	Order  *ListGroupsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit  *LimitQuery            `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *OffsetQuery           `form:"offset,omitempty" json:"offset,omitempty"`
+	Order  *OrderDescQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit  *LimitQuery     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *OffsetQuery    `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// ListGroupsParamsOrder defines parameters for ListGroups.
-type ListGroupsParamsOrder string
 
 // ListInstancesParams defines parameters for ListInstances.
 type ListInstancesParams struct {
@@ -677,7 +458,7 @@ type ListInstancesParams struct {
 	GroupId *GroupIdQuery              `form:"group_id,omitempty" json:"group_id,omitempty"`
 	Region  *string                    `form:"region,omitempty" json:"region,omitempty"`
 	SortBy  *ListInstancesParamsSortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
-	Order   *ListInstancesParamsOrder  `form:"order,omitempty" json:"order,omitempty"`
+	Order   *OrderDescQuery            `form:"order,omitempty" json:"order,omitempty"`
 	Limit   *LimitQuery                `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset  *OffsetQuery               `form:"offset,omitempty" json:"offset,omitempty"`
 }
@@ -685,32 +466,23 @@ type ListInstancesParams struct {
 // ListInstancesParamsSortBy defines parameters for ListInstances.
 type ListInstancesParamsSortBy string
 
-// ListInstancesParamsOrder defines parameters for ListInstances.
-type ListInstancesParamsOrder string
-
 // GetInstanceEventsParams defines parameters for GetInstanceEvents.
 type GetInstanceEventsParams struct {
-	Start  *StartQuery                   `form:"start,omitempty" json:"start,omitempty"`
-	End    *EndQuery                     `form:"end,omitempty" json:"end,omitempty"`
-	Order  *GetInstanceEventsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit  *LimitQuery                   `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *OffsetQuery                  `form:"offset,omitempty" json:"offset,omitempty"`
+	Start  *StartQuery     `form:"start,omitempty" json:"start,omitempty"`
+	End    *EndQuery       `form:"end,omitempty" json:"end,omitempty"`
+	Order  *OrderDescQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit  *LimitQuery     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *OffsetQuery    `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// GetInstanceEventsParamsOrder defines parameters for GetInstanceEvents.
-type GetInstanceEventsParamsOrder string
 
 // GetInstancePlayersParams defines parameters for GetInstancePlayers.
 type GetInstancePlayersParams struct {
 	SortBy *GetInstancePlayersParamsSortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
-	Order  *GetInstancePlayersParamsOrder  `form:"order,omitempty" json:"order,omitempty"`
+	Order  *OrderAscQuery                  `form:"order,omitempty" json:"order,omitempty"`
 }
 
 // GetInstancePlayersParamsSortBy defines parameters for GetInstancePlayers.
 type GetInstancePlayersParamsSortBy string
-
-// GetInstancePlayersParamsOrder defines parameters for GetInstancePlayers.
-type GetInstancePlayersParamsOrder string
 
 // GetInstancePresenceParams defines parameters for GetInstancePresence.
 type GetInstancePresenceParams struct {
@@ -728,7 +500,7 @@ type GetInstanceSessionsParams struct {
 	Start  *StartQuery                      `form:"start,omitempty" json:"start,omitempty"`
 	End    *EndQuery                        `form:"end,omitempty" json:"end,omitempty"`
 	SortBy *GetInstanceSessionsParamsSortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
-	Order  *GetInstanceSessionsParamsOrder  `form:"order,omitempty" json:"order,omitempty"`
+	Order  *OrderAscQuery                   `form:"order,omitempty" json:"order,omitempty"`
 	Limit  *LimitQuery                      `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *OffsetQuery                     `form:"offset,omitempty" json:"offset,omitempty"`
 }
@@ -736,13 +508,10 @@ type GetInstanceSessionsParams struct {
 // GetInstanceSessionsParamsSortBy defines parameters for GetInstanceSessions.
 type GetInstanceSessionsParamsSortBy string
 
-// GetInstanceSessionsParamsOrder defines parameters for GetInstanceSessions.
-type GetInstanceSessionsParamsOrder string
-
 // GetInstanceVisitorsParams defines parameters for GetInstanceVisitors.
 type GetInstanceVisitorsParams struct {
 	SortBy *GetInstanceVisitorsParamsSortBy `form:"sort_by,omitempty" json:"sort_by,omitempty"`
-	Order  *GetInstanceVisitorsParamsOrder  `form:"order,omitempty" json:"order,omitempty"`
+	Order  *OrderDescQuery                  `form:"order,omitempty" json:"order,omitempty"`
 	Limit  *LimitQuery                      `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *OffsetQuery                     `form:"offset,omitempty" json:"offset,omitempty"`
 }
@@ -750,59 +519,44 @@ type GetInstanceVisitorsParams struct {
 // GetInstanceVisitorsParamsSortBy defines parameters for GetInstanceVisitors.
 type GetInstanceVisitorsParamsSortBy string
 
-// GetInstanceVisitorsParamsOrder defines parameters for GetInstanceVisitors.
-type GetInstanceVisitorsParamsOrder string
-
 // ListPlayersParams defines parameters for ListPlayers.
 type ListPlayersParams struct {
-	Name   *string                 `form:"name,omitempty" json:"name,omitempty"`
-	Order  *ListPlayersParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit  *LimitQuery             `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *OffsetQuery            `form:"offset,omitempty" json:"offset,omitempty"`
+	Name   *string        `form:"name,omitempty" json:"name,omitempty"`
+	Order  *OrderAscQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit  *LimitQuery    `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *OffsetQuery   `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// ListPlayersParamsOrder defines parameters for ListPlayers.
-type ListPlayersParamsOrder string
 
 // GetPlayerEventsParams defines parameters for GetPlayerEvents.
 type GetPlayerEventsParams struct {
-	InstanceId *int                        `form:"instance_id,omitempty" json:"instance_id,omitempty"`
-	Start      *StartQuery                 `form:"start,omitempty" json:"start,omitempty"`
-	End        *EndQuery                   `form:"end,omitempty" json:"end,omitempty"`
-	Order      *GetPlayerEventsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit      *LimitQuery                 `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset     *OffsetQuery                `form:"offset,omitempty" json:"offset,omitempty"`
+	InstanceId *int           `form:"instance_id,omitempty" json:"instance_id,omitempty"`
+	Start      *StartQuery    `form:"start,omitempty" json:"start,omitempty"`
+	End        *EndQuery      `form:"end,omitempty" json:"end,omitempty"`
+	Order      *OrderAscQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit      *LimitQuery    `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset     *OffsetQuery   `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// GetPlayerEventsParamsOrder defines parameters for GetPlayerEvents.
-type GetPlayerEventsParamsOrder string
 
 // GetPlayerSessionsParams defines parameters for GetPlayerSessions.
 type GetPlayerSessionsParams struct {
-	InstanceId *int                          `form:"instance_id,omitempty" json:"instance_id,omitempty"`
-	WorldId    *WorldIdQuery                 `form:"world_id,omitempty" json:"world_id,omitempty"`
-	GroupId    *GroupIdQuery                 `form:"group_id,omitempty" json:"group_id,omitempty"`
-	Start      *StartQuery                   `form:"start,omitempty" json:"start,omitempty"`
-	End        *EndQuery                     `form:"end,omitempty" json:"end,omitempty"`
-	Order      *GetPlayerSessionsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit      *LimitQuery                   `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset     *OffsetQuery                  `form:"offset,omitempty" json:"offset,omitempty"`
+	InstanceId *int           `form:"instance_id,omitempty" json:"instance_id,omitempty"`
+	WorldId    *WorldIdQuery  `form:"world_id,omitempty" json:"world_id,omitempty"`
+	GroupId    *GroupIdQuery  `form:"group_id,omitempty" json:"group_id,omitempty"`
+	Start      *StartQuery    `form:"start,omitempty" json:"start,omitempty"`
+	End        *EndQuery      `form:"end,omitempty" json:"end,omitempty"`
+	Order      *OrderAscQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit      *LimitQuery    `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset     *OffsetQuery   `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// GetPlayerSessionsParamsOrder defines parameters for GetPlayerSessions.
-type GetPlayerSessionsParamsOrder string
 
 // ListWorldsParams defines parameters for ListWorlds.
 type ListWorldsParams struct {
-	Start  *StartQuery            `form:"start,omitempty" json:"start,omitempty"`
-	End    *EndQuery              `form:"end,omitempty" json:"end,omitempty"`
-	Order  *ListWorldsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
-	Limit  *LimitQuery            `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *OffsetQuery           `form:"offset,omitempty" json:"offset,omitempty"`
+	Start  *StartQuery     `form:"start,omitempty" json:"start,omitempty"`
+	End    *EndQuery       `form:"end,omitempty" json:"end,omitempty"`
+	Order  *OrderDescQuery `form:"order,omitempty" json:"order,omitempty"`
+	Limit  *LimitQuery     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *OffsetQuery    `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// ListWorldsParamsOrder defines parameters for ListWorlds.
-type ListWorldsParamsOrder string
 
 // ReceiveEventJSONRequestBody defines body for ReceiveEvent for application/json ContentType.
 type ReceiveEventJSONRequestBody = PlayerEvent
@@ -811,10 +565,10 @@ type ReceiveEventJSONRequestBody = PlayerEvent
 type RenameGroupJSONRequestBody = GroupRenameIn
 
 // CloseLocationJSONRequestBody defines body for CloseLocation for application/json ContentType.
-type CloseLocationJSONRequestBody = CloseLocationRequest
+type CloseLocationJSONRequestBody = CloseLocationIn
 
 // ResumeInstanceJSONRequestBody defines body for ResumeInstance for application/json ContentType.
-type ResumeInstanceJSONRequestBody = RestoreRequest
+type ResumeInstanceJSONRequestBody = RestoreIn
 
 // RenameWorldJSONRequestBody defines body for RenameWorld for application/json ContentType.
 type RenameWorldJSONRequestBody = WorldRenameIn
@@ -884,6 +638,9 @@ type ServerInterface interface {
 
 	// (GET /api/players)
 	ListPlayers(ctx echo.Context, params ListPlayersParams) error
+
+	// (GET /api/players/{user_id})
+	GetPlayer(ctx echo.Context, userId UserIdPath) error
 
 	// (GET /api/players/{user_id}/events)
 	GetPlayerEvents(ctx echo.Context, userId UserIdPath, params GetPlayerEventsParams) error
@@ -1013,7 +770,7 @@ func (w *ServerInterfaceWrapper) GetJoinViolationRankings(ctx echo.Context) erro
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1087,7 +844,7 @@ func (w *ServerInterfaceWrapper) GetPlayerRankings(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1128,7 +885,7 @@ func (w *ServerInterfaceWrapper) ListGroups(ctx echo.Context) error {
 	var params ListGroupsParams
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1241,7 +998,7 @@ func (w *ServerInterfaceWrapper) ListInstances(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1326,7 +1083,7 @@ func (w *ServerInterfaceWrapper) GetInstanceEvents(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1372,7 +1129,7 @@ func (w *ServerInterfaceWrapper) GetInstancePlayers(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1475,7 +1232,7 @@ func (w *ServerInterfaceWrapper) GetInstanceSessions(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1521,7 +1278,7 @@ func (w *ServerInterfaceWrapper) GetInstanceVisitors(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1608,7 +1365,7 @@ func (w *ServerInterfaceWrapper) ListPlayers(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1629,6 +1386,22 @@ func (w *ServerInterfaceWrapper) ListPlayers(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListPlayers(ctx, params)
+	return err
+}
+
+// GetPlayer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPlayer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "user_id" -------------
+	var userId UserIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", ctx.Param("user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user_id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPlayer(ctx, userId)
 	return err
 }
 
@@ -1668,7 +1441,7 @@ func (w *ServerInterfaceWrapper) GetPlayerEvents(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1742,7 +1515,7 @@ func (w *ServerInterfaceWrapper) GetPlayerSessions(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1788,7 +1561,7 @@ func (w *ServerInterfaceWrapper) ListWorlds(ctx echo.Context) error {
 
 	// ------------- Optional query parameter "order" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", ctx.QueryParams(), &params.Order, runtime.BindQueryParameterOptions{Type: "", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter order: %s", err))
 	}
@@ -1912,6 +1685,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/api/locations/:location_id/potential-sessions", wrapper.GetPotentialSessions, options.OperationMiddlewares["getPotentialSessions"]...)
 	router.POST(options.BaseURL+"/api/locations/:location_id/resume", wrapper.ResumeInstance, options.OperationMiddlewares["resumeInstance"]...)
 	router.GET(options.BaseURL+"/api/players", wrapper.ListPlayers, options.OperationMiddlewares["listPlayers"]...)
+	router.GET(options.BaseURL+"/api/players/:user_id", wrapper.GetPlayer, options.OperationMiddlewares["getPlayer"]...)
 	router.GET(options.BaseURL+"/api/players/:user_id/events", wrapper.GetPlayerEvents, options.OperationMiddlewares["getPlayerEvents"]...)
 	router.GET(options.BaseURL+"/api/players/:user_id/sessions", wrapper.GetPlayerSessions, options.OperationMiddlewares["getPlayerSessions"]...)
 	router.GET(options.BaseURL+"/api/worlds", wrapper.ListWorlds, options.OperationMiddlewares["listWorlds"]...)
@@ -2295,7 +2069,7 @@ type GetInstanceVisitorsResponseObject interface {
 	VisitGetInstanceVisitorsResponse(w http.ResponseWriter) error
 }
 
-type GetInstanceVisitors200JSONResponse []PlayerListOut
+type GetInstanceVisitors200JSONResponse []VisitorOut
 
 func (response GetInstanceVisitors200JSONResponse) VisitGetInstanceVisitorsResponse(w http.ResponseWriter) error {
 
@@ -2393,6 +2167,36 @@ func (response ListPlayers200JSONResponse) VisitListPlayersResponse(w http.Respo
 	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+type GetPlayerRequestObject struct {
+	UserId UserIdPath `json:"user_id"`
+}
+
+type GetPlayerResponseObject interface {
+	VisitGetPlayerResponse(w http.ResponseWriter) error
+}
+
+type GetPlayer200JSONResponse PlayerDetailOut
+
+func (response GetPlayer200JSONResponse) VisitGetPlayerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPlayer404Response struct {
+}
+
+func (response GetPlayer404Response) VisitGetPlayerResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
 }
 
 type GetPlayerEventsRequestObject struct {
@@ -2577,6 +2381,9 @@ type StrictServerInterface interface {
 
 	// (GET /api/players)
 	ListPlayers(ctx context.Context, request ListPlayersRequestObject) (ListPlayersResponseObject, error)
+
+	// (GET /api/players/{user_id})
+	GetPlayer(ctx context.Context, request GetPlayerRequestObject) (GetPlayerResponseObject, error)
 
 	// (GET /api/players/{user_id}/events)
 	GetPlayerEvents(ctx context.Context, request GetPlayerEventsRequestObject) (GetPlayerEventsResponseObject, error)
@@ -3159,6 +2966,31 @@ func (sh *strictHandler) ListPlayers(ctx echo.Context, params ListPlayersParams)
 	return nil
 }
 
+// GetPlayer operation middleware
+func (sh *strictHandler) GetPlayer(ctx echo.Context, userId UserIdPath) error {
+	var request GetPlayerRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPlayer(ctx.Request().Context(), request.(GetPlayerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPlayer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetPlayerResponseObject); ok {
+		return validResponse.VisitGetPlayerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetPlayerEvents operation middleware
 func (sh *strictHandler) GetPlayerEvents(ctx echo.Context, userId UserIdPath, params GetPlayerEventsParams) error {
 	var request GetPlayerEventsRequestObject
@@ -3297,52 +3129,56 @@ func (sh *strictHandler) RenameWorld(ctx echo.Context, worldId string) error {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7BxdcxTH8a+oNnmIq1aciP2Q6I0YiighgYgYP4DqNNyOpMF7u8fMnFxXqqvS3dkxBIgdO0DxUf5IZL5s",
-	"BBUoh8RU+DHjE9K/SM3Mfszuzu7OHqdTDLy4rL3env7unu5e1qyG32z5HvQosWbXrBbAoAkpxOKvQ57z",
-	"hzbEHf7/yLNmrbPiL9vyQBNasxb0HMu2SGMFNgGHWfJxE1Br1nIAhdMUNSGHbbsuOO1Ca5biNrQt2mnx",
-	"dwnFyFu2ul3bOoz9dmuu+KhlDlNHyfPKUc95hAKvAeecY4CuRMhb/I8INwqAJHoMz7YRhk6IND4uQI88",
-	"CpchFviPoCaihYS7HCJBdRN5qNluWrP7c4WTOMJvAIp8r5AFNwAyZEGR0NGlJQKLWfAFSIIHBy6Btkut",
-	"2Rk75mdGS/9R7EB8gDSKj+BA+hMsQBqWbUGPH3Ey+MuBpGEt6DQujjsIX+A8gdv8wOMU4GL5EQ4xDkd5",
-	"h0BcaAZtAnF1E3jXx65T4n/vc5iq/tcNgUU0edv1CQyteR6ebUNCRczBfgtiiqCAAjRXQCn0dsSuUSiI",
-	"JXKSHxLr0j99BjYox3cQILdzoEHRKuSiJsd85OlIFBB1fjrRxQXbckBHL2qVCA5kJ5HpiDq0Cj16tK2h",
-	"w0Gk5YJOXapoLSsfyF+ty8ean6XkstSr8VALwPVBKGi2tGgVrWR+i8yoVDrC1BQG7FSYVgwytvqERFQ6",
-	"dYIVaUcr2AaGgEKnLm0xw0SUi3Q/hsooMUjbarec/ENSwlCyn0JbAkcuh/OQkzTnZdnMsZvU2QJKh/3X",
-	"fhuPx11W/DYuJ0RAGThMmPP1quVBKBR6qY6WMIKeQ4xgpY5AowEJiXzO8C2jGBYCG1vYCnIc6BmBGoaC",
-	"UjxqHaLzDr8FvXzHamG0CqgZcxguI9+MOREfGn7bo3omC4JS+KOhzHUxLFmaKWErlkWCRJ1J/8ZH3gnk",
-	"uzJ1Au+90fIBBt57ORHdp8Ctn/GRl+OiRUF9NaQsX8gpwQhCCgJ3GmOSQJ2EwrrimAs6EOeJp+Fjx9SU",
-	"S6XJmcMecHPTJKe2yO7E75RUTKIpUebKUCUvPitBlU6Qon7mxxrVv7YlBS6KlKzIYfg4RMYP5z4BwSrU",
-	"oisValmEyVVXomipXF8WK0Hymfb1QBGxhpIqKa5OpFyPIDJi7beEMKF1AmUCyPxcZpsuKHpbeqPTxpJb",
-	"Aht+cZo0iiSmlq2wphJaatoFsaGk4iuVdmExNw6eq5R9ks/dSBMEElIY54tM4wVMoSxf5ByaJjhfWMcl",
-	"nF5eI5n5yJcrROqQUNQUGpaBMoY77fsuBF5Z9hCvBT+WJrqKd7Lca1icYjQsaEXvU+hRBNxA+lnRl2aD",
-	"ERxLxamjah4S6mOY26AIMEn6KGzqNRA8ABiDTh4x+kqm0BTHXMK87KZtbB4ay84NNpXt/I+oCV3kwZz7",
-	"cUEwTSuwlGHjzky1i0yM1rbyQ6noI46SXhPFRimPxsIwyFYleds8NCpxMC9Vm2QjIcJd6th0hYsu+bLb",
-	"TRoYtaiIutaJ+bdXAJ3it8yp3wEPLEM8deDYnKhRKRdwAcQqxDJ2W/v3zeybCS/5oIWsWevNfTP73rRs",
-	"0aUWDNRAC9WAB9wORQ1ScwByO9OyozMdNYiWodAGZzyYfFiz1mFI0+1ZgTieV51cs36K4ZI1a/2kFk+1",
-	"ajFILdHo7tql8InBlAG8MgowgI6ma90Frj/S8j0i1fzzmRkZGDwa3J9Aq+UiebeonSEyVcZ9+CgN6U4M",
-	"OvA1fXM7m6q6dso6tq5+vfXtV6z/d9Z/wAZ/Yv1/sMEVNrjFBk9Z/zs2eCoMkIJlIq6LoXKtBf44pfAV",
-	"0TM01nimxfha5VVUntOhNdH5tf7Olc+G574ej9p5ypyOmjrTvJxH3nKh6jMtL/FCRv0ls+IKY7BdU3U5",
-	"bGpmafCGMnc2wa/MeDm4TmjAdf336w5aWhpx0KtH20RedC/TT8FnTKbgeuQYilpMue5l6d7/ixEpX8ag",
-	"AYtx/3KmDPdE3FzbHTZw8p3e5eHHl4Y3Pt+6/JAN7rLBI9a/L/77sIJvt8QF2sin48aE3pn3OJZP1A0n",
-	"YhnJTpBJ3P/+8+HNOzL6VzUJ0QSVW0Q+0RjAPGxAtAoPBb1SLC/Yv/KdTiXGy/mVJ3STZTGPLF29zJMi",
-	"OPrbBKcBVzGbIrvkm/kRROhhCVLVvl8++4tG7Aamx/oP2eAbXl0Mrv7wZH371u2EHgKxp/VQWwuzfVeq",
-	"0oVygJjUykHxXJBjZRh/K2sEw/N/3rm2wcl+S/fz9q0LrLfBehdY/zzr3WO9D/S06suV5M7OSNXKgrhT",
-	"NVZ0XsbxxpyO38mSWwVGbqaT8CeXhucvsf6nWzceb115+MKiDs0ibOKoHpo2tA0R0f7N+s/k/0hzY+v9",
-	"RbGqtVhbhJ6zOMWJu/jRcPM6611lvS+GXz4efnKO9R6w9V4WB+ttsv49ab5s8Gjr5hc7Vz475S2ejMa8",
-	"9lS0fPDG4hTrXZxaPCnOs6eg5yzwR3d2PrrEmexfYP2+wPjp9rO/sd61U97PopfFq79/58iRKdbb3Fn/",
-	"5/ZXF394cl9H0QOOmEMNz333/PEHHGHvGevdHp7bGG5ef4Ot9095chCdCmBzkRCrxrAXKJJ1RRgidS4/",
-	"k62zqH9ocO4LVxL6anQ5XeSWdtlyFgZ9TOunOzn7iereQDhXVZ/FKy4L9gjXnJcvC6kLQUaJSB8fEnEn",
-	"DjOa0FNbU1rJBnkpJHACqUml284t1PMJmhlbGkloxUQL23cfPX/8cDyMVwtqqS3y7kKJxpVSuEzChyTk",
-	"BMPsK+f+0QKtqe9f4/Y2OFfi9btuRPJibWRFxwJQo/ZYcXZJ7qiE+SX5NGcgNnq6iT4PmIxFZJfFDExj",
-	"ePPO8Ml9Ud19K8xkgw2e7rmNYEggD9QmRhLCGlkJoIUXEpMFqskoU5mXj6rFvdefkKCLvEqKDOfKE8se",
-	"E9FnclpurtL+M6HPL9ngrqwd9k6rwZy36Ar6PRsMWP9fbHCbDR6Ncv9MIIhvm0EstqfCPYlRrprhu4mb",
-	"Jhfz5oa4aSbOHvGaqdjz8VBce3zZLE6M8dpHmBRz90KiHRXNhs04kuSPvyarFrS17rJ37r2KCKK+WWV2",
-	"IoQdQ2mmrrrm2KDJamzuuuTrdoEyRAg3rw3Mc/vOveHlj7fXP5yUYYZr5qS2pmycd2ui85P+jLv8nNQX",
-	"xqK5rJ3gJL7g3KXusvYr0VGbzGJ14b7YWPhPbuNAbdvy9MZzYbaXerGkp1Cmm1a47DqtqQ6yk9LUaiyx",
-	"JmL56YVcA+N/fuPx9rO/qoLW9sa3/nJnuHl9Z319uLmRCudj85eMHZfpBEPSbu6mw8yLAxLdtPF7TGph",
-	"eeSBzH/vDj8clNp3WVeCx81K7Yggc1Vqmr9q5VKlRkV5iyLUYUartbVgRdikhakM2w1VnVywLtV4YkVn",
-	"bxuiB17VfmjSlkrao7FdVQ3dyr9sEYftrFEapU71g569N8z/1wXUVzaKVrx6ph2g7CY6Zh8Q3xUUZ9t3",
-	"JcjrEdLuWU70ZYuRxTwQ14lv2OC8xj4ChcapVz6orYVfkBjMiwU5ExgWR7Sa7DEpX8CMb48p5nT8dXPy",
-	"W5s93mOKzUJ8uIRXQ0m3sWvNWjVh6AHwWjSjibYwudeE/yibLMiUJ8GOlPIkLuyVh2HkUh4FVHUXuv8L",
+	"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",
 	"AAD//w==",
 }
 

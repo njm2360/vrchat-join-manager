@@ -16,25 +16,26 @@ import {
 } from '@mui/material'
 import { useVisitors } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
+import { usePlayerDetailDialog } from '../PlayerDetailProvider'
 
 interface Props {
   instanceId: number
-  onSelect: (userId: string, displayName: string) => void
 }
 
 type SortKey = 'display_name' | 'first_seen' | 'last_seen' | 'join_count' | 'total_duration_seconds'
 
 const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[] = [
   { key: 'display_name', label: '名前' },
-  { key: 'first_seen', label: '初訪問', width: 160 },
-  { key: 'last_seen', label: '最終訪問', width: 160 },
-  { key: 'join_count', label: '訪問回数', width: 90, align: 'right' },
-  { key: 'total_duration_seconds', label: '合計滞在', width: 110, align: 'right' },
+  { key: 'first_seen', label: '初訪問', width: 150 },
+  { key: 'last_seen', label: '最終訪問', width: 150 },
+  { key: 'join_count', label: '訪問回数', width: 120, align: 'right' },
+  { key: 'total_duration_seconds', label: '合計滞在', width: 120, align: 'right' },
 ]
 
-export default function VisitorsTab({ instanceId, onSelect }: Props) {
+export default function VisitorsTab({ instanceId }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('last_seen')
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
+  const { open: openPlayer } = usePlayerDetailDialog()
 
   const { data: visitors = [], refetch } = useVisitors(instanceId, {
     sort_by: sortBy,
@@ -97,7 +98,13 @@ export default function VisitorsTab({ instanceId, onSelect }: Props) {
                     <Link
                       component="button"
                       underline="hover"
-                      onClick={() => onSelect(v.user_id, v.display_name)}
+                      onClick={() =>
+                        openPlayer({
+                          userId: v.user_id,
+                          displayName: v.display_name,
+                          instanceId,
+                        })
+                      }
                     >
                       {v.display_name}
                     </Link>

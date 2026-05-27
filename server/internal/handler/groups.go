@@ -20,8 +20,8 @@ func (s *Server) ListGroups(ctx context.Context, request gen.ListGroupsRequestOb
 		out = append(out, gen.GroupOut{
 			GroupId:   r.GroupID,
 			Name:      strPtr(r.Name),
-			CreatedAt: r.CreatedAt,
-			UpdatedAt: r.UpdatedAt,
+			CreatedAt: parseTime(r.CreatedAt),
+			UpdatedAt: parseTime(r.UpdatedAt),
 		})
 	}
 	return out, nil

@@ -10,6 +10,7 @@ import {
   CardContent,
   CardHeader,
   Chip,
+  Link as MuiLink,
   MenuItem,
   Paper,
   Select,
@@ -23,6 +24,7 @@ import {
   TableSortLabel,
   Typography,
 } from '@mui/material'
+import { usePlayerDetailDialog } from '../components/PlayerDetailProvider'
 import { Line } from 'react-chartjs-2'
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js'
 import { api } from '../api/client'
@@ -223,6 +225,8 @@ export default function ComparePage() {
             }
             highlightedTs={verticalX}
             onPickTime={(t) => setVerticalX((prev) => (prev === t ? null : t))}
+            id1={id1}
+            id2={id2}
           />
         </Card>
       </Stack>
@@ -438,9 +442,12 @@ interface ViolationsTableProps {
   onSort: (key: VSortKey) => void
   highlightedTs: number | null
   onPickTime: (t: number) => void
+  id1: number
+  id2: number
 }
 
-function ViolationsTable({ violations, sort, onSort, highlightedTs, onPickTime }: ViolationsTableProps) {
+function ViolationsTable({ violations, sort, onSort, highlightedTs, onPickTime, id1, id2 }: ViolationsTableProps) {
+  const { open: openPlayer } = usePlayerDetailDialog()
   const sorted = useMemo(() => {
     return [...violations].sort((a, b) => {
       let va: number | string
@@ -504,7 +511,22 @@ function ViolationsTable({ violations, sort, onSort, highlightedTs, onPickTime }
                 onClick={() => onPickTime(ts)}
                 sx={{ cursor: 'pointer' }}
               >
-                <TableCell>{v.display_name}</TableCell>
+                <TableCell>
+                  <MuiLink
+                    component="button"
+                    underline="hover"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openPlayer({
+                        userId: v.user_id,
+                        displayName: v.display_name,
+                        instanceId: v.instance === 'blue' ? id1 : id2,
+                      })
+                    }}
+                  >
+                    {v.display_name}
+                  </MuiLink>
+                </TableCell>
                 <TableCell>{fmtDateFull(v.join_ts)}</TableCell>
                 <TableCell>
                   <Chip

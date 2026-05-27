@@ -18,6 +18,7 @@ import './index.css'
 import './chartSetup'
 import { theme } from './theme'
 import App from './App'
+import { PlayerDetailProvider } from './components/PlayerDetailProvider'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +41,9 @@ createRoot(document.getElementById('root')!).render(
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           >
             <BrowserRouter>
-              <App />
+              <PlayerDetailProvider>
+                <App />
+              </PlayerDetailProvider>
             </BrowserRouter>
           </SnackbarProvider>
         </LocalizationProvider>
