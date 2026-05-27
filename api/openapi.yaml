@@ -463,6 +463,26 @@ paths:
         '404':
           description: 見つからない
 
+  /api/players/{user_id}/discord:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    put:
+      operationId: setPlayerDiscord
+      tags: [players]
+      description: |
+        プレイヤーの Discord ID を登録/更新する。
+        `discord_id` に null または空文字を渡した場合は登録を削除する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlayerDiscordIn' }
+      responses:
+        '204':
+          description: 設定/削除完了
+        '404':
+          description: プレイヤーが見つからない
+
   /api/players/{user_id}/events:
     parameters:
       - $ref: '#/components/parameters/UserIdPath'
@@ -711,6 +731,15 @@ components:
         first_seen: { type: string, format: date-time, nullable: true }
         last_seen: { type: string, format: date-time, nullable: true }
         in_room: { type: boolean, description: 現在 leave_ts なしのセッションがあるか }
+
+    PlayerDiscordIn:
+      type: object
+      required: [discord_id]
+      properties:
+        discord_id:
+          type: string
+          nullable: true
+          description: null または空文字を渡すと登録を削除する
 
     PlayerSessionOut:
       type: object

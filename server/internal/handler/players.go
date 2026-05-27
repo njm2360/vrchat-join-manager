@@ -6,6 +6,20 @@ import (
 	"github.com/njm2360/vrchat-join-manager/server/internal/gen"
 )
 
+func (s *Server) SetPlayerDiscord(ctx context.Context, request gen.SetPlayerDiscordRequestObject) (gen.SetPlayerDiscordResponseObject, error) {
+	if request.Body == nil {
+		return gen.SetPlayerDiscord404Response{}, nil
+	}
+	ok, err := s.Players.SetDiscord(ctx, request.UserId, request.Body.DiscordId)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return gen.SetPlayerDiscord404Response{}, nil
+	}
+	return gen.SetPlayerDiscord204Response{}, nil
+}
+
 func (s *Server) GetPlayer(ctx context.Context, request gen.GetPlayerRequestObject) (gen.GetPlayerResponseObject, error) {
 	r, err := s.Players.GetDetail(ctx, request.UserId)
 	if err != nil {

@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   EventOut,
@@ -20,6 +20,25 @@ export type VisitorSortKey =
   | 'last_seen'
   | 'join_count'
   | 'total_duration_seconds'
+
+export function useSetPlayerDiscord(userId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (discordId: string | null) => {
+      const { error } = await api.PUT('/api/players/{user_id}/discord', {
+        params: { path: { user_id: userId } },
+        body: { discord_id: discordId },
+      })
+      if (error) throw new Error('Discord IDの更新に失敗しました')
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player', userId] })
+      // セッション系の応答にも discord_id が乗っているので合わせて無効化
+      qc.invalidateQueries({ queryKey: ['players'] })
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+    },
+  })
+}
 
 export function usePlayerDetail(userId: string, options?: { enabled?: boolean }) {
   return useQuery<PlayerDetailOut>({

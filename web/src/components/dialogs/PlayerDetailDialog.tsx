@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   Button,
@@ -15,15 +15,18 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Paper,
   Typography,
 } from '@mui/material'
+import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import EditIcon from '@mui/icons-material/Edit'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import LaunchIcon from '@mui/icons-material/Launch'
 import { useSnackbar } from 'notistack'
-import { useInstance, usePlayerDetail, usePlayerSessions } from '../../api/queries'
+import { useInstance, usePlayerDetail, usePlayerSessions, useSetPlayerDiscord } from '../../api/queries'
 import type { InstanceOut, PlayerDetailOut, PlayerSessionOut } from '../../api/schemas'
 import { fmtDate, fmtDateFull, fmtDuration } from '../../utils/format'
 import { LeaveCell } from '../tabs/SessionsTab'
@@ -82,6 +85,15 @@ export default function PlayerDetailDialog({ open, onClose, ctx }: Props) {
               label="Discord ID"
               value={discordId}
               onCopy={discordId ? () => copy('Discord ID', discordId) : undefined}
+              edit={{
+                userId,
+                onSaved: (next) =>
+                  enqueueSnackbar(
+                    next ? 'Discord IDを更新しました' : 'Discord IDを削除しました',
+                    { variant: 'success' },
+                  ),
+                onError: (msg) => enqueueSnackbar(msg, { variant: 'error' }),
+              }}
             />
           </Stack>
         </Box>
@@ -109,16 +121,52 @@ export default function PlayerDetailDialog({ open, onClose, ctx }: Props) {
 
 // ── ID 行 (ラベル + 値 + コピー/外部リンクボタン) ────────────────
 
+interface EditOptions {
+  userId: string
+  onSaved?: (next: string | null) => void
+  onError?: (message: string) => void
+}
+
 interface IdRowProps {
   label: string
   value: string | null | undefined
   onCopy?: () => void
   externalHref?: string
   externalTitle?: string
+  edit?: EditOptions
 }
 
-function IdRow({ label, value, onCopy, externalHref, externalTitle }: IdRowProps) {
+function IdRow({ label, value, onCopy, externalHref, externalTitle, edit }: IdRowProps) {
   const hasValue = !!value
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const mutation = useSetPlayerDiscord(edit?.userId ?? '')
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value ?? '')
+      setTimeout(() => inputRef.current?.focus(), 0)
+    }
+  }, [editing, value])
+
+  const save = () => {
+    if (!edit) return
+    const trimmed = draft.trim()
+    const next = trimmed === '' ? null : trimmed
+    if ((value ?? null) === next) {
+      setEditing(false)
+      return
+    }
+    mutation.mutate(next, {
+      onSuccess: () => {
+        edit.onSaved?.(next)
+        setEditing(false)
+      },
+      onError: (e) => edit.onError?.((e as Error).message),
+    })
+  }
+
   return (
     <Stack
       direction="row"
@@ -133,31 +181,78 @@ function IdRow({ label, value, onCopy, externalHref, externalTitle }: IdRowProps
       >
         {label}
       </Typography>
-      {hasValue ? (
-        <Typography variant="caption" className="font-mono break-all">
-          {value}
-        </Typography>
+
+      {editing ? (
+        <>
+          <TextField
+            size="small"
+            value={draft}
+            inputRef={inputRef}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                save()
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                setEditing(false)
+              }
+            }}
+            placeholder="空欄で削除"
+            disabled={mutation.isPending}
+            slotProps={{
+              htmlInput: {
+                autoComplete: 'off',
+                style: { fontFamily: 'ui-monospace, monospace', fontSize: '0.85rem', padding: '4px 8px' },
+              },
+            }}
+          />
+          <IconButton size="small" onClick={save} disabled={mutation.isPending} title="保存 (Enter)">
+            <CheckIcon fontSize="inherit" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setEditing(false)}
+            disabled={mutation.isPending}
+            title="キャンセル (Esc)"
+          >
+            <CloseIcon fontSize="inherit" />
+          </IconButton>
+        </>
       ) : (
-        <Typography variant="caption" color="text.disabled">
-          未登録
-        </Typography>
-      )}
-      {hasValue && onCopy && (
-        <IconButton size="small" onClick={onCopy} title={`${label}をコピー`}>
-          <ContentCopyIcon fontSize="inherit" />
-        </IconButton>
-      )}
-      {hasValue && externalHref && (
-        <IconButton
-          size="small"
-          component="a"
-          href={externalHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={externalTitle ?? '外部リンクを開く'}
-        >
-          <LaunchIcon fontSize="inherit" />
-        </IconButton>
+        <>
+          {hasValue ? (
+            <Typography variant="caption" className="font-mono break-all">
+              {value}
+            </Typography>
+          ) : (
+            <Typography variant="caption" color="text.disabled">
+              未登録
+            </Typography>
+          )}
+          {hasValue && onCopy && (
+            <IconButton size="small" onClick={onCopy} title={`${label}をコピー`}>
+              <ContentCopyIcon fontSize="inherit" />
+            </IconButton>
+          )}
+          {hasValue && externalHref && (
+            <IconButton
+              size="small"
+              component="a"
+              href={externalHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={externalTitle ?? '外部リンクを開く'}
+            >
+              <LaunchIcon fontSize="inherit" />
+            </IconButton>
+          )}
+          {edit && (
+            <IconButton size="small" onClick={() => setEditing(true)} title={`${label}を編集`}>
+              <EditIcon fontSize="inherit" />
+            </IconButton>
+          )}
+        </>
       )}
     </Stack>
   )

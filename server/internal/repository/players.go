@@ -15,6 +15,40 @@ type PlayersRepo struct {
 
 func NewPlayersRepo(db *sqlx.DB) *PlayersRepo { return &PlayersRepo{DB: db} }
 
+// SetDiscord はプレイヤーの Discord ID を登録/上書きする。
+// discordID が nil または空文字の場合は登録を削除する。
+// プレイヤーが存在しない場合は (false, nil) を返す。
+func (r *PlayersRepo) SetDiscord(ctx context.Context, userID string, discordID *string) (bool, error) {
+	var exists int
+	if err := r.DB.GetContext(ctx, &exists,
+		`SELECT 1 FROM players WHERE user_id = ?`, userID,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if discordID == nil || *discordID == "" {
+		if _, err := r.DB.ExecContext(ctx,
+			`DELETE FROM player_discord WHERE user_id = ?`, userID,
+		); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+
+	if _, err := r.DB.ExecContext(ctx,
+		`INSERT INTO player_discord (user_id, discord_id)
+		 VALUES (?, ?)
+		 ON CONFLICT(user_id) DO UPDATE SET discord_id = excluded.discord_id`,
+		userID, *discordID,
+	); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // GetDetail はプレイヤーのプロフィール (Discord含む) と通算統計を1リクエストで返す。
 func (r *PlayersRepo) GetDetail(ctx context.Context, userID string) (*PlayerDetailRow, error) {
 	q := `
