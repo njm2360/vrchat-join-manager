@@ -347,7 +347,7 @@ function OverviewTab({ userId, detail }: { userId: string; detail: PlayerDetailO
           size="small"
           endIcon={<OpenInNewIcon />}
           component="a"
-          href={`/players/${encodeURIComponent(userId)}?display_name=${encodeURIComponent(detail.display_name)}`}
+          href={`/players/${encodeURIComponent(userId)}`}
           target="_blank"
         >
           月別カレンダーを開く

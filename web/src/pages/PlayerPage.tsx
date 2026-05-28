@@ -13,26 +13,55 @@ import {
 } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import { usePlayerSessions } from '../api/queries'
+import { usePlayerDetail, usePlayerSessions } from '../api/queries'
 import { fmtDateFull, fmtDuration } from '../utils/format'
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土']
 
 export default function PlayerPage() {
   const { userId = '' } = useParams<{ userId: string }>()
-  const [params] = useSearchParams()
-  const displayName = params.get('display_name') || userId
+  const [params, setParams] = useSearchParams()
   const worldId = params.get('world_id') || ''
+  const { data: player } = usePlayerDetail(userId)
+  const displayName = player?.display_name || userId
 
   const now = useMemo(() => new Date(), [])
-  const [{ year, month }, setYM] = useState({
-    year: now.getFullYear(),
-    month: now.getMonth(),
-  })
+  const yearParam = Number(params.get('year'))
+  const monthParam = Number(params.get('month'))
+  const year = Number.isInteger(yearParam) && yearParam >= 1970 ? yearParam : now.getFullYear()
+  const month =
+    Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12
+      ? monthParam - 1
+      : now.getMonth()
+
+  const setYM = (next: { year: number; month: number }) => {
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('year', String(next.year))
+        p.set('month', String(next.month + 1))
+        return p
+      },
+      { replace: true },
+    )
+  }
 
   useEffect(() => {
     document.title = `${displayName} — セッション履歴`
   }, [displayName])
+
+  useEffect(() => {
+    if (params.get('year') && params.get('month')) return
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        if (!p.get('year')) p.set('year', String(year))
+        if (!p.get('month')) p.set('month', String(month + 1))
+        return p
+      },
+      { replace: true },
+    )
+  }, [])
 
   // 前月末日から翌月1日まで取得 (月をまたぐセッションも拾う)
   const start = new Date(year, month, 0).toISOString()
@@ -43,8 +72,10 @@ export default function PlayerPage() {
     world_id: worldId || undefined,
   })
 
-  const prev = () => setYM((s) => (s.month === 0 ? { year: s.year - 1, month: 11 } : { ...s, month: s.month - 1 }))
-  const next = () => setYM((s) => (s.month === 11 ? { year: s.year + 1, month: 0 } : { ...s, month: s.month + 1 }))
+  const prev = () =>
+    setYM(month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 })
+  const next = () =>
+    setYM(month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })
 
   return (
     <Box className="h-full overflow-auto p-3">
@@ -110,7 +141,7 @@ function HourScale() {
 interface MonthProps {
   year: number
   month: number
-  sessions: Array<{ join_ts: string; leave_ts?: string | null; duration_seconds?: number | null; is_estimated_leave: boolean }>
+  sessions: Array<{ instance_id: number; join_ts: string; leave_ts?: string | null; duration_seconds?: number | null; is_estimated_leave: boolean }>
 }
 
 function MonthCalendar({ year, month, sessions }: MonthProps) {
@@ -187,9 +218,11 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
                     }
                   >
                     <Box
+                      component={Link}
+                      to={`/instances/${s.instance_id}`}
                       onMouseEnter={() => setHoveredKey(key)}
                       onMouseLeave={() => setHoveredKey((k) => (k === key ? null : k))}
-                      className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] transition-colors cursor-pointer"
+                      className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] transition-colors cursor-pointer block"
                       sx={{
                         left: `${leftPct.toFixed(3)}%`,
                         width: `${widthPct.toFixed(3)}%`,
