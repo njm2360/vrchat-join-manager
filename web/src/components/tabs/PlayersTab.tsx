@@ -17,6 +17,7 @@ import {
 import { useSnackbar } from 'notistack'
 import { usePlayers } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
+import { copyText } from '../../utils/clipboard'
 import { usePlayerDetailDialog } from '../PlayerDetailProvider'
 
 interface Props {
@@ -65,7 +66,7 @@ export default function PlayersTab({ instanceId }: Props) {
       return
     }
     try {
-      await navigator.clipboard.writeText(mentionText)
+      await copyText(mentionText)
       enqueueSnackbar(`${count}人分のDiscord IDをコピーしました`, { variant: 'success' })
     } catch {
       enqueueSnackbar('クリップボードへのコピーに失敗しました', { variant: 'error' })

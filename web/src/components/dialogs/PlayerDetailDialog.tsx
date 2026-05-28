@@ -29,6 +29,7 @@ import { useSnackbar } from 'notistack'
 import { useInstance, usePlayerDetail, usePlayerSessions, useSetPlayerDiscord } from '../../api/queries'
 import type { InstanceOut, PlayerDetailOut, PlayerSessionOut } from '../../api/schemas'
 import { fmtDate, fmtDateFull, fmtDuration } from '../../utils/format'
+import { copyText } from '../../utils/clipboard'
 import { LeaveCell } from '../tabs/SessionsTab'
 
 export interface PlayerDetailCtx {
@@ -59,7 +60,7 @@ export default function PlayerDetailDialog({ open, onClose, ctx }: Props) {
 
   const copy = async (label: string, value: string) => {
     try {
-      await navigator.clipboard.writeText(value)
+      await copyText(value)
       enqueueSnackbar(`${label}をコピーしました`, { variant: 'success' })
     } catch {
       enqueueSnackbar('クリップボードへのコピーに失敗しました', { variant: 'error' })
