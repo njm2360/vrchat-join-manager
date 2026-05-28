@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material'
 import LocationList from '../components/LocationList'
 import InstanceDetail from '../components/InstanceDetail'
@@ -8,6 +8,7 @@ import { useInstance } from '../api/queries'
 export default function InstancesPage() {
   const { instanceId: idStr } = useParams<{ instanceId?: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -33,7 +34,7 @@ export default function InstancesPage() {
         <Box className="w-full md:w-[320px] lg:w-[360px] md:shrink-0 h-full">
           <LocationList
             selectedId={instanceId}
-            onSelect={(inst) => navigate(`/instances/${inst.id}`)}
+            onSelect={(inst) => navigate({ pathname: `/instances/${inst.id}`, search: location.search })}
           />
         </Box>
       )}

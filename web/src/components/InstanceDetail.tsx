@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Box,
   Card,
@@ -28,6 +29,8 @@ import CloseInstanceDialog from './dialogs/CloseInstanceDialog'
 import DeleteInstanceDialog from './dialogs/DeleteInstanceDialog'
 
 type TabKey = 'timeline' | 'events' | 'sessions' | 'players' | 'visitors'
+const TAB_KEYS: readonly TabKey[] = ['timeline', 'events', 'sessions', 'players', 'visitors']
+const DEFAULT_TAB: TabKey = 'timeline'
 
 interface Props {
   instanceId: number
@@ -37,7 +40,32 @@ interface Props {
 }
 
 export default function InstanceDetail({ instanceId, instance, onBack, isMobile }: Props) {
-  const [tab, setTab] = useState<TabKey>('timeline')
+  const [params, setParams] = useSearchParams()
+  const tabParam = params.get('tab')
+  const tab: TabKey = (TAB_KEYS as readonly string[]).includes(tabParam ?? '')
+    ? (tabParam as TabKey)
+    : DEFAULT_TAB
+  const setTab = (next: TabKey) =>
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('tab', next)
+        return p
+      },
+      { replace: true },
+    )
+
+  useEffect(() => {
+    if (params.get('tab')) return
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('tab', DEFAULT_TAB)
+        return p
+      },
+      { replace: true },
+    )
+  }, [])
   const [compareOpen, setCompareOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)

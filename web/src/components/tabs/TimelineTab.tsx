@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Stack } from '@mui/material'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import type { Dayjs } from 'dayjs'
@@ -24,6 +24,10 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
   const chartRef = useRef<Chart<'line'> | null>(null)
 
   const { data: timeline = [] } = useTimeline(instanceId, applied)
+
+  useEffect(() => {
+    chartRef.current?.resetZoom()
+  }, [instanceId])
 
   const isOngoing = instance && !instance.closed_at
   const points: Pt[] = useMemo(() => {
