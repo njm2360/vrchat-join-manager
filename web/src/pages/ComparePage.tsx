@@ -114,10 +114,10 @@ export default function ComparePage() {
     const pts2 = buildPoints(tl2, inst2.closed_at)
     const sm1 = buildSessionMap(sess1)
     const sm2 = buildSessionMap(sess2)
-    const graceMs = grace * 60 * 1000
+    const graceSec = grace * 60
     const violations = [
-      ...detectViolations(tl1, pts2, sm1, 'blue', graceMs),
-      ...detectViolations(tl2, pts1, sm2, 'red', graceMs),
+      ...detectViolations(tl1, pts2, sm1, 'blue', graceSec),
+      ...detectViolations(tl2, pts1, sm2, 'red', graceSec),
     ].sort((a, b) => a.join_ts.getTime() - b.join_ts.getTime())
     return { pts1, pts2, tl1Len: tl1.length, tl2Len: tl2.length, violations, inst1, inst2 }
   }, [queries.data, grace])
@@ -338,9 +338,11 @@ interface DiffChartProps {
 
 function DiffChart({ pts1, pts2, onReady, otherChartRef }: DiffChartProps) {
   const diffPts = useMemo(() => buildDiffPoints(pts1, pts2), [pts1, pts2])
+  // compareChart と同じX軸範囲にそろえる
   const allTimes = [...pts1, ...pts2].map((p) => p.x.getTime())
   const xMin = allTimes.length ? new Date(Math.min(...allTimes)) : undefined
   const xMax = allTimes.length ? new Date(Math.max(...allTimes)) : undefined
+  // 正値 (青が多い) と負値 (赤が多い) を別データセットに分割
   const posPts = diffPts.map((p) => ({ x: p.x, y: Math.max(0, p.y) }))
   const negPts = diffPts.map((p) => ({ x: p.x, y: Math.min(0, p.y) }))
   const r = diffPts.length < 200 ? 2 : 0

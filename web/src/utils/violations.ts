@@ -12,9 +12,12 @@ export interface Violation {
   duration_seconds: number | null
 }
 
-export type SessionMap = Map<string, Array<{ join_ms: number; duration_seconds: number | null }>>
+export type SessionMap = Map<string, Array<{ join_s: number; duration_seconds: number | null }>>
 
-const REJOIN_MS = 3 * 60 * 1000
+const toSec = (d: Date | string | number): number => {
+  const ms = typeof d === 'number' ? d : new Date(d).getTime()
+  return Math.floor(ms / 1000)
+}
 
 export function buildPoints(data: TimelinePoint[], closedAt: string | null | undefined): Point[] {
   const pts: Point[] = data.map((d) => ({ x: new Date(d.timestamp), y: d.count }))
@@ -24,50 +27,52 @@ export function buildPoints(data: TimelinePoint[], closedAt: string | null | und
   return pts
 }
 
+// ステップ補間: 秒 t における pts の値を返す。
 export function stepValue(pts: Point[], t: number): number {
   let val = 0
   for (const p of pts) {
-    if (p.x.getTime() <= t) val = p.y
+    if (toSec(p.x) <= t) val = p.y
     else break
   }
   return val
 }
 
+// セッションマップ: user_id -> [{join_s, duration_seconds}]
 export function buildSessionMap(sessions: SessionOut[]): SessionMap {
   const map: SessionMap = new Map()
   for (const s of sessions) {
-    const ms = new Date(s.join_ts).getTime()
     if (!map.has(s.user_id)) map.set(s.user_id, [])
     map.get(s.user_id)!.push({
-      join_ms: ms,
+      join_s: toSec(s.join_ts),
       duration_seconds: s.duration_seconds ?? null,
     })
   }
   return map
 }
 
-function lookupDuration(sessions: SessionMap, userId: string, joinMs: number): number | null {
-  return sessions.get(userId)?.find((s) => s.join_ms === joinMs)?.duration_seconds ?? null
+function lookupDuration(sessions: SessionMap, userId: string, joinSec: number): number | null {
+  return sessions.get(userId)?.find((s) => s.join_s === joinSec)?.duration_seconds ?? null
 }
 
-function isRejoin(sessions: SessionMap, userId: string, t: number): boolean {
+function isRejoin(sessions: SessionMap, userId: string, t: number, rejoinSeconds: number): boolean {
   const arr = sessions.get(userId)
   if (!arr) return false
   return arr.some((s) => {
-    if (s.join_ms >= t || s.duration_seconds == null) return false
-    const leaveMs = s.join_ms + s.duration_seconds * 1000
-    return leaveMs <= t && t - leaveMs <= REJOIN_MS
+    if (s.join_s >= t || s.duration_seconds == null) return false
+    const leaveSec = s.join_s + s.duration_seconds
+    const gapSec = t - leaveSec
+    return gapSec >= 0 && gapSec <= rejoinSeconds
   })
 }
 
-// 「自インスタンス > 相手」が開始した時刻のスナップショットを構築し、
-// 任意の時刻 t に対するその時点での streakStart を返すルックアップを生成
+// 両インスタンスの全イベント時刻を走査し、自インスタンスが相手より多い状態の開始時刻を
+// 任意の時刻に対して返すルックアップ関数を構築する。
 function buildDiffStartLookup(tl: TimelinePoint[], otherPts: Point[]) {
   const selfPts: Point[] = tl.map((d) => ({ x: new Date(d.timestamp), y: d.count }))
   const times = [
     ...new Set([
-      ...selfPts.map((p) => p.x.getTime()),
-      ...otherPts.map((p) => p.x.getTime()),
+      ...selfPts.map((p) => toSec(p.x)),
+      ...otherPts.map((p) => toSec(p.x)),
     ]),
   ].sort((a, b) => a - b)
 
@@ -96,34 +101,40 @@ function buildDiffStartLookup(tl: TimelinePoint[], otherPts: Point[]) {
   }
 }
 
+// color ('blue'|'red') のインスタンスへの違反Joinを検出する。
+// 違反 = 自インスタンスの方が相手より人が多い状態でJoinした。
+// graceSeconds: 差が発生してからこの秒数以内なら人数表示未更新として許容する。
 export function detectViolations(
   tl: TimelinePoint[],
   otherPts: Point[],
   sessions: SessionMap,
   color: InstColor,
-  graceMs: number,
+  graceSeconds: number,
 ): Violation[] {
+  const REJOIN_S = 180     // 退室後のこの秒数以内に再入室した場合はリジョインとして除外
+  const SHORT_STAY_S = 180 // 違反後この秒数以内に退室 → 違反に気付き離脱として許容
+
   const violations: Violation[] = []
   const getDiffStart = buildDiffStartLookup(tl, otherPts)
   for (let i = 1; i < tl.length; i++) {
     const pt = tl[i]
     if (!pt.user_id) continue
-    const countBefore = tl[i - 1].count
-    if (pt.count <= countBefore) continue // Leave
+    const countBefore = tl[i - 1].count // このイベント直前の自インスタンス人数
+    if (pt.count <= countBefore) continue // Joinでない (Leave)
 
-    const t = new Date(pt.timestamp).getTime()
-    if (isRejoin(sessions, pt.user_id, t)) continue
+    const t = toSec(pt.timestamp)
+    if (isRejoin(sessions, pt.user_id, t, REJOIN_S)) continue // 直近のRejoin → 除外
 
     const otherCount = stepValue(otherPts, t)
-    if (otherCount === 0) continue
+    if (otherCount === 0) continue // 相手インスタンスがまだ存在しない期間は除外
     const diff = countBefore - otherCount
     if (diff <= 0) continue
 
     const diffStart = getDiffStart(t)
-    if (diffStart === null || t - diffStart <= graceMs) continue
+    if (diffStart === null || t - diffStart <= graceSeconds) continue // 差発生から猶予秒以内 → 除外
 
     const duration_seconds = lookupDuration(sessions, pt.user_id, t)
-    if (duration_seconds != null && duration_seconds <= 180) continue
+    if (duration_seconds != null && duration_seconds <= SHORT_STAY_S) continue // 短時間で退出 → 違反に気付き離脱として許容
 
     violations.push({
       user_id: pt.user_id,
@@ -140,12 +151,12 @@ export function detectViolations(
 export function buildDiffPoints(pts1: Point[], pts2: Point[]): Point[] {
   const times = [
     ...new Set([
-      ...pts1.map((p) => p.x.getTime()),
-      ...pts2.map((p) => p.x.getTime()),
+      ...pts1.map((p) => toSec(p.x)),
+      ...pts2.map((p) => toSec(p.x)),
     ]),
   ].sort((a, b) => a - b)
 
   return times
     .filter((t) => stepValue(pts1, t) > 0 && stepValue(pts2, t) > 0)
-    .map((t) => ({ x: new Date(t), y: stepValue(pts1, t) - stepValue(pts2, t) }))
+    .map((t) => ({ x: new Date(t * 1000), y: stepValue(pts1, t) - stepValue(pts2, t) }))
 }
