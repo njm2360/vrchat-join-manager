@@ -25,6 +25,7 @@ import {
   Typography,
 } from '@mui/material'
 import { usePlayerDetailDialog } from '../components/PlayerDetailProvider'
+import InstanceInfo from '../components/InstanceInfo'
 import { Line } from 'react-chartjs-2'
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js'
 import { api } from '../api/client'
@@ -39,7 +40,7 @@ import {
   type Violation,
 } from '../utils/violations'
 import { chartZoomOptions, visibleYRangePlugin } from '../utils/chart'
-import { fmtDate, fmtDateFull, fmtDuration } from '../utils/format'
+import { fmtDateFull, fmtDuration } from '../utils/format'
 
 type VSortKey = 'display_name' | 'join_ts' | 'instance' | 'diff' | 'duration_seconds'
 
@@ -235,31 +236,20 @@ export default function ComparePage() {
 }
 
 function InstanceCard({ inst, color }: { inst: InstanceOut; color: string }) {
-  const range = inst.closed_at
-    ? `${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}`
-    : `${fmtDate(inst.opened_at)} 〜 進行中`
   return (
     <Card
       component={Link}
       to={`/instances/${inst.id}`}
       className="flex-1 no-underline text-inherit"
-      sx={{ borderColor: color, borderWidth: 1, borderStyle: 'solid' }}
+      sx={{
+        borderColor: color,
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderLeftWidth: 4,
+      }}
     >
       <CardContent className="py-2!">
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          <Box className="shrink-0 w-3 h-3 rounded-sm" sx={{ backgroundColor: color }} />
-          <Box className="overflow-hidden">
-            <Typography variant="body2" className="font-semibold truncate">
-              {inst.world_name || inst.world_id}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" className="block truncate">
-              {inst.location_id}
-            </Typography>
-            <Box className="mt-1">
-              <Chip size="small" label={range} color={inst.closed_at ? 'default' : 'success'} />
-            </Box>
-          </Box>
-        </Stack>
+        <InstanceInfo instance={inst} dense />
       </CardContent>
     </Card>
   )

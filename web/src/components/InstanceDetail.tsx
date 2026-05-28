@@ -1,16 +1,23 @@
 import { useState } from 'react'
 import {
   Box,
-  Button,
   Card,
   CardContent,
   CardHeader,
-  Stack,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Tab,
   Tabs,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import LockIcon from '@mui/icons-material/Lock'
+import DeleteIcon from '@mui/icons-material/Delete'
 import type { InstanceOut } from '../api/schemas'
+import InstanceInfo from './InstanceInfo'
 import TimelineTab from './tabs/TimelineTab'
 import EventsTab from './tabs/EventsTab'
 import SessionsTab from './tabs/SessionsTab'
@@ -34,63 +41,82 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
   const [compareOpen, setCompareOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const menuOpen = Boolean(menuAnchor)
+  const closeMenu = () => setMenuAnchor(null)
+
+  const actionMenu = instance && (
+    <>
+      <IconButton
+        size="small"
+        onClick={(e) => setMenuAnchor(e.currentTarget)}
+        aria-label="操作メニュー"
+      >
+        <MoreVertIcon />
+      </IconButton>
+      <Menu anchorEl={menuAnchor} open={menuOpen} onClose={closeMenu}>
+        {!instance.closed_at && (
+          <MenuItem
+            onClick={() => {
+              closeMenu()
+              setCloseOpen(true)
+            }}
+          >
+            <ListItemIcon>
+              <LockIcon fontSize="small" color="warning" />
+            </ListItemIcon>
+            <ListItemText>クローズ</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem
+          onClick={() => {
+            closeMenu()
+            setDeleteOpen(true)
+          }}
+        >
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText sx={{ color: 'error.main' }}>削除</ListItemText>
+        </MenuItem>
+      </Menu>
+    </>
+  )
 
   return (
     <Box className="h-full overflow-auto p-3">
       <Card className="h-full flex flex-col">
         <CardHeader
-          className="border-b border-neutral-200"
-          title={
-            <Stack spacing={1}>
-              {isMobile && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={onBack}
-                  className="self-start"
-                >
-                  一覧に戻る
-                </Button>
-              )}
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <Tabs
-                  value={tab}
-                  onChange={(_, v: TabKey) => setTab(v)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  className="flex-1 min-w-0"
-                >
-                  <Tab value="timeline" label="人数推移" />
-                  <Tab value="events" label="入退場ログ" />
-                  <Tab value="sessions" label="セッション一覧" />
-                  <Tab value="players" label="在室中" />
-                  <Tab value="visitors" label="訪れた人" />
-                </Tabs>
-                {instance && !instance.closed_at && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="warning"
-                    onClick={() => setCloseOpen(true)}
-                  >
-                    クローズ
-                  </Button>
-                )}
-                {instance && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="error"
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    削除
-                  </Button>
-                )}
-              </Stack>
-            </Stack>
+          avatar={
+            isMobile ? (
+              <IconButton onClick={onBack} size="small" aria-label="戻る">
+                <ArrowBackIcon />
+              </IconButton>
+            ) : undefined
           }
+          title={instance && <InstanceInfo instance={instance} />}
+          action={actionMenu}
+          className="border-b border-neutral-200"
+          sx={{
+            alignItems: 'flex-start',
+            '& .MuiCardHeader-action': { alignSelf: 'flex-start', m: 0 },
+            '& .MuiCardHeader-content': { minWidth: 0, overflow: 'hidden' },
+          }}
         />
+        <Box className="border-b border-neutral-200" sx={{ px: 2 }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v: TabKey) => setTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab value="timeline" label="人数推移" />
+            <Tab value="events" label="入退場ログ" />
+            <Tab value="sessions" label="セッション一覧" />
+            <Tab value="players" label="在室中" />
+            <Tab value="visitors" label="訪れた人" />
+          </Tabs>
+        </Box>
         <CardContent className="flex-1 min-h-0 overflow-auto">
           {tab === 'timeline' && (
             <TimelineTab
