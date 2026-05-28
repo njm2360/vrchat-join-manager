@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Box,
@@ -24,7 +25,10 @@ interface Props {
 
 export default function CompareInstanceDialog({ open, onClose, current }: Props) {
   const start = current.opened_at
-  const end = current.closed_at ?? new Date().toISOString()
+  const end = useMemo(
+    () => current.closed_at ?? new Date().toISOString(),
+    [current.id, current.closed_at, open],
+  )
 
   const { data: instances = [], isLoading } = useQuery<InstanceOut[]>({
     queryKey: ['instances', 'overlap', current.id, start, end],
