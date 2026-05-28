@@ -8,6 +8,7 @@ import {
   Chip,
   IconButton,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
@@ -61,12 +62,13 @@ export default function PlayerPage() {
               </Typography>
               <Typography variant="body2" color="text.secondary">のセッション履歴</Typography>
               {worldId && (
-                <Chip
-                  size="small"
-                  label={worldId}
-                  title={worldId}
-                  className="max-w-[320px]"
-                />
+                <Tooltip title={worldId} arrow>
+                  <Chip
+                    size="small"
+                    label={worldId}
+                    className="max-w-[320px]"
+                  />
+                </Tooltip>
               )}
               <Box className="flex-1" />
               <IconButton size="small" onClick={prev}>
@@ -115,6 +117,7 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
   const days = new Date(year, month + 1, 0).getDate()
   const nowMs = Date.now()
   const DAY_MS = 86_400_000
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null)
 
   return (
     <Box className="text-[13px]">
@@ -133,6 +136,7 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
             const segEnd = Math.min(sEnd, dayEnd)
             return {
               s,
+              key: s.join_ts,
               leftPct: ((segStart - dayStart) / DAY_MS) * 100,
               widthPct: Math.max(0.2, ((segEnd - segStart) / DAY_MS) * 100),
             }
@@ -153,17 +157,48 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
                   'linear-gradient(#c8cdd2,#c8cdd2) no-repeat 75%/1px 100%, #dee2e6',
               }}
             >
-              {segs.map(({ s, leftPct, widthPct }, idx) => (
-                <Box
-                  key={idx}
-                  title={`入室: ${fmtDateFull(s.join_ts)}\n退室: ${s.leave_ts ? fmtDateFull(s.leave_ts) : '在室中'}${s.is_estimated_leave ? ' (推定)' : ''}\n滞在: ${s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—'}`}
-                  className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] bg-[rgba(13,110,253,0.6)] hover:bg-[rgba(13,110,253,0.95)] transition-colors cursor-pointer"
-                  sx={{
-                    left: `${leftPct.toFixed(3)}%`,
-                    width: `${widthPct.toFixed(3)}%`,
-                  }}
-                />
-              ))}
+              {segs.map(({ s, key, leftPct, widthPct }, idx) => {
+                const active = hoveredKey === key
+                return (
+                  <Tooltip
+                    key={idx}
+                    arrow
+                    placement="top"
+                    title={
+                      <Stack spacing={0.25} className="text-[12px] leading-snug">
+                        <Box>
+                          <Box component="span" className="opacity-70 mr-1">入室</Box>
+                          <Box component="span" className="tabular-nums">{fmtDateFull(s.join_ts)}</Box>
+                        </Box>
+                        <Box>
+                          <Box component="span" className="opacity-70 mr-1">退室</Box>
+                          <Box component="span" className="tabular-nums">
+                            {s.leave_ts ? fmtDateFull(s.leave_ts) : '在室中'}
+                            {s.is_estimated_leave ? ' (推定)' : ''}
+                          </Box>
+                        </Box>
+                        <Box>
+                          <Box component="span" className="opacity-70 mr-1">滞在</Box>
+                          <Box component="span" className="tabular-nums">
+                            {s.duration_seconds != null ? fmtDuration(s.duration_seconds) : '—'}
+                          </Box>
+                        </Box>
+                      </Stack>
+                    }
+                  >
+                    <Box
+                      onMouseEnter={() => setHoveredKey(key)}
+                      onMouseLeave={() => setHoveredKey((k) => (k === key ? null : k))}
+                      className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] transition-colors cursor-pointer"
+                      sx={{
+                        left: `${leftPct.toFixed(3)}%`,
+                        width: `${widthPct.toFixed(3)}%`,
+                        backgroundColor: active ? 'rgba(13,110,253,0.95)' : 'rgba(13,110,253,0.6)',
+                      }}
+                    />
+                  </Tooltip>
+                )
+              })}
             </Box>
           </Box>
         )
