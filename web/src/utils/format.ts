@@ -29,15 +29,3 @@ export function extractInstanceNumber(locationId: string | null | undefined): st
   const m = String(locationId ?? '').match(/:(\d+)/)
   return m ? m[1] : ''
 }
-
-// datetime-local 入力値 (ローカル時刻) を ISO 8601 (UTC) に変換
-export function localDatetimeToIso(value: string): string {
-  return new Date(value).toISOString()
-}
-
-// 現在時刻を datetime-local 入力に詰める形式 (YYYY-MM-DDTHH:mm)
-export function nowLocalDatetimeValue(): string {
-  const d = new Date()
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-  return d.toISOString().slice(0, 16)
-}
