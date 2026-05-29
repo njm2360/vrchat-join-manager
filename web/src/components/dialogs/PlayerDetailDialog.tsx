@@ -467,9 +467,10 @@ interface BarProps {
 }
 
 function PlayerTimelineBar({ sessions, instance, highlight, onHover }: BarProps) {
+  const [nowMs] = useState(() => Date.now())
   const { instStart, instEnd, bars } = useMemo(() => {
     const instStart = new Date(instance.opened_at).getTime()
-    const instEnd = instance.closed_at ? new Date(instance.closed_at).getTime() : Date.now()
+    const instEnd = instance.closed_at ? new Date(instance.closed_at).getTime() : nowMs
     const total = Math.max(1, instEnd - instStart)
     const VW = 1000
     const toX = (ts: string) => ((new Date(ts).getTime() - instStart) / total) * VW
@@ -479,7 +480,7 @@ function PlayerTimelineBar({ sessions, instance, highlight, onHover }: BarProps)
       return { i, x1, w: Math.max(3, x2 - x1) }
     })
     return { instStart, instEnd, bars }
-  }, [sessions, instance])
+  }, [sessions, instance, nowMs])
 
   const fmt = (ts: number | string) =>
     new Date(ts).toLocaleString('ja-JP', {

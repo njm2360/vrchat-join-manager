@@ -21,6 +21,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
   const [start, setStart] = useState<Dayjs | null>(null)
   const [end, setEnd] = useState<Dayjs | null>(null)
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
+  const [nowMs] = useState(() => Date.now())
   const chartRef = useRef<Chart<'line'> | null>(null)
 
   const { data: timeline = [] } = useTimeline(instanceId, applied)
@@ -37,10 +38,10 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
       displayName: d.display_name,
     }))
     if (isOngoing && pts.length > 0) {
-      pts.push({ x: new Date(), y: pts[pts.length - 1].y, displayName: null })
+      pts.push({ x: new Date(nowMs), y: pts[pts.length - 1].y, displayName: null })
     }
     return pts
-  }, [timeline, isOngoing])
+  }, [timeline, isOngoing, nowMs])
 
   const data: ChartData<'line', Pt[]> = {
     datasets: [
@@ -64,7 +65,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
       x: {
         type: 'time',
         time: { displayFormats: { minute: 'HH:mm', hour: 'MM/dd HH:mm' } },
-        max: isOngoing ? Date.now() : undefined,
+        max: isOngoing ? nowMs : undefined,
       },
       y: {
         beginAtZero: true,

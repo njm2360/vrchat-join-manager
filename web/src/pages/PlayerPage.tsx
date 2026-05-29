@@ -146,7 +146,7 @@ interface MonthProps {
 
 function MonthCalendar({ year, month, sessions }: MonthProps) {
   const days = new Date(year, month + 1, 0).getDate()
-  const nowMs = Date.now()
+  const [nowMs] = useState(() => Date.now())
   const DAY_MS = 86_400_000
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
 
