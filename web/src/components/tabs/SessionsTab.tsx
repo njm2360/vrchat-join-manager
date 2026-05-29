@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Box,
   Chip,
-  Link,
   Stack,
   Table,
   TableBody,
@@ -17,8 +16,8 @@ import {
 import { useSessions } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
 import type { SessionOut } from '../../api/schemas'
-import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 import DateRangeFilter from '../DateRangeFilter'
+import PlayerLink from '../PlayerLink'
 import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
@@ -36,7 +35,6 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 
 export default function SessionsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>('leave_ts', 'asc')
-  const { open: openPlayer } = usePlayerDetailDialog()
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
   const { data: sessions = [] } = useSessions(instanceId, {
@@ -83,19 +81,7 @@ export default function SessionsTab({ instanceId }: Props) {
               sessions.map((s) => (
                 <TableRow key={s.id} hover>
                   <TableCell className="truncate max-w-[200px]">
-                    <Link
-                      component="button"
-                      underline="hover"
-                      onClick={() =>
-                        openPlayer({
-                          userId: s.user_id,
-                          displayName: s.display_name,
-                          instanceId,
-                        })
-                      }
-                    >
-                      {s.display_name}
-                    </Link>
+                    <PlayerLink userId={s.user_id} displayName={s.display_name} instanceId={instanceId} />
                   </TableCell>
                   <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
                   <TableCell><LeaveCell s={s} /></TableCell>

@@ -10,7 +10,6 @@ import {
   CardContent,
   CardHeader,
   Chip,
-  Link as MuiLink,
   MenuItem,
   Paper,
   Select,
@@ -24,7 +23,7 @@ import {
   TableSortLabel,
   Typography,
 } from '@mui/material'
-import { usePlayerDetailDialog } from '../components/usePlayerDetailDialog'
+import PlayerLink from '../components/PlayerLink'
 import InstanceInfo from '../components/InstanceInfo'
 import { Line } from 'react-chartjs-2'
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js'
@@ -436,7 +435,6 @@ interface ViolationsTableProps {
 }
 
 function ViolationsTable({ violations, sort, onSort, highlightedTs, onPickTime, id1, id2 }: ViolationsTableProps) {
-  const { open: openPlayer } = usePlayerDetailDialog()
   const sorted = useMemo(() => {
     return [...violations].sort((a, b) => {
       let va: number | string
@@ -501,20 +499,12 @@ function ViolationsTable({ violations, sort, onSort, highlightedTs, onPickTime, 
                 sx={{ cursor: 'pointer' }}
               >
                 <TableCell>
-                  <MuiLink
-                    component="button"
-                    underline="hover"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openPlayer({
-                        userId: v.user_id,
-                        displayName: v.display_name,
-                        instanceId: v.instance === 'blue' ? id1 : id2,
-                      })
-                    }}
-                  >
-                    {v.display_name}
-                  </MuiLink>
+                  <PlayerLink
+                    userId={v.user_id}
+                    displayName={v.display_name}
+                    instanceId={v.instance === 'blue' ? id1 : id2}
+                    stopPropagation
+                  />
                 </TableCell>
                 <TableCell>{fmtDateFull(v.join_ts)}</TableCell>
                 <TableCell>

@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Link,
   Stack,
   Table,
   TableBody,
@@ -15,7 +14,7 @@ import {
 } from '@mui/material'
 import { useVisitors } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
-import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
+import PlayerLink from '../PlayerLink'
 import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
@@ -34,7 +33,6 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 
 export default function VisitorsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>('last_seen', 'desc')
-  const { open: openPlayer } = usePlayerDetailDialog()
 
   const { data: visitors = [], refetch } = useVisitors(instanceId, {
     sort_by: sortBy,
@@ -86,19 +84,7 @@ export default function VisitorsTab({ instanceId }: Props) {
               visitors.map((v) => (
                 <TableRow key={v.user_id} hover>
                   <TableCell className="truncate max-w-[240px]">
-                    <Link
-                      component="button"
-                      underline="hover"
-                      onClick={() =>
-                        openPlayer({
-                          userId: v.user_id,
-                          displayName: v.display_name,
-                          instanceId,
-                        })
-                      }
-                    >
-                      {v.display_name}
-                    </Link>
+                    <PlayerLink userId={v.user_id} displayName={v.display_name} instanceId={instanceId} />
                   </TableCell>
                   <TableCell>{fmtDateFull(v.first_seen)}</TableCell>
                   <TableCell>{fmtDateFull(v.last_seen)}</TableCell>

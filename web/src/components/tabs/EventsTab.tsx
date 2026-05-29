@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {
   Chip,
-  Link,
   Stack,
   Table,
   TableBody,
@@ -15,8 +14,8 @@ import {
 } from '@mui/material'
 import { useEvents } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
-import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 import DateRangeFilter from '../DateRangeFilter'
+import PlayerLink from '../PlayerLink'
 
 interface Props {
   instanceId: number
@@ -24,7 +23,6 @@ interface Props {
 
 export default function EventsTab({ instanceId }: Props) {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
-  const { open: openPlayer } = usePlayerDetailDialog()
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
   const { data: events = [] } = useEvents(instanceId, { order, ...applied })
@@ -71,19 +69,7 @@ export default function EventsTab({ instanceId }: Props) {
                     />
                   </TableCell>
                   <TableCell>
-                    <Link
-                      component="button"
-                      underline="hover"
-                      onClick={() =>
-                        openPlayer({
-                          userId: ev.user_id,
-                          displayName: ev.display_name,
-                          instanceId,
-                        })
-                      }
-                    >
-                      {ev.display_name}
-                    </Link>
+                    <PlayerLink userId={ev.user_id} displayName={ev.display_name} instanceId={instanceId} />
                   </TableCell>
                 </TableRow>
               ))
