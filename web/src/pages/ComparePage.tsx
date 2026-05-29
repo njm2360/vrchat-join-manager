@@ -258,7 +258,7 @@ interface CompareChartProps {
   rawLen2: number
   verticalX: number | null
   onReady: (chart: Chart<'line'>) => void
-  otherChartRef: React.MutableRefObject<Chart<'line'> | null>
+  otherChartRef: React.RefObject<Chart<'line'> | null>
 }
 
 function CompareChart({ pts1, pts2, rawLen1, rawLen2, verticalX, onReady, otherChartRef }: CompareChartProps) {
@@ -329,7 +329,7 @@ interface DiffChartProps {
   pts1: Point[]
   pts2: Point[]
   onReady: (chart: Chart<'line'>) => void
-  otherChartRef: React.MutableRefObject<Chart<'line'> | null>
+  otherChartRef: React.RefObject<Chart<'line'> | null>
 }
 
 function DiffChart({ pts1, pts2, onReady, otherChartRef }: DiffChartProps) {

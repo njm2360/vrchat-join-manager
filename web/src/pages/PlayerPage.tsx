@@ -14,6 +14,7 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { usePlayerDetail, usePlayerSessions } from '../api/queries'
+import type { PlayerSessionOut } from '../api/schemas'
 import { fmtDateFull, fmtDuration } from '../utils/format'
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土']
@@ -141,7 +142,7 @@ function HourScale() {
 interface MonthProps {
   year: number
   month: number
-  sessions: Array<{ instance_id: number; join_ts: string; leave_ts?: string | null; duration_seconds?: number | null; is_estimated_leave: boolean }>
+  sessions: PlayerSessionOut[]
 }
 
 function MonthCalendar({ year, month, sessions }: MonthProps) {
