@@ -58,6 +58,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     scales: {
       x: {
         type: 'time',

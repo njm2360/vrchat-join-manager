@@ -289,6 +289,7 @@ function CompareChart({ pts1, pts2, rawLen1, rawLen2, verticalX, onReady, otherC
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     scales: {
       x: COMMON_X,
       y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: '人数' } },
@@ -369,6 +370,7 @@ function DiffChart({ pts1, pts2, onReady, otherChartRef }: DiffChartProps) {
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     scales: {
       x: { ...COMMON_X, min: xMin?.getTime(), max: xMax?.getTime() },
       y: { ticks: { stepSize: 1 }, title: { display: true, text: '差分 (人)' } },
