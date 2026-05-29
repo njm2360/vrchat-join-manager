@@ -1,6 +1,6 @@
 import { Box, Chip } from '@mui/material'
-import type { SessionOut } from '../api/schemas'
-import { fmtDateFull } from '../utils/format'
+import type { SessionOut } from '@/api/schemas'
+import { fmtDateFull } from '@/utils/format'
 
 interface Props {
   s: Pick<SessionOut, 'leave_ts' | 'is_estimated_leave'>

@@ -13,9 +13,9 @@ import {
   Typography,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import { api } from '../../api/client'
-import type { InstanceOut } from '../../api/schemas'
-import { fmtDate } from '../../utils/format'
+import { api } from '@/api/client'
+import type { InstanceOut } from '@/api/schemas'
+import { fmtDate } from '@/utils/format'
 
 interface Props {
   open: boolean

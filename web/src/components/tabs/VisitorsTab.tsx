@@ -12,10 +12,10 @@ import {
   Paper,
   Typography,
 } from '@mui/material'
-import { useVisitors } from '../../api/queries'
-import { fmtDateFull, fmtDuration } from '../../utils/format'
-import PlayerLink from '../PlayerLink'
-import { useSortState } from '../../hooks/useSortState'
+import { useVisitors } from '@/api/queries'
+import { fmtDateFull, fmtDuration } from '@/utils/format'
+import PlayerLink from '@/components/PlayerLink'
+import { useSortState } from '@/hooks/useSortState'
 
 interface Props {
   instanceId: number

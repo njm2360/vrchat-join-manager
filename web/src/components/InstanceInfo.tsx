@@ -1,6 +1,6 @@
 import { Chip, Stack, Typography } from '@mui/material'
-import type { InstanceOut } from '../api/schemas'
-import { fmtDate, extractInstanceNumber } from '../utils/format'
+import type { InstanceOut } from '@/api/schemas'
+import { fmtDate, extractInstanceNumber } from '@/utils/format'
 
 function accessLabel(inst: InstanceOut): string {
   if (inst.group_id) {

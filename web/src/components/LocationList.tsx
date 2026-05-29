@@ -11,9 +11,9 @@ import {
 } from '@mui/material'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import type { Dayjs } from 'dayjs'
-import { api } from '../api/client'
-import type { InstanceOut } from '../api/schemas'
-import { fmtDate, extractInstanceNumber } from '../utils/format'
+import { api } from '@/api/client'
+import type { InstanceOut } from '@/api/schemas'
+import { fmtDate, extractInstanceNumber } from '@/utils/format'
 
 type Range = { start: Dayjs | null; end: Dayjs | null }
 

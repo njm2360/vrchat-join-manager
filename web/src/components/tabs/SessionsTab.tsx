@@ -11,12 +11,12 @@ import {
   Paper,
   Typography,
 } from '@mui/material'
-import { useSessions } from '../../api/queries'
-import { fmtDateFull, fmtDuration } from '../../utils/format'
-import DateRangeFilter from '../DateRangeFilter'
-import PlayerLink from '../PlayerLink'
-import LeaveCell from '../LeaveCell'
-import { useSortState } from '../../hooks/useSortState'
+import { useSessions } from '@/api/queries'
+import { fmtDateFull, fmtDuration } from '@/utils/format'
+import DateRangeFilter from '@/components/DateRangeFilter'
+import PlayerLink from '@/components/PlayerLink'
+import LeaveCell from '@/components/LeaveCell'
+import { useSortState } from '@/hooks/useSortState'
 
 interface Props {
   instanceId: number

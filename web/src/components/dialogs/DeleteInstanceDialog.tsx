@@ -11,9 +11,9 @@ import {
 } from '@mui/material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
-import { api } from '../../api/client'
-import type { InstanceOut } from '../../api/schemas'
-import { extractInstanceNumber } from '../../utils/format'
+import { api } from '@/api/client'
+import type { InstanceOut } from '@/api/schemas'
+import { extractInstanceNumber } from '@/utils/format'
 
 interface Props {
   open: boolean

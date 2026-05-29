@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { PlayerDetailCtx } from './dialogs/PlayerDetailDialog'
+import type { PlayerDetailCtx } from '@/components/dialogs/PlayerDetailDialog'
 
 export interface PlayerDetailContextValue {
   open: (ctx: PlayerDetailCtx) => void

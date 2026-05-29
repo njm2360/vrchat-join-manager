@@ -1,4 +1,4 @@
-import type { SessionOut, TimelinePoint } from '../api/schemas'
+import type { SessionOut, TimelinePoint } from '@/api/schemas'
 
 export type Point = { x: Date; y: number }
 export type InstColor = 'blue' | 'red'

@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material'
-import LocationList from '../components/LocationList'
-import InstanceDetail from '../components/InstanceDetail'
-import { useInstance } from '../api/queries'
+import LocationList from '@/components/LocationList'
+import InstanceDetail from '@/components/InstanceDetail'
+import { useInstance } from '@/api/queries'
 
 export default function InstancesPage() {
   const { instanceId: idStr } = useParams<{ instanceId?: string }>()

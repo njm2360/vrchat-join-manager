@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { api } from './client'
+import { api } from '@/api/client'
 import type {
   EventOut,
   InstanceOut,
@@ -9,7 +9,7 @@ import type {
   SessionOut,
   TimelinePoint,
   VisitorOut,
-} from './schemas'
+} from '@/api/schemas'
 
 type Order = 'asc' | 'desc'
 export type SessionSortKey = 'display_name' | 'join_ts' | 'leave_ts' | 'duration_seconds'

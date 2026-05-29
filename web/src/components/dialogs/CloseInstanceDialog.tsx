@@ -13,9 +13,9 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
-import { api } from '../../api/client'
-import type { InstanceOut } from '../../api/schemas'
-import { extractInstanceNumber } from '../../utils/format'
+import { api } from '@/api/client'
+import type { InstanceOut } from '@/api/schemas'
+import { extractInstanceNumber } from '@/utils/format'
 
 interface Props {
   open: boolean

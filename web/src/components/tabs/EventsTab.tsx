@@ -12,10 +12,10 @@ import {
   Paper,
   Typography,
 } from '@mui/material'
-import { useEvents } from '../../api/queries'
-import { fmtDateFull } from '../../utils/format'
-import DateRangeFilter from '../DateRangeFilter'
-import PlayerLink from '../PlayerLink'
+import { useEvents } from '@/api/queries'
+import { fmtDateFull } from '@/utils/format'
+import DateRangeFilter from '@/components/DateRangeFilter'
+import PlayerLink from '@/components/PlayerLink'
 
 interface Props {
   instanceId: number

@@ -1,8 +1,8 @@
 import { lazy, Suspense, useCallback, useState, type ReactNode } from 'react'
-import type { PlayerDetailCtx } from './dialogs/PlayerDetailDialog'
-import { PlayerDetailContext } from './usePlayerDetailDialog'
+import type { PlayerDetailCtx } from '@/components/dialogs/PlayerDetailDialog'
+import { PlayerDetailContext } from '@/components/usePlayerDetailDialog'
 
-const PlayerDetailDialog = lazy(() => import('./dialogs/PlayerDetailDialog'))
+const PlayerDetailDialog = lazy(() => import('@/components/dialogs/PlayerDetailDialog'))
 
 export function PlayerDetailProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)

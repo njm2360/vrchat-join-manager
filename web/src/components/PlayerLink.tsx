@@ -1,5 +1,5 @@
 import { Link } from '@mui/material'
-import { usePlayerDetailDialog } from './usePlayerDetailDialog'
+import { usePlayerDetailDialog } from '@/components/usePlayerDetailDialog'
 
 interface Props {
   userId: string

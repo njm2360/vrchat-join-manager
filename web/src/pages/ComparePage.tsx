@@ -23,12 +23,12 @@ import {
   TableSortLabel,
   Typography,
 } from '@mui/material'
-import PlayerLink from '../components/PlayerLink'
-import InstanceInfo from '../components/InstanceInfo'
+import PlayerLink from '@/components/PlayerLink'
+import InstanceInfo from '@/components/InstanceInfo'
 import { Line } from 'react-chartjs-2'
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js'
-import { api } from '../api/client'
-import type { InstanceOut, SessionOut, TimelinePoint } from '../api/schemas'
+import { api } from '@/api/client'
+import type { InstanceOut, SessionOut, TimelinePoint } from '@/api/schemas'
 import {
   buildDiffPoints,
   buildPoints,
@@ -37,10 +37,10 @@ import {
   type InstColor,
   type Point,
   type Violation,
-} from '../utils/violations'
-import { chartZoomOptions, visibleYRangePlugin } from '../utils/chart'
-import { fmtDateFull, fmtDuration } from '../utils/format'
-import { useSortState } from '../hooks/useSortState'
+} from '@/utils/violations'
+import { chartZoomOptions, visibleYRangePlugin } from '@/utils/chart'
+import { fmtDateFull, fmtDuration } from '@/utils/format'
+import { useSortState } from '@/hooks/useSortState'
 
 type VSortKey = 'display_name' | 'join_ts' | 'instance' | 'diff' | 'duration_seconds'
 

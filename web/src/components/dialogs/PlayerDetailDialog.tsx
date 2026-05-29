@@ -26,11 +26,11 @@ import EditIcon from '@mui/icons-material/Edit'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import LaunchIcon from '@mui/icons-material/Launch'
 import { useSnackbar } from 'notistack'
-import { useInstance, usePlayerDetail, usePlayerSessions, useSetPlayerDiscord } from '../../api/queries'
-import type { InstanceOut, PlayerDetailOut, PlayerSessionOut } from '../../api/schemas'
-import { fmtDate, fmtDateFull, fmtDuration } from '../../utils/format'
-import { copyText } from '../../utils/clipboard'
-import LeaveCell from '../LeaveCell'
+import { useInstance, usePlayerDetail, usePlayerSessions, useSetPlayerDiscord } from '@/api/queries'
+import type { InstanceOut, PlayerDetailOut, PlayerSessionOut } from '@/api/schemas'
+import { fmtDate, fmtDateFull, fmtDuration } from '@/utils/format'
+import { copyText } from '@/utils/clipboard'
+import LeaveCell from '@/components/LeaveCell'
 
 export interface PlayerDetailCtx {
   userId: string

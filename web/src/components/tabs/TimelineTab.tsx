@@ -3,10 +3,10 @@ import { Box, Button, Stack } from '@mui/material'
 import { Line } from 'react-chartjs-2'
 import type { ChartOptions, ChartData } from 'chart.js'
 import type { Chart } from 'chart.js'
-import { useTimeline } from '../../api/queries'
-import type { InstanceOut } from '../../api/schemas'
-import { chartZoomOptions, visibleYRangePlugin } from '../../utils/chart'
-import DateRangeFilter from '../DateRangeFilter'
+import { useTimeline } from '@/api/queries'
+import type { InstanceOut } from '@/api/schemas'
+import { chartZoomOptions, visibleYRangePlugin } from '@/utils/chart'
+import DateRangeFilter from '@/components/DateRangeFilter'
 
 interface Props {
   instanceId: number
