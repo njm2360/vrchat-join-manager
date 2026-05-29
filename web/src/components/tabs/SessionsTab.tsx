@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import {
-  Box,
-  Chip,
   Stack,
   Table,
   TableBody,
@@ -15,9 +13,9 @@ import {
 } from '@mui/material'
 import { useSessions } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
-import type { SessionOut } from '../../api/schemas'
 import DateRangeFilter from '../DateRangeFilter'
 import PlayerLink from '../PlayerLink'
+import LeaveCell from '../LeaveCell'
 import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
@@ -95,23 +93,5 @@ export default function SessionsTab({ instanceId }: Props) {
         </Table>
       </TableContainer>
     </Stack>
-  )
-}
-
-export function LeaveCell({ s }: { s: Pick<SessionOut, 'leave_ts' | 'is_estimated_leave'> }) {
-  if (!s.leave_ts) return <Chip size="small" color="success" label="在室中" />
-  return (
-    <Box className="flex items-center gap-1">
-      <span>{fmtDateFull(s.leave_ts)}</span>
-      {s.is_estimated_leave && (
-        <Chip
-          size="small"
-          color="warning"
-          label="!"
-          title="退室時刻を使用した推定値です"
-          className="h-[18px]!"
-        />
-      )}
-    </Box>
   )
 }

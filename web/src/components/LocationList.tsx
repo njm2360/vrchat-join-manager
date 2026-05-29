@@ -113,7 +113,7 @@ function LocationItem({ inst, selected, onClick }: ItemProps) {
         {extractInstanceNumber(inst.location_id) || '—'}
       </Typography>
       {/* <Typography variant="body2" className="font-medium truncate" title={inst.world_id}>
-        {inst.world_name || inst.world_id}
+          {inst.world_name || inst.world_id}
       </Typography> */}
       <Typography variant="caption" color="text.secondary" className="block truncate">
         {inst.location_id}

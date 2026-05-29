@@ -30,7 +30,7 @@ import { useInstance, usePlayerDetail, usePlayerSessions, useSetPlayerDiscord } 
 import type { InstanceOut, PlayerDetailOut, PlayerSessionOut } from '../../api/schemas'
 import { fmtDate, fmtDateFull, fmtDuration } from '../../utils/format'
 import { copyText } from '../../utils/clipboard'
-import { LeaveCell } from '../tabs/SessionsTab'
+import LeaveCell from '../LeaveCell'
 
 export interface PlayerDetailCtx {
   userId: string
