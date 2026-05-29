@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Box,
   Button,
@@ -17,6 +16,7 @@ import {
 import { useVisitors } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
 import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
+import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
   instanceId: number
@@ -33,22 +33,13 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 ]
 
 export default function VisitorsTab({ instanceId }: Props) {
-  const [sortBy, setSortBy] = useState<SortKey>('last_seen')
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc')
+  const { sortBy, order, toggleSort } = useSortState<SortKey>('last_seen', 'desc')
   const { open: openPlayer } = usePlayerDetailDialog()
 
   const { data: visitors = [], refetch } = useVisitors(instanceId, {
     sort_by: sortBy,
     order,
   })
-
-  const toggleSort = (key: SortKey) => {
-    if (key === sortBy) setOrder(order === 'asc' ? 'desc' : 'asc')
-    else {
-      setSortBy(key)
-      setOrder('desc')
-    }
-  }
 
   return (
     <Stack spacing={2}>

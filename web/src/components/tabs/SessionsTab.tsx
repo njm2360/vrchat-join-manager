@@ -19,6 +19,7 @@ import { fmtDateFull, fmtDuration } from '../../utils/format'
 import type { SessionOut } from '../../api/schemas'
 import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 import DateRangeFilter from '../DateRangeFilter'
+import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
   instanceId: number
@@ -34,8 +35,7 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 ]
 
 export default function SessionsTab({ instanceId }: Props) {
-  const [sortBy, setSortBy] = useState<SortKey>('leave_ts')
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+  const { sortBy, order, toggleSort } = useSortState<SortKey>('leave_ts', 'asc')
   const { open: openPlayer } = usePlayerDetailDialog()
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
@@ -44,14 +44,6 @@ export default function SessionsTab({ instanceId }: Props) {
     order,
     ...applied,
   })
-
-  const toggleSort = (key: SortKey) => {
-    if (key === sortBy) setOrder(order === 'asc' ? 'desc' : 'asc')
-    else {
-      setSortBy(key)
-      setOrder('desc')
-    }
-  }
 
   return (
     <Stack spacing={2}>

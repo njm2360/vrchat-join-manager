@@ -41,6 +41,7 @@ import {
 } from '../utils/violations'
 import { chartZoomOptions, visibleYRangePlugin } from '../utils/chart'
 import { fmtDateFull, fmtDuration } from '../utils/format'
+import { useSortState } from '../hooks/useSortState'
 
 type VSortKey = 'display_name' | 'join_ts' | 'instance' | 'diff' | 'duration_seconds'
 
@@ -78,7 +79,7 @@ export default function ComparePage() {
   const diffRef = useRef<Chart<'line'> | null>(null)
   const [verticalX, setVerticalX] = useState<number | null>(null)
   const [grace, setGrace] = useState(15)
-  const [vSort, setVSort] = useState<{ by: VSortKey; dir: 'asc' | 'desc' }>({ by: 'join_ts', dir: 'asc' })
+  const vSort = useSortState<VSortKey>('join_ts', 'asc', 'asc')
 
   const ids = [id1, id2] as const
   const valid = ids.every((n) => Number.isFinite(n) && n > 0)
@@ -218,12 +219,8 @@ export default function ComparePage() {
           />
           <ViolationsTable
             violations={violations}
-            sort={vSort}
-            onSort={(by) =>
-              setVSort((s) =>
-                s.by === by ? { by, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { by, dir: 'asc' },
-              )
-            }
+            sort={{ by: vSort.sortBy, dir: vSort.order }}
+            onSort={vSort.toggleSort}
             highlightedTs={verticalX}
             onPickTime={(t) => setVerticalX((prev) => (prev === t ? null : t))}
             id1={id1}

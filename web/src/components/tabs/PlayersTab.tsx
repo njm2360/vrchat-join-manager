@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   Box,
   Button,
@@ -19,6 +19,7 @@ import { usePlayers } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
 import { copyText } from '../../utils/clipboard'
 import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
+import { useSortState } from '../../hooks/useSortState'
 
 interface Props {
   instanceId: number
@@ -32,8 +33,7 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 ]
 
 export default function PlayersTab({ instanceId }: Props) {
-  const [sortBy, setSortBy] = useState<SortKey>('internal_id')
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+  const { sortBy, order, toggleSort } = useSortState<SortKey>('internal_id', 'asc', 'asc')
   const { enqueueSnackbar } = useSnackbar()
   const { open: openPlayer } = usePlayerDetailDialog()
 
@@ -41,14 +41,6 @@ export default function PlayersTab({ instanceId }: Props) {
     sort_by: sortBy,
     order,
   })
-
-  const toggleSort = (key: SortKey) => {
-    if (key === sortBy) setOrder(order === 'asc' ? 'desc' : 'asc')
-    else {
-      setSortBy(key)
-      setOrder('asc')
-    }
-  }
 
   const mentionText = useMemo(
     () =>
