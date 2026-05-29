@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Stack } from '@mui/material'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
-import type { Dayjs } from 'dayjs'
 import { Line } from 'react-chartjs-2'
 import type { ChartOptions, ChartData } from 'chart.js'
 import type { Chart } from 'chart.js'
 import { useTimeline } from '../../api/queries'
 import type { InstanceOut } from '../../api/schemas'
 import { chartZoomOptions, visibleYRangePlugin } from '../../utils/chart'
+import DateRangeFilter from '../DateRangeFilter'
 
 interface Props {
   instanceId: number
@@ -18,8 +17,6 @@ interface Props {
 type Pt = { x: Date; y: number; displayName?: string | null }
 
 export default function TimelineTab({ instanceId, instance, onCompare }: Props) {
-  const [start, setStart] = useState<Dayjs | null>(null)
-  const [end, setEnd] = useState<Dayjs | null>(null)
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
   const [nowMs] = useState(() => Date.now())
   const chartRef = useRef<Chart<'line'> | null>(null)
@@ -92,32 +89,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <DateTimePicker
-          label="開始"
-          value={start}
-          onChange={setStart}
-          slotProps={{ textField: { size: 'small' } }}
-        />
-        <Box className="text-neutral-500 text-sm">〜</Box>
-        <DateTimePicker
-          label="終了"
-          value={end}
-          onChange={setEnd}
-          slotProps={{ textField: { size: 'small' } }}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() =>
-            setApplied({
-              start: start?.toISOString(),
-              end: end?.toISOString(),
-            })
-          }
-        >
-          更新
-        </Button>
+      <DateRangeFilter onApply={setApplied}>
         <Button
           variant="outlined"
           size="small"
@@ -130,7 +102,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
             他のインスタンスと比較
           </Button>
         </Box>
-      </Stack>
+      </DateRangeFilter>
       <Box className="relative h-[420px]">
         <Line
           ref={(c) => {

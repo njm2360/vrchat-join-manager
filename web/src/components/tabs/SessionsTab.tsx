@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {
   Box,
-  Button,
   Chip,
   Link,
   Stack,
@@ -15,12 +14,11 @@ import {
   Paper,
   Typography,
 } from '@mui/material'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
-import type { Dayjs } from 'dayjs'
 import { useSessions } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
 import type { SessionOut } from '../../api/schemas'
 import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
+import DateRangeFilter from '../DateRangeFilter'
 
 interface Props {
   instanceId: number
@@ -39,8 +37,6 @@ export default function SessionsTab({ instanceId }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('leave_ts')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const { open: openPlayer } = usePlayerDetailDialog()
-  const [start, setStart] = useState<Dayjs | null>(null)
-  const [end, setEnd] = useState<Dayjs | null>(null)
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
   const { data: sessions = [] } = useSessions(instanceId, {
@@ -59,28 +55,7 @@ export default function SessionsTab({ instanceId }: Props) {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <DateTimePicker
-          label="開始"
-          value={start}
-          onChange={setStart}
-          slotProps={{ textField: { size: 'small' } }}
-        />
-        <Box className="text-neutral-500 text-sm">〜</Box>
-        <DateTimePicker
-          label="終了"
-          value={end}
-          onChange={setEnd}
-          slotProps={{ textField: { size: 'small' } }}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => setApplied({ start: start?.toISOString(), end: end?.toISOString() })}
-        >
-          更新
-        </Button>
-      </Stack>
+      <DateRangeFilter onApply={setApplied} />
       <TableContainer component={Paper} variant="outlined" className="max-h-[520px]">
         <Table size="small" stickyHeader>
           <TableHead>
