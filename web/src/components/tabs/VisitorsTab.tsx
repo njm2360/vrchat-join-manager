@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 import { useVisitors } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
-import { usePlayerDetailDialog } from '../PlayerDetailProvider'
+import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 
 interface Props {
   instanceId: number

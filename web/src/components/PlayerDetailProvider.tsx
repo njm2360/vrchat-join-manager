@@ -1,13 +1,8 @@
-import { createContext, lazy, Suspense, useCallback, useContext, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useState, type ReactNode } from 'react'
 import type { PlayerDetailCtx } from './dialogs/PlayerDetailDialog'
+import { PlayerDetailContext } from './usePlayerDetailDialog'
 
 const PlayerDetailDialog = lazy(() => import('./dialogs/PlayerDetailDialog'))
-
-interface ContextValue {
-  open: (ctx: PlayerDetailCtx) => void
-}
-
-const PlayerDetailContext = createContext<ContextValue | null>(null)
 
 export function PlayerDetailProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,10 +27,4 @@ export function PlayerDetailProvider({ children }: { children: ReactNode }) {
       )}
     </PlayerDetailContext.Provider>
   )
-}
-
-export function usePlayerDetailDialog() {
-  const value = useContext(PlayerDetailContext)
-  if (!value) throw new Error('PlayerDetailProvider が必要です')
-  return value
 }

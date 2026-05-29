@@ -24,7 +24,7 @@ import {
   TableSortLabel,
   Typography,
 } from '@mui/material'
-import { usePlayerDetailDialog } from '../components/PlayerDetailProvider'
+import { usePlayerDetailDialog } from '../components/usePlayerDetailDialog'
 import InstanceInfo from '../components/InstanceInfo'
 import { Line } from 'react-chartjs-2'
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js'

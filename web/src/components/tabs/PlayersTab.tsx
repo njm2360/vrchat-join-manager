@@ -18,7 +18,7 @@ import { useSnackbar } from 'notistack'
 import { usePlayers } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
 import { copyText } from '../../utils/clipboard'
-import { usePlayerDetailDialog } from '../PlayerDetailProvider'
+import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 
 interface Props {
   instanceId: number

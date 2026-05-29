@@ -20,7 +20,7 @@ import type { Dayjs } from 'dayjs'
 import { useSessions } from '../../api/queries'
 import { fmtDateFull, fmtDuration } from '../../utils/format'
 import type { SessionOut } from '../../api/schemas'
-import { usePlayerDetailDialog } from '../PlayerDetailProvider'
+import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 
 interface Props {
   instanceId: number

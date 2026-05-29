@@ -19,7 +19,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import type { Dayjs } from 'dayjs'
 import { useEvents } from '../../api/queries'
 import { fmtDateFull } from '../../utils/format'
-import { usePlayerDetailDialog } from '../PlayerDetailProvider'
+import { usePlayerDetailDialog } from '../usePlayerDetailDialog'
 
 interface Props {
   instanceId: number
