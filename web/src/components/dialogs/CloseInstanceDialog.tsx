@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Dialog,
@@ -30,13 +30,6 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
   const qc = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
 
-  useEffect(() => {
-    if (open) {
-      setConfirmText('')
-      setAt(dayjs())
-    }
-  }, [open])
-
   const closeMut = useMutation({
     mutationFn: async () => {
       if (!at) throw new Error('クローズ時刻を入力してください')
@@ -58,7 +51,20 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
   const canConfirm = !!expected && confirmText.trim() === expected && !closeMut.isPending
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        transition: {
+          onEnter: () => {
+            setConfirmText('')
+            setAt(dayjs())
+          },
+        },
+      }}
+    >
       <DialogTitle>インスタンスのクローズ</DialogTitle>
       <DialogContent>
         <Stack spacing={2} className="mt-1">

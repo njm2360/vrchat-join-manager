@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -141,15 +141,12 @@ function IdRow({ label, value, onCopy, externalHref, externalTitle, edit }: IdRo
   const hasValue = !!value
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
   const mutation = useSetPlayerDiscord(edit?.userId ?? '')
 
-  useEffect(() => {
-    if (editing) {
-      setDraft(value ?? '')
-      setTimeout(() => inputRef.current?.focus(), 0)
-    }
-  }, [editing, value])
+  const startEdit = () => {
+    setDraft(value ?? '')
+    setEditing(true)
+  }
 
   const save = () => {
     if (!edit) return
@@ -187,8 +184,8 @@ function IdRow({ label, value, onCopy, externalHref, externalTitle, edit }: IdRo
         <>
           <TextField
             size="small"
+            autoFocus
             value={draft}
-            inputRef={inputRef}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -249,7 +246,7 @@ function IdRow({ label, value, onCopy, externalHref, externalTitle, edit }: IdRo
             </IconButton>
           )}
           {edit && (
-            <IconButton size="small" onClick={() => setEditing(true)} title={`${label}を編集`}>
+            <IconButton size="small" onClick={startEdit} title={`${label}を編集`}>
               <EditIcon fontSize="inherit" />
             </IconButton>
           )}

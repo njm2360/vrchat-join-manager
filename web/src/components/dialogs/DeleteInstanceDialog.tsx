@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Button,
   Dialog,
@@ -29,13 +29,6 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
   const qc = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
 
-  useEffect(() => {
-    if (open) {
-      setConfirmText('')
-      setTimeout(() => inputRef.current?.focus(), 200)
-    }
-  }, [open])
-
   const deleteMut = useMutation({
     mutationFn: async () => {
       const { error } = await api.DELETE('/api/instances/{instance_id}', {
@@ -55,7 +48,18 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
   const canConfirm = !!expected && confirmText.trim() === expected && !deleteMut.isPending
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        transition: {
+          onEnter: () => setConfirmText(''),
+          onEntered: () => inputRef.current?.focus(),
+        },
+      }}
+    >
       <DialogTitle>インスタンスの削除</DialogTitle>
       <DialogContent>
         <Stack spacing={2} className="mt-1">
