@@ -15,6 +15,7 @@ import {
 import { useVisitors } from '@/api/queries'
 import { fmtDateFull, fmtDuration } from '@/utils/format'
 import PlayerLink from '@/components/PlayerLink'
+import TablePlaceholderRow from '@/components/TablePlaceholderRow'
 import { useSortState } from '@/hooks/useSortState'
 
 interface Props {
@@ -34,7 +35,7 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[
 export default function VisitorsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>('last_seen', 'desc')
 
-  const { data: visitors = [], refetch } = useVisitors(instanceId, {
+  const { data: visitors = [], refetch, isLoading } = useVisitors(instanceId, {
     sort_by: sortBy,
     order,
   })
@@ -73,13 +74,7 @@ export default function VisitorsTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {visitors.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    データなし
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <TablePlaceholderRow colSpan={COLUMNS.length} loading={isLoading} emptyText="データなし" />
             ) : (
               visitors.map((v) => (
                 <TableRow key={v.user_id} hover>

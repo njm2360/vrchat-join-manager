@@ -10,12 +10,12 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-  Typography,
 } from '@mui/material'
 import { useEvents } from '@/api/queries'
 import { fmtDateFull } from '@/utils/format'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import PlayerLink from '@/components/PlayerLink'
+import TablePlaceholderRow from '@/components/TablePlaceholderRow'
 
 interface Props {
   instanceId: number
@@ -25,7 +25,7 @@ export default function EventsTab({ instanceId }: Props) {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
-  const { data: events = [] } = useEvents(instanceId, { order, ...applied })
+  const { data: events = [], isLoading } = useEvents(instanceId, { order, ...applied })
 
   return (
     <Stack spacing={2}>
@@ -49,13 +49,7 @@ export default function EventsTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {events.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    データなし
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <TablePlaceholderRow colSpan={3} loading={isLoading} emptyText="データなし" />
             ) : (
               events.map((ev) => (
                 <TableRow key={ev.id} hover>

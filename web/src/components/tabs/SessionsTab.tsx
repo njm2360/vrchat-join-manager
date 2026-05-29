@@ -9,13 +9,13 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-  Typography,
 } from '@mui/material'
 import { useSessions } from '@/api/queries'
 import { fmtDateFull, fmtDuration } from '@/utils/format'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import PlayerLink from '@/components/PlayerLink'
 import LeaveCell from '@/components/LeaveCell'
+import TablePlaceholderRow from '@/components/TablePlaceholderRow'
 import { useSortState } from '@/hooks/useSortState'
 
 interface Props {
@@ -35,7 +35,7 @@ export default function SessionsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>('leave_ts', 'asc')
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
 
-  const { data: sessions = [] } = useSessions(instanceId, {
+  const { data: sessions = [], isLoading } = useSessions(instanceId, {
     sort_by: sortBy,
     order,
     ...applied,
@@ -68,13 +68,7 @@ export default function SessionsTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {sessions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    データなし
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <TablePlaceholderRow colSpan={COLUMNS.length} loading={isLoading} emptyText="データなし" />
             ) : (
               sessions.map((s) => (
                 <TableRow key={s.id} hover>

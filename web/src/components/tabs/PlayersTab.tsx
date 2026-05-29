@@ -18,6 +18,7 @@ import { usePlayers } from '@/api/queries'
 import { fmtDateFull } from '@/utils/format'
 import { copyText } from '@/utils/clipboard'
 import PlayerLink from '@/components/PlayerLink'
+import TablePlaceholderRow from '@/components/TablePlaceholderRow'
 import { useSortState } from '@/hooks/useSortState'
 
 interface Props {
@@ -35,7 +36,7 @@ export default function PlayersTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>('internal_id', 'asc', 'asc')
   const { enqueueSnackbar } = useSnackbar()
 
-  const { data: players = [], refetch } = usePlayers(instanceId, {
+  const { data: players = [], refetch, isLoading } = usePlayers(instanceId, {
     sort_by: sortBy,
     order,
   })
@@ -105,13 +106,7 @@ export default function PlayersTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {players.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    在室中のプレイヤーなし
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <TablePlaceholderRow colSpan={4} loading={isLoading} emptyText="在室中のプレイヤーなし" />
             ) : (
               players.map((p) => (
                 <TableRow key={p.user_id} hover>
