@@ -20,20 +20,17 @@ tidy:
 vet:
 	go vet ./...
 
-run:
+run: generate
 	go run ./cmd/server
 
-# フロントエンド (Vite + React) の依存インストール
 web-install:
-	cd $(WEB) && npm install
+	cd $(WEB) && pnpm install
 
-# フロントエンドのDev server (Vite, port 5173, /api を :8080 にプロキシ)
-web-dev:
-	cd $(WEB) && npm run dev
+web-dev: web-install
+	cd $(WEB) && pnpm run dev
 
-# フロントエンドの本番ビルド (出力先: server/static)
-web-build:
-	cd $(WEB) && npm run build
+web-build: web-install
+	cd $(WEB) && pnpm run build
 
-build: web-build
+build: generate
 	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
