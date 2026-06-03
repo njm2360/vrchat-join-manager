@@ -1,9 +1,9 @@
-.PHONY: generate run build vet tidy installer
+.PHONY: gen run build vet tidy installer
 
 GEN := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 ISCC ?= iscc.exe
 
-generate:
+gen:
 	$(GEN) -config oapi-codegen.yaml ../api/openapi.yaml
 
 tidy:

@@ -1,4 +1,4 @@
-.PHONY: generate run build vet tidy web-install web-dev web-build
+.PHONY: gen run build vet tidy web-install web-gen web-dev web-build
 
 ifeq ($(OS),Windows_NT)
     SETENV := set CGO_ENABLED=0&&
@@ -11,7 +11,7 @@ endif
 GEN := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 WEB := ../web
 
-generate:
+gen:
 	$(GEN) -config oapi-codegen.yaml ../api/openapi.yaml
 
 tidy:
@@ -20,17 +20,20 @@ tidy:
 vet:
 	go vet ./...
 
-run: generate
+run: gen
 	go run ./cmd/server
+
+build: gen
+	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
 
 web-install:
 	cd $(WEB) && pnpm install
 
-web-dev: web-install
+web-gen: web-install
+	cd $(WEB) && pnpm run gen:api
+
+web-dev: web-gen
 	cd $(WEB) && pnpm run dev
 
-web-build: web-install
+web-build: web-gen
 	cd $(WEB) && pnpm run build
-
-build: generate
-	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server

@@ -25,7 +25,7 @@ export default defineConfig({
     sourcemap: false,
     rolldownOptions: {
       output: {
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             { name: 'mui-icons', test: /node_modules\/@mui\/icons-material\// },
             { name: 'mui-pickers', test: /node_modules\/@mui\/x-date-pickers\// },

@@ -10,7 +10,7 @@ API定義は [./api/openapi.yaml](./api/openapi.yaml)に集約し、両方とも
 ```sh
 cd server
 go mod tidy
-make generate   # ../api/openapi.yaml から internal/gen/api.gen.go を生成
+make gen        # ../api/openapi.yaml から internal/gen/api.gen.go を生成
 make build      # bin/vjm-server を生成
 ./bin/vjm-server
 ```
@@ -25,7 +25,7 @@ make build      # bin/vjm-server を生成
 ```sh
 cd agent
 go mod tidy
-make generate   # ../api/openapi.yaml からクライアントコードを生成
+make gen        # ../api/openapi.yaml からクライアントコードを生成
 make build      # bin/vjm-agent.exe を生成
 ```
 
