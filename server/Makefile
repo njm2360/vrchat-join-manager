@@ -21,10 +21,10 @@ vet:
 	go vet ./...
 
 run: gen
-	go run ./cmd/server
+	go run .
 
 build: gen
-	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
+	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) .
 
 web-install:
 	cd $(WEB) && pnpm install
