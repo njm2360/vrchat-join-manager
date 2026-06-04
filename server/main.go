@@ -126,14 +126,15 @@ func main() {
 		}
 	}()
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+	stop()
 	slog.Info("shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := httpServer.Shutdown(ctx); err != nil {
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		slog.Error("shutdown error", "err", err)
 	}
 }
