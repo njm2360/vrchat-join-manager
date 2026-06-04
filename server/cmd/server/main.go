@@ -7,14 +7,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
+	"path/filepath"
 	"syscall"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	oapimw "github.com/oapi-codegen/echo-middleware"
 
+	"github.com/njm2360/vrchat-join-manager/server/internal/config"
 	"github.com/njm2360/vrchat-join-manager/server/internal/db"
 	"github.com/njm2360/vrchat-join-manager/server/internal/gen"
 	"github.com/njm2360/vrchat-join-manager/server/internal/handler"
@@ -24,10 +26,14 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	dbPath := envOr("DB_PATH", "data/vrchat.db")
-	addr := envOr("LISTEN_ADDR", ":8080")
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Error("load config failed", "err", err)
+		os.Exit(1)
+	}
+	basePath := cfg.BasePath
 
-	conn, err := db.Open(dbPath)
+	conn, err := db.Open(cfg.DBPath)
 	if err != nil {
 		slog.Error("db open failed", "err", err)
 		os.Exit(1)
@@ -37,12 +43,16 @@ func main() {
 	srv := handler.New(conn)
 	strict := gen.NewStrictHandler(srv, nil)
 
-	spec, err := gen.GetSwagger()
+	spec, err := gen.GetSpec()
 	if err != nil {
 		slog.Error("load openapi spec failed", "err", err)
 		os.Exit(1)
 	}
-	spec.Servers = nil
+	if basePath != "" {
+		spec.Servers = openapi3.Servers{{URL: basePath}}
+	} else {
+		spec.Servers = nil
+	}
 
 	e := echo.New()
 	e.HideBanner = true
@@ -73,36 +83,43 @@ func main() {
 		},
 	}))
 
-	apiGroup := e.Group("")
-	apiGroup.Use(oapimw.OapiRequestValidator(spec))
-	gen.RegisterHandlersWithBaseURL(apiGroup, strict, "")
+	g := e.Group(basePath)
 
-	e.GET("/openapi.json", func(c echo.Context) error {
+	validator := oapimw.OapiRequestValidatorWithOptions(spec, &oapimw.Options{SilenceServersWarning: true})
+	opMiddlewares := map[string][]echo.MiddlewareFunc{}
+	for _, item := range spec.Paths.Map() {
+		for _, op := range item.Operations() {
+			if op.OperationID != "" {
+				opMiddlewares[op.OperationID] = []echo.MiddlewareFunc{validator}
+			}
+		}
+	}
+	gen.RegisterHandlersWithOptions(g, strict, gen.RegisterHandlersOptions{
+		OperationMiddlewares: opMiddlewares,
+	})
+
+	g.GET("/openapi.json", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, spec)
 	})
-	e.File("/docs", "static/swagger.html")
+	g.File("/docs", filepath.Join(cfg.FrontendDir, "swagger.html"))
 
-	// SPA配信: 実ファイルがあればそれを返し、無ければ index.html にフォールバック。
-	// /api/*, /openapi.json, /docs は登録済みハンドラに任せる。
-	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		Root:   "static",
-		Index:  "index.html",
-		HTML5:  true,
-		Browse: false,
-		Skipper: func(c echo.Context) bool {
-			p := c.Request().URL.Path
-			return strings.HasPrefix(p, "/api/") || p == "/openapi.json" || p == "/docs"
-		},
-	}))
+	static := handler.NewStaticHandler(cfg.FrontendDir, basePath)
+	g.GET("/*", static.Serve)
+
+	if basePath != "" {
+		e.GET(basePath, func(c echo.Context) error {
+			return c.Redirect(http.StatusMovedPermanently, basePath+"/")
+		})
+	}
 
 	httpServer := &http.Server{
-		Addr:              addr,
+		Addr:              cfg.ListenAddr,
 		Handler:           e,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		slog.Info("listening", "addr", addr, "db", dbPath)
+		slog.Info("listening", "addr", cfg.ListenAddr, "db", cfg.DBPath)
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("server error", "err", err)
 			os.Exit(1)
@@ -119,11 +136,4 @@ func main() {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		slog.Error("shutdown error", "err", err)
 	}
-}
-
-func envOr(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok && v != "" {
-		return v
-	}
-	return fallback
 }

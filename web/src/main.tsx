@@ -20,6 +20,8 @@ import { theme } from '@/theme'
 import App from '@/App'
 import { PlayerDetailProvider } from '@/components/PlayerDetailProvider'
 
+const basename = new URL(document.baseURI).pathname.replace(/\/$/, '')
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -40,7 +42,7 @@ createRoot(document.getElementById('root')!).render(
             autoHideDuration={3500}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           >
-            <BrowserRouter>
+            <BrowserRouter basename={basename}>
               <PlayerDetailProvider>
                 <App />
               </PlayerDetailProvider>
