@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, '../server/static'),
+    outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
     rolldownOptions: {

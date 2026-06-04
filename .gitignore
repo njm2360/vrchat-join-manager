@@ -32,6 +32,5 @@ go.work.sum
 # .vscode/
 
 server/data/
-server/static/
 */bin
 */dist

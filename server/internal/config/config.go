@@ -29,7 +29,7 @@ func Load() (*Config, error) {
 
 	frontendDir := os.Getenv("FRONTEND_DIR")
 	if frontendDir == "" {
-		frontendDir = "static"
+		frontendDir = "../web/dist"
 	}
 
 	return &Config{
