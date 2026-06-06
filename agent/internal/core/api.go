@@ -16,7 +16,7 @@ type ApiClient struct {
 	c *gen.Client
 }
 
-type PotentialSession = gen.PotentialSession
+type PotentialSession = gen.PotentialSessionOut
 
 func NewApiClient(baseURL string) *ApiClient {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
@@ -76,7 +76,7 @@ func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession,
 }
 
 func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
-	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.RestoreIn{UserIds: userIDs})
+	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.ResumeIn{UserIds: userIDs})
 	if err != nil {
 		return fmt.Errorf("ResumeInstance request: %w", err)
 	}

@@ -201,7 +201,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PotentialSession'
+                  $ref: '#/components/schemas/PotentialSessionOut'
 
   /api/locations/{location_id}/resume:
     parameters:
@@ -214,7 +214,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RestoreIn'
+              $ref: '#/components/schemas/ResumeIn'
       responses:
         '204':
           description: 復元
@@ -760,14 +760,14 @@ components:
         at: { type: string, format: date-time }
         user_id: { type: string, nullable: true }
 
-    PotentialSession:
+    PotentialSessionOut:
       type: object
       required: [user_id, internal_id]
       properties:
         user_id: { type: string }
         internal_id: { type: integer }
 
-    RestoreIn:
+    ResumeIn:
       type: object
       required: [user_ids]
       properties:

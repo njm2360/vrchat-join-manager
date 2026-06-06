@@ -39,7 +39,7 @@ func (s *Server) GetPotentialSessions(ctx context.Context, request gen.GetPotent
 	}
 	out := make(gen.GetPotentialSessions200JSONResponse, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, gen.PotentialSession{
+		out = append(out, gen.PotentialSessionOut{
 			UserId:     r.UserID,
 			InternalId: r.InternalID,
 		})

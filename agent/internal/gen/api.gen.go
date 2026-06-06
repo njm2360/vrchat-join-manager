@@ -225,14 +225,14 @@ type PlayerSessionOut struct {
 	WorldId          string     `json:"world_id"`
 }
 
-// PotentialSession defines model for PotentialSession.
-type PotentialSession struct {
+// PotentialSessionOut defines model for PotentialSessionOut.
+type PotentialSessionOut struct {
 	InternalId int    `json:"internal_id"`
 	UserId     string `json:"user_id"`
 }
 
-// RestoreIn defines model for RestoreIn.
-type RestoreIn struct {
+// ResumeIn defines model for ResumeIn.
+type ResumeIn struct {
 	UserIds []string `json:"user_ids"`
 }
 
@@ -322,7 +322,7 @@ type ReceiveEventJSONRequestBody = PlayerEvent
 type CloseLocationJSONRequestBody = CloseLocationIn
 
 // ResumeInstanceJSONRequestBody defines body for ResumeInstance for application/json ContentType.
-type ResumeInstanceJSONRequestBody = RestoreIn
+type ResumeInstanceJSONRequestBody = ResumeIn
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -791,7 +791,7 @@ func (r CloseLocationResponse) ContentType() string {
 type GetPotentialSessionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]PotentialSession
+	JSON200      *[]PotentialSessionOut
 }
 
 // Status returns HTTPResponse.Status
@@ -954,7 +954,7 @@ func ParseGetPotentialSessionsResponse(rsp *http.Response) (*GetPotentialSession
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []PotentialSession
+		var dest []PotentialSessionOut
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
