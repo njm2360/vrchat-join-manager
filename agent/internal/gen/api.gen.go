@@ -15,70 +15,35 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for EventOutEventType.
+const (
+	EventOutEventTypeJoin  EventOutEventType = "join"
+	EventOutEventTypeLeave EventOutEventType = "leave"
+)
+
+// Valid indicates whether the value is a known member of the EventOutEventType enum.
+func (e EventOutEventType) Valid() bool {
+	switch e {
+	case EventOutEventTypeJoin:
+		return true
+	case EventOutEventTypeLeave:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for Order.
 const (
-	OrderAsc  Order = "asc"
-	OrderDesc Order = "desc"
+	Asc  Order = "asc"
+	Desc Order = "desc"
 )
 
 // Valid indicates whether the value is a known member of the Order enum.
 func (e Order) Valid() bool {
-	switch e {
-	case OrderAsc:
-		return true
-	case OrderDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for PlayerEventEvent.
-const (
-	Join  PlayerEventEvent = "join"
-	Leave PlayerEventEvent = "leave"
-)
-
-// Valid indicates whether the value is a known member of the PlayerEventEvent enum.
-func (e PlayerEventEvent) Valid() bool {
-	switch e {
-	case Join:
-		return true
-	case Leave:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrderAscQuery.
-const (
-	OrderAscQueryAsc  OrderAscQuery = "asc"
-	OrderAscQueryDesc OrderAscQuery = "desc"
-)
-
-// Valid indicates whether the value is a known member of the OrderAscQuery enum.
-func (e OrderAscQuery) Valid() bool {
-	switch e {
-	case OrderAscQueryAsc:
-		return true
-	case OrderAscQueryDesc:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrderDescQuery.
-const (
-	Asc  OrderDescQuery = "asc"
-	Desc OrderDescQuery = "desc"
-)
-
-// Valid indicates whether the value is a known member of the OrderDescQuery enum.
-func (e OrderDescQuery) Valid() bool {
 	switch e {
 	case Asc:
 		return true
@@ -89,35 +54,56 @@ func (e OrderDescQuery) Valid() bool {
 	}
 }
 
-// CloseLocationRequest defines model for CloseLocationRequest.
-type CloseLocationRequest struct {
+// Defines values for PlayerEventEvent.
+const (
+	PlayerEventEventJoin  PlayerEventEvent = "join"
+	PlayerEventEventLeave PlayerEventEvent = "leave"
+)
+
+// Valid indicates whether the value is a known member of the PlayerEventEvent enum.
+func (e PlayerEventEvent) Valid() bool {
+	switch e {
+	case PlayerEventEventJoin:
+		return true
+	case PlayerEventEventLeave:
+		return true
+	default:
+		return false
+	}
+}
+
+// CloseLocationIn defines model for CloseLocationIn.
+type CloseLocationIn struct {
 	At     time.Time `json:"at"`
 	UserId *string   `json:"user_id,omitempty"`
 }
 
 // DailyActiveUsersPoint defines model for DailyActiveUsersPoint.
 type DailyActiveUsersPoint struct {
-	ActiveUsers int    `json:"active_users"`
-	Day         string `json:"day"`
+	ActiveUsers int                `json:"active_users"`
+	Day         openapi_types.Date `json:"day"`
 }
 
 // EventOut defines model for EventOut.
 type EventOut struct {
-	DisplayName string `json:"display_name"`
-	EventType   string `json:"event_type"`
-	Id          int    `json:"id"`
-	InstanceId  int    `json:"instance_id"`
-	Timestamp   string `json:"timestamp"`
-	UserId      string `json:"user_id"`
-	WorldId     string `json:"world_id"`
+	DisplayName string            `json:"display_name"`
+	EventType   EventOutEventType `json:"event_type"`
+	Id          int               `json:"id"`
+	InstanceId  int               `json:"instance_id"`
+	Timestamp   time.Time         `json:"timestamp"`
+	UserId      string            `json:"user_id"`
+	WorldId     string            `json:"world_id"`
 }
+
+// EventOutEventType defines model for EventOut.EventType.
+type EventOutEventType string
 
 // GroupOut defines model for GroupOut.
 type GroupOut struct {
-	CreatedAt string  `json:"created_at"`
-	GroupId   string  `json:"group_id"`
-	Name      *string `json:"name,omitempty"`
-	UpdatedAt string  `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	GroupId   string    `json:"group_id"`
+	Name      *string   `json:"name,omitempty"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // GroupRenameIn defines model for GroupRenameIn.
@@ -127,27 +113,27 @@ type GroupRenameIn struct {
 
 // HourlyActiveUsersPoint defines model for HourlyActiveUsersPoint.
 type HourlyActiveUsersPoint struct {
-	ActiveUsers int    `json:"active_users"`
-	Hour        string `json:"hour"`
+	ActiveUsers int       `json:"active_users"`
+	Hour        time.Time `json:"hour"`
 }
 
 // InstanceOut defines model for InstanceOut.
 type InstanceOut struct {
-	ClosedAt        *string `json:"closed_at,omitempty"`
-	Friends         *string `json:"friends,omitempty"`
-	GroupAccessType *string `json:"group_access_type,omitempty"`
-	GroupId         *string `json:"group_id,omitempty"`
-	GroupName       *string `json:"group_name,omitempty"`
-	Hidden          *string `json:"hidden,omitempty"`
-	Id              int     `json:"id"`
-	InstanceId      *string `json:"instance_id,omitempty"`
-	LocationId      string  `json:"location_id"`
-	OpenedAt        string  `json:"opened_at"`
-	Private         *string `json:"private,omitempty"`
-	Region          *string `json:"region,omitempty"`
-	UserCount       int     `json:"user_count"`
-	WorldId         string  `json:"world_id"`
-	WorldName       *string `json:"world_name,omitempty"`
+	ClosedAt        *time.Time `json:"closed_at,omitempty"`
+	Friends         *string    `json:"friends,omitempty"`
+	GroupAccessType *string    `json:"group_access_type,omitempty"`
+	GroupId         *string    `json:"group_id,omitempty"`
+	GroupName       *string    `json:"group_name,omitempty"`
+	Hidden          *string    `json:"hidden,omitempty"`
+	Id              int        `json:"id"`
+	InstanceId      *string    `json:"instance_id,omitempty"`
+	LocationId      string     `json:"location_id"`
+	OpenedAt        time.Time  `json:"opened_at"`
+	Private         *string    `json:"private,omitempty"`
+	Region          *string    `json:"region,omitempty"`
+	UserCount       int        `json:"user_count"`
+	WorldId         string     `json:"world_id"`
+	WorldName       *string    `json:"world_name,omitempty"`
 }
 
 // JoinViolationRankOut defines model for JoinViolationRankOut.
@@ -161,16 +147,42 @@ type JoinViolationRankOut struct {
 
 // LocationPlayerOut defines model for LocationPlayerOut.
 type LocationPlayerOut struct {
-	DiscordId   *string `json:"discord_id,omitempty"`
-	DisplayName string  `json:"display_name"`
-	InternalId  int     `json:"internal_id"`
-	JoinCount   int     `json:"join_count"`
-	JoinTs      string  `json:"join_ts"`
-	UserId      string  `json:"user_id"`
+	DiscordId   *string   `json:"discord_id,omitempty"`
+	DisplayName string    `json:"display_name"`
+	InternalId  int       `json:"internal_id"`
+	JoinCount   int       `json:"join_count"`
+	JoinTs      time.Time `json:"join_ts"`
+	UserId      string    `json:"user_id"`
 }
 
 // Order defines model for Order.
 type Order string
+
+// PlayerDetailOut プレイヤーの詳細情報。プロフィール + 通算統計を返す。
+type PlayerDetailOut struct {
+	CreatedAt   time.Time  `json:"created_at"`
+	DiscordId   *string    `json:"discord_id,omitempty"`
+	DisplayName string     `json:"display_name"`
+	FirstSeen   *time.Time `json:"first_seen,omitempty"`
+
+	// InRoom 現在 leave_ts なしのセッションがあるか
+	InRoom   bool       `json:"in_room"`
+	LastSeen *time.Time `json:"last_seen,omitempty"`
+
+	// TotalDurationSeconds 通算滞在秒数
+	TotalDurationSeconds int `json:"total_duration_seconds"`
+
+	// TotalVisits 通算訪問回数
+	TotalVisits int       `json:"total_visits"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UserId      string    `json:"user_id"`
+}
+
+// PlayerDiscordIn defines model for PlayerDiscordIn.
+type PlayerDiscordIn struct {
+	// DiscordId null または空文字を渡すと登録を削除する
+	DiscordId *string `json:"discord_id"`
+}
 
 // PlayerEvent defines model for PlayerEvent.
 type PlayerEvent struct {
@@ -185,22 +197,12 @@ type PlayerEvent struct {
 // PlayerEventEvent defines model for PlayerEvent.Event.
 type PlayerEventEvent string
 
-// PlayerListOut defines model for PlayerListOut.
-type PlayerListOut struct {
-	DisplayName          string `json:"display_name"`
-	FirstSeen            string `json:"first_seen"`
-	JoinCount            int    `json:"join_count"`
-	LastSeen             string `json:"last_seen"`
-	TotalDurationSeconds *int   `json:"total_duration_seconds,omitempty"`
-	UserId               string `json:"user_id"`
-}
-
 // PlayerOut defines model for PlayerOut.
 type PlayerOut struct {
-	CreatedAt   string `json:"created_at"`
-	DisplayName string `json:"display_name"`
-	UpdatedAt   string `json:"updated_at"`
-	UserId      string `json:"user_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	DisplayName string    `json:"display_name"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	UserId      string    `json:"user_id"`
 }
 
 // PlayerRankOut defines model for PlayerRankOut.
@@ -214,13 +216,13 @@ type PlayerRankOut struct {
 
 // PlayerSessionOut defines model for PlayerSessionOut.
 type PlayerSessionOut struct {
-	DurationSeconds  *int    `json:"duration_seconds,omitempty"`
-	Id               int     `json:"id"`
-	InstanceId       int     `json:"instance_id"`
-	IsEstimatedLeave bool    `json:"is_estimated_leave"`
-	JoinTs           string  `json:"join_ts"`
-	LeaveTs          *string `json:"leave_ts,omitempty"`
-	WorldId          string  `json:"world_id"`
+	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
+	Id               int        `json:"id"`
+	InstanceId       int        `json:"instance_id"`
+	IsEstimatedLeave bool       `json:"is_estimated_leave"`
+	JoinTs           time.Time  `json:"join_ts"`
+	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
+	WorldId          string     `json:"world_id"`
 }
 
 // PotentialSession defines model for PotentialSession.
@@ -229,40 +231,50 @@ type PotentialSession struct {
 	UserId     string `json:"user_id"`
 }
 
-// RestoreRequest defines model for RestoreRequest.
-type RestoreRequest struct {
+// RestoreIn defines model for RestoreIn.
+type RestoreIn struct {
 	UserIds []string `json:"user_ids"`
 }
 
 // SessionOut defines model for SessionOut.
 type SessionOut struct {
-	DiscordId        *string `json:"discord_id,omitempty"`
-	DisplayName      string  `json:"display_name"`
-	DurationSeconds  *int    `json:"duration_seconds,omitempty"`
-	Id               int     `json:"id"`
-	InstanceId       int     `json:"instance_id"`
-	IsEstimatedLeave bool    `json:"is_estimated_leave"`
-	JoinTs           string  `json:"join_ts"`
-	LeaveTs          *string `json:"leave_ts,omitempty"`
-	UserId           string  `json:"user_id"`
+	DiscordId        *string    `json:"discord_id,omitempty"`
+	DisplayName      string     `json:"display_name"`
+	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
+	Id               int        `json:"id"`
+	InstanceId       int        `json:"instance_id"`
+	IsEstimatedLeave bool       `json:"is_estimated_leave"`
+	JoinTs           time.Time  `json:"join_ts"`
+	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
+	UserId           string     `json:"user_id"`
 }
 
 // TimelinePoint defines model for TimelinePoint.
 type TimelinePoint struct {
-	Count       int     `json:"count"`
-	DisplayName *string `json:"display_name,omitempty"`
-	Timestamp   string  `json:"timestamp"`
-	UserId      *string `json:"user_id,omitempty"`
+	Count       int       `json:"count"`
+	DisplayName *string   `json:"display_name,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+	UserId      *string   `json:"user_id,omitempty"`
+}
+
+// VisitorOut インスタンス訪問者の集計レコード。
+type VisitorOut struct {
+	DisplayName          string    `json:"display_name"`
+	FirstSeen            time.Time `json:"first_seen"`
+	JoinCount            int       `json:"join_count"`
+	LastSeen             time.Time `json:"last_seen"`
+	TotalDurationSeconds int       `json:"total_duration_seconds"`
+	UserId               string    `json:"user_id"`
 }
 
 // WorldOut defines model for WorldOut.
 type WorldOut struct {
-	CreatedAt    string  `json:"created_at"`
-	LastSeen     *string `json:"last_seen,omitempty"`
-	Name         *string `json:"name,omitempty"`
-	SessionCount int     `json:"session_count"`
-	UpdatedAt    string  `json:"updated_at"`
-	WorldId      string  `json:"world_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastSeen     *time.Time `json:"last_seen,omitempty"`
+	Name         *string    `json:"name,omitempty"`
+	SessionCount int        `json:"session_count"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	WorldId      string     `json:"world_id"`
 }
 
 // WorldRenameIn defines model for WorldRenameIn.
@@ -289,10 +301,10 @@ type LocationIdPath = string
 type OffsetQuery = int
 
 // OrderAscQuery defines model for OrderAscQuery.
-type OrderAscQuery string
+type OrderAscQuery = Order
 
 // OrderDescQuery defines model for OrderDescQuery.
-type OrderDescQuery string
+type OrderDescQuery = Order
 
 // StartQuery defines model for StartQuery.
 type StartQuery = time.Time
@@ -307,10 +319,10 @@ type WorldIdQuery = string
 type ReceiveEventJSONRequestBody = PlayerEvent
 
 // CloseLocationJSONRequestBody defines body for CloseLocation for application/json ContentType.
-type CloseLocationJSONRequestBody = CloseLocationRequest
+type CloseLocationJSONRequestBody = CloseLocationIn
 
 // ResumeInstanceJSONRequestBody defines body for ResumeInstance for application/json ContentType.
-type ResumeInstanceJSONRequestBody = RestoreRequest
+type ResumeInstanceJSONRequestBody = RestoreIn
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
