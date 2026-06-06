@@ -1,23 +1,42 @@
-.PHONY: gen run build vet tidy installer
-
-GEN := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+GO   ?= go
 ISCC ?= iscc.exe
 
+GEN := $(GO) run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+
+.DEFAULT_GOAL := build
+
+.PHONY: gen
 gen:
 	$(GEN) -config oapi-codegen.yaml ../api/openapi.yaml
 
-tidy:
-	go mod tidy
+.PHONY: run
+run: gen
+	$(GO) run ./cmd/client
 
+.PHONY: build
+build: gen
+	GOOS=windows $(GO) build -trimpath -ldflags="-s -w" -o bin/vjm-agent.exe ./cmd/client
+
+.PHONY: test
+test:
+	$(GO) test ./...
+
+.PHONY: fmt
+fmt:
+	$(GO) fmt ./...
+
+.PHONY: vet
 vet:
-	go vet ./...
+	$(GO) vet ./...
 
-run:
-	go run ./cmd/client
+.PHONY: tidy
+tidy:
+	$(GO) mod tidy
 
-build: export GOOS=windows
-build:
-	go build -trimpath -ldflags="-s -w" -o bin/vjm-agent.exe ./cmd/client
+.PHONY: clean
+clean:
+	rm -rf bin
 
+.PHONY: installer
 installer: build
 	$(ISCC) installer.iss

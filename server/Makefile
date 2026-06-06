@@ -1,4 +1,6 @@
-.PHONY: gen run build vet tidy web-install web-gen web-dev web-build
+GO ?= go
+
+GEN := $(GO) run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
 ifeq ($(OS),Windows_NT)
     SETENV := set CGO_ENABLED=0&&
@@ -8,32 +10,36 @@ else
     BIN := bin/vjm-server
 endif
 
-GEN := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-WEB := ../web
+.DEFAULT_GOAL := build
 
+.PHONY: gen
 gen:
 	$(GEN) -config oapi-codegen.yaml ../api/openapi.yaml
 
-tidy:
-	go mod tidy
-
-vet:
-	go vet ./...
-
+.PHONY: run
 run: gen
-	go run .
+	$(GO) run .
 
+.PHONY: build
 build: gen
-	$(SETENV) go build -trimpath -ldflags="-s -w" -o $(BIN) .
+	$(SETENV) $(GO) build -trimpath -ldflags="-s -w" -o $(BIN) .
 
-web-install:
-	cd $(WEB) && pnpm install
+.PHONY: test
+test:
+	$(GO) test ./...
 
-web-gen: web-install
-	cd $(WEB) && pnpm run gen:api
+.PHONY: fmt
+fmt:
+	$(GO) fmt ./...
 
-web-dev: web-gen
-	cd $(WEB) && pnpm run dev
+.PHONY: vet
+vet:
+	$(GO) vet ./...
 
-web-build: web-gen
-	cd $(WEB) && pnpm run build
+.PHONY: tidy
+tidy:
+	$(GO) mod tidy
+
+.PHONY: clean
+clean:
+	rm -rf bin
