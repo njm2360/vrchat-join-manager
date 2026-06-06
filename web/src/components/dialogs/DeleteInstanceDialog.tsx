@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -8,44 +8,44 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSnackbar } from 'notistack'
-import { api } from '@/api/client'
-import type { InstanceOut } from '@/api/schemas'
-import { extractInstanceNumber } from '@/utils/format'
+} from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSnackbar } from "notistack";
+import { api } from "@/api/client";
+import type { InstanceOut } from "@/api/schemas";
+import { extractInstanceNumber } from "@/utils/format";
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  instance: InstanceOut
-  onDeleted: () => void
+  open: boolean;
+  onClose: () => void;
+  instance: InstanceOut;
+  onDeleted: () => void;
 }
 
 export default function DeleteInstanceDialog({ open, onClose, instance, onDeleted }: Props) {
-  const expected = extractInstanceNumber(instance.location_id)
-  const [confirmText, setConfirmText] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const qc = useQueryClient()
-  const { enqueueSnackbar } = useSnackbar()
+  const expected = extractInstanceNumber(instance.location_id);
+  const [confirmText, setConfirmText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const deleteMut = useMutation({
     mutationFn: async () => {
-      const { error } = await api.DELETE('/api/instances/{instance_id}', {
+      const { error } = await api.DELETE("/api/instances/{instance_id}", {
         params: { path: { instance_id: instance.id } },
-      })
-      if (error) throw new Error('削除に失敗しました')
+      });
+      if (error) throw new Error("削除に失敗しました");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['instances'] })
-      enqueueSnackbar('インスタンスを削除しました', { variant: 'success' })
-      onClose()
-      onDeleted()
+      qc.invalidateQueries({ queryKey: ["instances"] });
+      enqueueSnackbar("インスタンスを削除しました", { variant: "success" });
+      onClose();
+      onDeleted();
     },
-    onError: (e: Error) => enqueueSnackbar(e.message, { variant: 'error' }),
-  })
+    onError: (e: Error) => enqueueSnackbar(e.message, { variant: "error" }),
+  });
 
-  const canConfirm = !!expected && confirmText.trim() === expected && !deleteMut.isPending
+  const canConfirm = !!expected && confirmText.trim() === expected && !deleteMut.isPending;
 
   return (
     <Dialog
@@ -55,7 +55,7 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
       fullWidth
       slotProps={{
         transition: {
-          onEnter: () => setConfirmText(''),
+          onEnter: () => setConfirmText(""),
           onEntered: () => inputRef.current?.focus(),
         },
       }}
@@ -76,9 +76,9 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && canConfirm) deleteMut.mutate()
+              if (e.key === "Enter" && canConfirm) deleteMut.mutate();
             }}
-            slotProps={{ htmlInput: { inputMode: 'numeric', autoComplete: 'off' } }}
+            slotProps={{ htmlInput: { inputMode: "numeric", autoComplete: "off" } }}
           />
         </Stack>
       </DialogContent>
@@ -90,9 +90,9 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
           disabled={!canConfirm}
           onClick={() => deleteMut.mutate()}
         >
-          {deleteMut.isPending ? '削除中...' : '削除'}
+          {deleteMut.isPending ? "削除中..." : "削除"}
         </Button>
       </DialogActions>
     </Dialog>
-  )
+  );
 }

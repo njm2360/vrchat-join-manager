@@ -1,13 +1,13 @@
-import { Box, Chip } from '@mui/material'
-import type { SessionOut } from '@/api/schemas'
-import { fmtDateFull } from '@/utils/format'
+import { Box, Chip } from "@mui/material";
+import type { SessionOut } from "@/api/schemas";
+import { fmtDateFull } from "@/utils/format";
 
 interface Props {
-  s: Pick<SessionOut, 'leave_ts' | 'is_estimated_leave'>
+  s: Pick<SessionOut, "leave_ts" | "is_estimated_leave">;
 }
 
 export default function LeaveCell({ s }: Props) {
-  if (!s.leave_ts) return <Chip size="small" color="success" label="在室中" />
+  if (!s.leave_ts) return <Chip size="small" color="success" label="在室中" />;
   return (
     <Box className="flex items-center gap-1">
       <span>{fmtDateFull(s.leave_ts)}</span>
@@ -21,5 +21,5 @@ export default function LeaveCell({ s }: Props) {
         />
       )}
     </Box>
-  )
+  );
 }

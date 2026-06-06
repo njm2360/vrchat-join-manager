@@ -1,9 +1,9 @@
-import { CircularProgress, TableCell, TableRow, Typography } from '@mui/material'
+import { CircularProgress, TableCell, TableRow, Typography } from "@mui/material";
 
 interface Props {
-  colSpan: number
-  loading: boolean
-  emptyText: string
+  colSpan: number;
+  loading: boolean;
+  emptyText: string;
 }
 
 export default function TablePlaceholderRow({ colSpan, loading, emptyText }: Props) {
@@ -19,5 +19,5 @@ export default function TablePlaceholderRow({ colSpan, loading, emptyText }: Pro
         )}
       </TableCell>
     </TableRow>
-  )
+  );
 }

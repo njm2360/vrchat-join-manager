@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Chip,
@@ -11,38 +11,38 @@ import {
   ListItemButton,
   Stack,
   Typography,
-} from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
-import { api } from '@/api/client'
-import type { InstanceOut } from '@/api/schemas'
-import { fmtDate } from '@/utils/format'
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { api } from "@/api/client";
+import type { InstanceOut } from "@/api/schemas";
+import { fmtDate } from "@/utils/format";
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  current: InstanceOut
+  open: boolean;
+  onClose: () => void;
+  current: InstanceOut;
 }
 
 export default function CompareInstanceDialog({ open, onClose, current }: Props) {
-  const start = current.opened_at
+  const start = current.opened_at;
   const end = useMemo(
     () => current.closed_at ?? new Date().toISOString(),
     [current.id, current.closed_at, open],
-  )
+  );
 
   const { data: instances = [], isLoading } = useQuery<InstanceOut[]>({
-    queryKey: ['instances', 'overlap', current.id, start, end],
+    queryKey: ["instances", "overlap", current.id, start, end],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await api.GET('/api/instances', {
+      const { data, error } = await api.GET("/api/instances", {
         params: { query: { start, end } },
-      })
-      if (error) throw new Error('failed to load instances')
-      return data ?? []
+      });
+      if (error) throw new Error("failed to load instances");
+      return data ?? [];
     },
-  })
+  });
 
-  const overlapping = instances.filter((inst) => inst.id !== current.id)
+  const overlapping = instances.filter((inst) => inst.id !== current.id);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
@@ -66,14 +66,14 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
             {overlapping.map((inst) => {
               const range = inst.closed_at
                 ? `${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}`
-                : `${fmtDate(inst.opened_at)} 〜`
+                : `${fmtDate(inst.opened_at)} 〜`;
               return (
                 <ListItemButton
                   key={inst.id}
                   className="block!"
                   onClick={() => {
-                    onClose()
-                    window.open(`/compare/${current.id}/${inst.id}`, '_blank')
+                    onClose();
+                    window.open(`/compare/${current.id}/${inst.id}`, "_blank");
                   }}
                 >
                   <Typography variant="body2" className="font-medium truncate">
@@ -86,15 +86,15 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
                     <Chip
                       size="small"
                       label={range}
-                      color={inst.closed_at ? 'default' : 'success'}
+                      color={inst.closed_at ? "default" : "success"}
                     />
                   </Stack>
                 </ListItemButton>
-              )
+              );
             })}
           </List>
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,18 +1,18 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Box, CircularProgress } from '@mui/material'
-import AppLayout from '@/components/AppLayout'
+import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Box, CircularProgress } from "@mui/material";
+import AppLayout from "@/components/AppLayout";
 
-const InstancesPage = lazy(() => import('@/pages/InstancesPage'))
-const ComparePage = lazy(() => import('@/pages/ComparePage'))
-const PlayerPage = lazy(() => import('@/pages/PlayerPage'))
+const InstancesPage = lazy(() => import("@/pages/InstancesPage"));
+const ComparePage = lazy(() => import("@/pages/ComparePage"));
+const PlayerPage = lazy(() => import("@/pages/PlayerPage"));
 
 function PageFallback() {
   return (
     <Box className="h-full flex items-center justify-center">
       <CircularProgress size={32} />
     </Box>
-  )
+  );
 }
 
 export default function App() {
@@ -54,5 +54,5 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
-  )
+  );
 }

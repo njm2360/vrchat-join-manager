@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Chip,
   Stack,
@@ -10,22 +10,22 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-} from '@mui/material'
-import { useEvents } from '@/api/queries'
-import { fmtDateFull } from '@/utils/format'
-import DateRangeFilter from '@/components/DateRangeFilter'
-import PlayerLink from '@/components/PlayerLink'
-import TablePlaceholderRow from '@/components/TablePlaceholderRow'
+} from "@mui/material";
+import { useEvents } from "@/api/queries";
+import { fmtDateFull } from "@/utils/format";
+import DateRangeFilter from "@/components/DateRangeFilter";
+import PlayerLink from "@/components/PlayerLink";
+import TablePlaceholderRow from "@/components/TablePlaceholderRow";
 
 interface Props {
-  instanceId: number
+  instanceId: number;
 }
 
 export default function EventsTab({ instanceId }: Props) {
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc')
-  const [applied, setApplied] = useState<{ start?: string; end?: string }>({})
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [applied, setApplied] = useState<{ start?: string; end?: string }>({});
 
-  const { data: events = [], isLoading } = useEvents(instanceId, { order, ...applied })
+  const { data: events = [], isLoading } = useEvents(instanceId, { order, ...applied });
 
   return (
     <Stack spacing={2}>
@@ -38,7 +38,7 @@ export default function EventsTab({ instanceId }: Props) {
                 <TableSortLabel
                   active
                   direction={order}
-                  onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
+                  onClick={() => setOrder(order === "asc" ? "desc" : "asc")}
                 >
                   日時
                 </TableSortLabel>
@@ -57,13 +57,17 @@ export default function EventsTab({ instanceId }: Props) {
                   <TableCell>
                     <Chip
                       size="small"
-                      label={ev.event_type === 'join' ? 'JOIN' : 'LEAVE'}
-                      color={ev.event_type === 'join' ? 'success' : 'error'}
+                      label={ev.event_type === "join" ? "JOIN" : "LEAVE"}
+                      color={ev.event_type === "join" ? "success" : "error"}
                       className="w-[72px]"
                     />
                   </TableCell>
                   <TableCell>
-                    <PlayerLink userId={ev.user_id} displayName={ev.display_name} instanceId={instanceId} />
+                    <PlayerLink
+                      userId={ev.user_id}
+                      displayName={ev.display_name}
+                      instanceId={instanceId}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -72,5 +76,5 @@ export default function EventsTab({ instanceId }: Props) {
         </Table>
       </TableContainer>
     </Stack>
-  )
+  );
 }

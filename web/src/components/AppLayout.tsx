@@ -1,13 +1,18 @@
-import { AppBar, Box, Toolbar, Typography } from '@mui/material'
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { AppBar, Box, Toolbar, Typography } from "@mui/material";
+import { Outlet, Link, useLocation } from "react-router-dom";
 
 export default function AppLayout() {
-  const { pathname } = useLocation()
-  const isHome = pathname === '/' || pathname.startsWith('/instances')
+  const { pathname } = useLocation();
+  const isHome = pathname === "/" || pathname.startsWith("/instances");
 
   return (
     <Box className="flex flex-col h-full">
-      <AppBar position="static" color="default" elevation={0} className="bg-neutral-900! text-white!">
+      <AppBar
+        position="static"
+        color="default"
+        elevation={0}
+        className="bg-neutral-900! text-white!"
+      >
         <Toolbar variant="dense" className="gap-3">
           <Typography
             component={Link}
@@ -33,5 +38,5 @@ export default function AppLayout() {
         <Outlet />
       </Box>
     </Box>
-  )
+  );
 }

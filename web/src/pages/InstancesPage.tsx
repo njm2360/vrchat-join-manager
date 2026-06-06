@@ -1,32 +1,32 @@
-import { useEffect, useMemo } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Box, Typography, useMediaQuery, useTheme } from '@mui/material'
-import LocationList from '@/components/LocationList'
-import InstanceDetail from '@/components/InstanceDetail'
-import { useInstance } from '@/api/queries'
+import { useEffect, useMemo } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import LocationList from "@/components/LocationList";
+import InstanceDetail from "@/components/InstanceDetail";
+import { useInstance } from "@/api/queries";
 
 export default function InstancesPage() {
-  const { instanceId: idStr } = useParams<{ instanceId?: string }>()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const { instanceId: idStr } = useParams<{ instanceId?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const instanceId = useMemo(() => {
-    const n = Number(idStr)
-    return Number.isFinite(n) && n > 0 ? n : null
-  }, [idStr])
+    const n = Number(idStr);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [idStr]);
 
-  const { data: instance } = useInstance(instanceId)
+  const { data: instance } = useInstance(instanceId);
 
   useEffect(() => {
     if (idStr && !instanceId) {
-      navigate('/', { replace: true })
+      navigate("/", { replace: true });
     }
-  }, [idStr, instanceId, navigate])
+  }, [idStr, instanceId, navigate]);
 
-  const showSidebar = !isMobile || instanceId == null
-  const showDetail = !isMobile || instanceId != null
+  const showSidebar = !isMobile || instanceId == null;
+  const showDetail = !isMobile || instanceId != null;
 
   return (
     <Box className="flex h-full">
@@ -34,7 +34,9 @@ export default function InstancesPage() {
         <Box className="w-full md:w-[320px] lg:w-[360px] md:shrink-0 h-full">
           <LocationList
             selectedId={instanceId}
-            onSelect={(inst) => navigate({ pathname: `/instances/${inst.id}`, search: location.search })}
+            onSelect={(inst) =>
+              navigate({ pathname: `/instances/${inst.id}`, search: location.search })
+            }
           />
         </Box>
       )}
@@ -50,12 +52,12 @@ export default function InstancesPage() {
             <InstanceDetail
               instanceId={instanceId}
               instance={instance ?? null}
-              onBack={() => navigate('/')}
+              onBack={() => navigate("/")}
               isMobile={isMobile}
             />
           )}
         </Box>
       )}
     </Box>
-  )
+  );
 }

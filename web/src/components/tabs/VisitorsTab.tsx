@@ -11,38 +11,47 @@ import {
   TableSortLabel,
   Paper,
   Typography,
-} from '@mui/material'
-import { useVisitors } from '@/api/queries'
-import { fmtDateFull, fmtDuration } from '@/utils/format'
-import PlayerLink from '@/components/PlayerLink'
-import TablePlaceholderRow from '@/components/TablePlaceholderRow'
-import { useSortState } from '@/hooks/useSortState'
+} from "@mui/material";
+import { useVisitors } from "@/api/queries";
+import { fmtDateFull, fmtDuration } from "@/utils/format";
+import PlayerLink from "@/components/PlayerLink";
+import TablePlaceholderRow from "@/components/TablePlaceholderRow";
+import { useSortState } from "@/hooks/useSortState";
 
 interface Props {
-  instanceId: number
+  instanceId: number;
 }
 
-type SortKey = 'display_name' | 'first_seen' | 'last_seen' | 'join_count' | 'total_duration_seconds'
+type SortKey =
+  | "display_name"
+  | "first_seen"
+  | "last_seen"
+  | "join_count"
+  | "total_duration_seconds";
 
-const COLUMNS: { key: SortKey; label: string; width?: number; align?: 'right' }[] = [
-  { key: 'display_name', label: '名前' },
-  { key: 'first_seen', label: '初訪問', width: 150 },
-  { key: 'last_seen', label: '最終訪問', width: 150 },
-  { key: 'join_count', label: '訪問回数', width: 120, align: 'right' },
-  { key: 'total_duration_seconds', label: '合計滞在', width: 120, align: 'right' },
-]
+const COLUMNS: { key: SortKey; label: string; width?: number; align?: "right" }[] = [
+  { key: "display_name", label: "名前" },
+  { key: "first_seen", label: "初訪問", width: 150 },
+  { key: "last_seen", label: "最終訪問", width: 150 },
+  { key: "join_count", label: "訪問回数", width: 120, align: "right" },
+  { key: "total_duration_seconds", label: "合計滞在", width: 120, align: "right" },
+];
 
 export default function VisitorsTab({ instanceId }: Props) {
-  const { sortBy, order, toggleSort } = useSortState<SortKey>('last_seen', 'desc')
+  const { sortBy, order, toggleSort } = useSortState<SortKey>("last_seen", "desc");
 
-  const { data: visitors = [], refetch, isLoading } = useVisitors(instanceId, {
+  const {
+    data: visitors = [],
+    refetch,
+    isLoading,
+  } = useVisitors(instanceId, {
     sort_by: sortBy,
     order,
-  })
+  });
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
         <Button variant="contained" size="small" onClick={() => refetch()}>
           更新
         </Button>
@@ -63,7 +72,7 @@ export default function VisitorsTab({ instanceId }: Props) {
                 >
                   <TableSortLabel
                     active={sortBy === c.key}
-                    direction={sortBy === c.key ? order : 'asc'}
+                    direction={sortBy === c.key ? order : "asc"}
                     onClick={() => toggleSort(c.key)}
                   >
                     {c.label}
@@ -74,20 +83,26 @@ export default function VisitorsTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {visitors.length === 0 ? (
-              <TablePlaceholderRow colSpan={COLUMNS.length} loading={isLoading} emptyText="データなし" />
+              <TablePlaceholderRow
+                colSpan={COLUMNS.length}
+                loading={isLoading}
+                emptyText="データなし"
+              />
             ) : (
               visitors.map((v) => (
                 <TableRow key={v.user_id} hover>
                   <TableCell className="truncate max-w-[240px]">
-                    <PlayerLink userId={v.user_id} displayName={v.display_name} instanceId={instanceId} />
+                    <PlayerLink
+                      userId={v.user_id}
+                      displayName={v.display_name}
+                      instanceId={instanceId}
+                    />
                   </TableCell>
                   <TableCell>{fmtDateFull(v.first_seen)}</TableCell>
                   <TableCell>{fmtDateFull(v.last_seen)}</TableCell>
                   <TableCell align="right">{v.join_count}回</TableCell>
                   <TableCell align="right">
-                    {v.total_duration_seconds != null
-                      ? fmtDuration(v.total_duration_seconds)
-                      : '—'}
+                    {v.total_duration_seconds != null ? fmtDuration(v.total_duration_seconds) : "—"}
                   </TableCell>
                 </TableRow>
               ))
@@ -97,5 +112,5 @@ export default function VisitorsTab({ instanceId }: Props) {
       </TableContainer>
       <Box />
     </Stack>
-  )
+  );
 }

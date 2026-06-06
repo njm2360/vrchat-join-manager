@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Button,
   Dialog,
@@ -8,47 +8,47 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
-import dayjs, { type Dayjs } from 'dayjs'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSnackbar } from 'notistack'
-import { api } from '@/api/client'
-import type { InstanceOut } from '@/api/schemas'
-import { extractInstanceNumber } from '@/utils/format'
+} from "@mui/material";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import dayjs, { type Dayjs } from "dayjs";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSnackbar } from "notistack";
+import { api } from "@/api/client";
+import type { InstanceOut } from "@/api/schemas";
+import { extractInstanceNumber } from "@/utils/format";
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  instance: InstanceOut
+  open: boolean;
+  onClose: () => void;
+  instance: InstanceOut;
 }
 
 export default function CloseInstanceDialog({ open, onClose, instance }: Props) {
-  const expected = extractInstanceNumber(instance.location_id)
-  const [confirmText, setConfirmText] = useState('')
-  const [at, setAt] = useState<Dayjs | null>(dayjs())
-  const qc = useQueryClient()
-  const { enqueueSnackbar } = useSnackbar()
+  const expected = extractInstanceNumber(instance.location_id);
+  const [confirmText, setConfirmText] = useState("");
+  const [at, setAt] = useState<Dayjs | null>(dayjs());
+  const qc = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const closeMut = useMutation({
     mutationFn: async () => {
-      if (!at) throw new Error('クローズ時刻を入力してください')
-      const { error } = await api.POST('/api/locations/{location_id}/close', {
+      if (!at) throw new Error("クローズ時刻を入力してください");
+      const { error } = await api.POST("/api/locations/{location_id}/close", {
         params: { path: { location_id: instance.location_id } },
         body: { at: at.toISOString() },
-      })
-      if (error) throw new Error('クローズに失敗しました')
+      });
+      if (error) throw new Error("クローズに失敗しました");
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['instance', instance.id] })
-      qc.invalidateQueries({ queryKey: ['instances'] })
-      enqueueSnackbar('インスタンスをクローズしました', { variant: 'success' })
-      onClose()
+      qc.invalidateQueries({ queryKey: ["instance", instance.id] });
+      qc.invalidateQueries({ queryKey: ["instances"] });
+      enqueueSnackbar("インスタンスをクローズしました", { variant: "success" });
+      onClose();
     },
-    onError: (e: Error) => enqueueSnackbar(e.message, { variant: 'error' }),
-  })
+    onError: (e: Error) => enqueueSnackbar(e.message, { variant: "error" }),
+  });
 
-  const canConfirm = !!expected && confirmText.trim() === expected && !closeMut.isPending
+  const canConfirm = !!expected && confirmText.trim() === expected && !closeMut.isPending;
 
   return (
     <Dialog
@@ -59,8 +59,8 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
       slotProps={{
         transition: {
           onEnter: () => {
-            setConfirmText('')
-            setAt(dayjs())
+            setConfirmText("");
+            setAt(dayjs());
           },
         },
       }}
@@ -78,7 +78,7 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
             label="クローズ時刻"
             value={at}
             onChange={setAt}
-            slotProps={{ textField: { size: 'small' } }}
+            slotProps={{ textField: { size: "small" } }}
           />
           <TextField
             size="small"
@@ -86,9 +86,9 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && canConfirm) closeMut.mutate()
+              if (e.key === "Enter" && canConfirm) closeMut.mutate();
             }}
-            slotProps={{ htmlInput: { inputMode: 'numeric', autoComplete: 'off' } }}
+            slotProps={{ htmlInput: { inputMode: "numeric", autoComplete: "off" } }}
           />
         </Stack>
       </DialogContent>
@@ -100,9 +100,9 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
           disabled={!canConfirm}
           onClick={() => closeMut.mutate()}
         >
-          {closeMut.isPending ? 'クローズ中...' : 'クローズ'}
+          {closeMut.isPending ? "クローズ中..." : "クローズ"}
         </Button>
       </DialogActions>
     </Dialog>
-  )
+  );
 }

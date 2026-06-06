@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Box,
   Card,
@@ -12,66 +12,66 @@ import {
   MenuItem,
   Tab,
   Tabs,
-} from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import LockIcon from '@mui/icons-material/Lock'
-import DeleteIcon from '@mui/icons-material/Delete'
-import type { InstanceOut } from '@/api/schemas'
-import InstanceInfo from '@/components/InstanceInfo'
-import TimelineTab from '@/components/tabs/TimelineTab'
-import EventsTab from '@/components/tabs/EventsTab'
-import SessionsTab from '@/components/tabs/SessionsTab'
-import PlayersTab from '@/components/tabs/PlayersTab'
-import VisitorsTab from '@/components/tabs/VisitorsTab'
-import CompareInstanceDialog from '@/components/dialogs/CompareInstanceDialog'
-import CloseInstanceDialog from '@/components/dialogs/CloseInstanceDialog'
-import DeleteInstanceDialog from '@/components/dialogs/DeleteInstanceDialog'
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import LockIcon from "@mui/icons-material/Lock";
+import DeleteIcon from "@mui/icons-material/Delete";
+import type { InstanceOut } from "@/api/schemas";
+import InstanceInfo from "@/components/InstanceInfo";
+import TimelineTab from "@/components/tabs/TimelineTab";
+import EventsTab from "@/components/tabs/EventsTab";
+import SessionsTab from "@/components/tabs/SessionsTab";
+import PlayersTab from "@/components/tabs/PlayersTab";
+import VisitorsTab from "@/components/tabs/VisitorsTab";
+import CompareInstanceDialog from "@/components/dialogs/CompareInstanceDialog";
+import CloseInstanceDialog from "@/components/dialogs/CloseInstanceDialog";
+import DeleteInstanceDialog from "@/components/dialogs/DeleteInstanceDialog";
 
-type TabKey = 'timeline' | 'events' | 'sessions' | 'players' | 'visitors'
-const TAB_KEYS: readonly TabKey[] = ['timeline', 'events', 'sessions', 'players', 'visitors']
-const DEFAULT_TAB: TabKey = 'timeline'
+type TabKey = "timeline" | "events" | "sessions" | "players" | "visitors";
+const TAB_KEYS: readonly TabKey[] = ["timeline", "events", "sessions", "players", "visitors"];
+const DEFAULT_TAB: TabKey = "timeline";
 
 interface Props {
-  instanceId: number
-  instance: InstanceOut | null
-  onBack: () => void
-  isMobile: boolean
+  instanceId: number;
+  instance: InstanceOut | null;
+  onBack: () => void;
+  isMobile: boolean;
 }
 
 export default function InstanceDetail({ instanceId, instance, onBack, isMobile }: Props) {
-  const [params, setParams] = useSearchParams()
-  const tabParam = params.get('tab')
-  const tab: TabKey = (TAB_KEYS as readonly string[]).includes(tabParam ?? '')
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get("tab");
+  const tab: TabKey = (TAB_KEYS as readonly string[]).includes(tabParam ?? "")
     ? (tabParam as TabKey)
-    : DEFAULT_TAB
+    : DEFAULT_TAB;
   const setTab = (next: TabKey) =>
     setParams(
       (prev) => {
-        const p = new URLSearchParams(prev)
-        p.set('tab', next)
-        return p
+        const p = new URLSearchParams(prev);
+        p.set("tab", next);
+        return p;
       },
       { replace: true },
-    )
+    );
 
   useEffect(() => {
-    if (params.get('tab')) return
+    if (params.get("tab")) return;
     setParams(
       (prev) => {
-        const p = new URLSearchParams(prev)
-        p.set('tab', DEFAULT_TAB)
-        return p
+        const p = new URLSearchParams(prev);
+        p.set("tab", DEFAULT_TAB);
+        return p;
       },
       { replace: true },
-    )
-  }, [])
-  const [compareOpen, setCompareOpen] = useState(false)
-  const [closeOpen, setCloseOpen] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
-  const menuOpen = Boolean(menuAnchor)
-  const closeMenu = () => setMenuAnchor(null)
+    );
+  }, []);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const menuOpen = Boolean(menuAnchor);
+  const closeMenu = () => setMenuAnchor(null);
 
   const actionMenu = instance && (
     <>
@@ -86,8 +86,8 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
         {!instance.closed_at && (
           <MenuItem
             onClick={() => {
-              closeMenu()
-              setCloseOpen(true)
+              closeMenu();
+              setCloseOpen(true);
             }}
           >
             <ListItemIcon>
@@ -98,18 +98,18 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
         )}
         <MenuItem
           onClick={() => {
-            closeMenu()
-            setDeleteOpen(true)
+            closeMenu();
+            setDeleteOpen(true);
           }}
         >
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
-          <ListItemText sx={{ color: 'error.main' }}>削除</ListItemText>
+          <ListItemText sx={{ color: "error.main" }}>削除</ListItemText>
         </MenuItem>
       </Menu>
     </>
-  )
+  );
 
   return (
     <Box className="h-full overflow-auto p-3">
@@ -126,9 +126,9 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
           action={actionMenu}
           className="border-b border-neutral-200"
           sx={{
-            alignItems: 'flex-start',
-            '& .MuiCardHeader-action': { alignSelf: 'flex-start', m: 0 },
-            '& .MuiCardHeader-content': { minWidth: 0, overflow: 'hidden' },
+            alignItems: "flex-start",
+            "& .MuiCardHeader-action": { alignSelf: "flex-start", m: 0 },
+            "& .MuiCardHeader-content": { minWidth: 0, overflow: "hidden" },
           }}
         />
         <Box className="border-b border-neutral-200" sx={{ px: 2 }}>
@@ -146,17 +146,17 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
           </Tabs>
         </Box>
         <CardContent className="flex-1 min-h-0 overflow-auto">
-          {tab === 'timeline' && (
+          {tab === "timeline" && (
             <TimelineTab
               instanceId={instanceId}
               instance={instance}
               onCompare={() => setCompareOpen(true)}
             />
           )}
-          {tab === 'events' && <EventsTab instanceId={instanceId} />}
-          {tab === 'sessions' && <SessionsTab instanceId={instanceId} />}
-          {tab === 'players' && <PlayersTab instanceId={instanceId} />}
-          {tab === 'visitors' && <VisitorsTab instanceId={instanceId} />}
+          {tab === "events" && <EventsTab instanceId={instanceId} />}
+          {tab === "sessions" && <SessionsTab instanceId={instanceId} />}
+          {tab === "players" && <PlayersTab instanceId={instanceId} />}
+          {tab === "visitors" && <VisitorsTab instanceId={instanceId} />}
         </CardContent>
       </Card>
 
@@ -183,5 +183,5 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
         />
       )}
     </Box>
-  )
+  );
 }

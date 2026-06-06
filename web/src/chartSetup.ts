@@ -8,9 +8,9 @@ import {
   Filler,
   Tooltip,
   Legend,
-} from 'chart.js'
-import 'chartjs-adapter-date-fns'
-import zoomPlugin from 'chartjs-plugin-zoom'
+} from "chart.js";
+import "chartjs-adapter-date-fns";
+import zoomPlugin from "chartjs-plugin-zoom";
 
 Chart.register(
   CategoryScale,
@@ -22,4 +22,4 @@ Chart.register(
   Tooltip,
   Legend,
   zoomPlugin,
-)
+);

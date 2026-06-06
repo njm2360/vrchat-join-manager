@@ -1,21 +1,21 @@
-import { lazy, Suspense, useCallback, useState, type ReactNode } from 'react'
-import type { PlayerDetailCtx } from '@/components/dialogs/PlayerDetailDialog'
-import { PlayerDetailContext } from '@/components/usePlayerDetailDialog'
+import { lazy, Suspense, useCallback, useState, type ReactNode } from "react";
+import type { PlayerDetailCtx } from "@/components/dialogs/PlayerDetailDialog";
+import { PlayerDetailContext } from "@/components/usePlayerDetailDialog";
 
-const PlayerDetailDialog = lazy(() => import('@/components/dialogs/PlayerDetailDialog'))
+const PlayerDetailDialog = lazy(() => import("@/components/dialogs/PlayerDetailDialog"));
 
 export function PlayerDetailProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [ctx, setCtx] = useState<PlayerDetailCtx | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [ctx, setCtx] = useState<PlayerDetailCtx | null>(null);
 
   const open = useCallback((c: PlayerDetailCtx) => {
-    setCtx(c)
-    setIsOpen(true)
-  }, [])
+    setCtx(c);
+    setIsOpen(true);
+  }, []);
 
   const close = useCallback(() => {
-    setIsOpen(false)
-  }, [])
+    setIsOpen(false);
+  }, []);
 
   return (
     <PlayerDetailContext.Provider value={{ open }}>
@@ -26,5 +26,5 @@ export function PlayerDetailProvider({ children }: { children: ReactNode }) {
         </Suspense>
       )}
     </PlayerDetailContext.Provider>
-  )
+  );
 }
