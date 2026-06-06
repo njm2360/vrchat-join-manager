@@ -76,7 +76,7 @@ func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession,
 }
 
 func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
-	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.RestoreRequest{UserIds: userIDs})
+	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.RestoreIn{UserIds: userIDs})
 	if err != nil {
 		return fmt.Errorf("ResumeInstance request: %w", err)
 	}
@@ -88,7 +88,7 @@ func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
 }
 
 func (a *ApiClient) CloseLocation(locationID string, userID string, ts time.Time) {
-	body := gen.CloseLocationRequest{At: ts.UTC()}
+	body := gen.CloseLocationIn{At: ts.UTC()}
 	if userID != "" {
 		body.UserId = &userID
 	}
