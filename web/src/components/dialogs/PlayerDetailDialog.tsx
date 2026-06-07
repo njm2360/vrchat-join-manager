@@ -26,6 +26,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LaunchIcon from "@mui/icons-material/Launch";
 import { useSnackbar } from "notistack";
+import { Link as RouterLink } from "react-router-dom";
 import {
   useInstance,
   usePlayerDetail,
@@ -356,8 +357,8 @@ function OverviewTab({ userId, detail }: { userId: string; detail: PlayerDetailO
           variant="outlined"
           size="small"
           endIcon={<OpenInNewIcon />}
-          component="a"
-          href={`/players/${encodeURIComponent(userId)}`}
+          component={RouterLink}
+          to={`/players/${encodeURIComponent(userId)}`}
           target="_blank"
         >
           月別カレンダーを開く
