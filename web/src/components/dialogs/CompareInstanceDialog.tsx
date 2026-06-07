@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { Link as RouterLink } from "react-router-dom";
 import { api } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
 import { fmtDate } from "@/utils/format";
@@ -71,10 +72,10 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
                 <ListItemButton
                   key={inst.id}
                   className="block!"
-                  onClick={() => {
-                    onClose();
-                    window.open(`/compare/${current.id}/${inst.id}`, "_blank");
-                  }}
+                  component={RouterLink}
+                  to={`/compare/${current.id}/${inst.id}`}
+                  target="_blank"
+                  onClick={onClose}
                 >
                   <Typography variant="body2" className="font-medium truncate">
                     {inst.world_name || inst.world_id}
