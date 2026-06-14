@@ -1,6 +1,6 @@
 import type { SessionOut, TimelinePoint } from "@/api/schemas";
 
-export type Point = { x: Date; y: number };
+export type Point = { x: Date; y: number; displayName?: string | null };
 export type InstColor = "blue" | "red";
 
 export interface Violation {
@@ -20,9 +20,13 @@ const toSec = (d: Date | string | number): number => {
 };
 
 export function buildPoints(data: TimelinePoint[], closedAt: string | null | undefined): Point[] {
-  const pts: Point[] = data.map((d) => ({ x: new Date(d.timestamp), y: d.count }));
+  const pts: Point[] = data.map((d) => ({
+    x: new Date(d.timestamp),
+    y: d.count,
+    displayName: d.display_name,
+  }));
   if (!closedAt && pts.length > 0) {
-    pts.push({ x: new Date(), y: pts[pts.length - 1].y });
+    pts.push({ x: new Date(), y: pts[pts.length - 1].y, displayName: null });
   }
   return pts;
 }

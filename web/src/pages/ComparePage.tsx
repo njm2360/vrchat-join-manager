@@ -341,6 +341,10 @@ function CompareChart({
         callbacks: {
           title: (items) => new Date(items[0].parsed.x ?? 0).toLocaleString("ja-JP"),
           label: (item) => ` ${item.datasetIndex === 0 ? "青" : "赤"}: ${item.parsed.y} 人`,
+          afterLabel: (item) => {
+            const raw = item.dataset.data[item.dataIndex] as unknown as Point;
+            return raw?.displayName ? ` ${raw.displayName}` : "";
+          },
         },
       },
       zoom: {
