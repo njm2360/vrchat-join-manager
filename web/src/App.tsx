@@ -36,7 +36,7 @@ export default function App() {
           }
         />
         <Route
-          path="/compare/:id1/:id2"
+          path="/compare"
           element={
             <Suspense fallback={<PageFallback />}>
               <ComparePage />

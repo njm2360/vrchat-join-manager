@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -70,18 +70,22 @@ const COMMON_X = {
 };
 
 export default function ComparePage() {
-  const { id1: id1Str, id2: id2Str } = useParams<{ id1: string; id2: string }>();
-  const id1 = Number(id1Str);
-  const id2 = Number(id2Str);
+  const [searchParams] = useSearchParams();
+  const ids = useMemo(() => {
+    const parsed = (searchParams.get("ids") ?? "")
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    return [...new Set(parsed)].sort((a, b) => a - b);
+  }, [searchParams]);
+  const valid = ids.length === 2;
+  const [id1, id2] = ids;
 
   const compareRef = useRef<Chart<"line"> | null>(null);
   const diffRef = useRef<Chart<"line"> | null>(null);
   const [verticalX, setVerticalX] = useState<number | null>(null);
   const [grace, setGrace] = useState(15);
   const vSort = useSortState<VSortKey>("join_ts", "asc", "asc");
-
-  const ids = [id1, id2] as const;
-  const valid = ids.every((n) => Number.isFinite(n) && n > 0);
 
   const queries = useQuery({
     queryKey: ["compare", id1, id2],
@@ -133,7 +137,7 @@ export default function ComparePage() {
   if (!valid) {
     return (
       <Alert severity="error" className="m-3">
-        URLパラメータ id1, id2 が必要です。
+        比較するインスタンスID 2件を ?ids=... で指定してください。
       </Alert>
     );
   }

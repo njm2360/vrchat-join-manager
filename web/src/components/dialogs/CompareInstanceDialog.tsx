@@ -66,7 +66,7 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
                 key={inst.id}
                 inst={inst}
                 component={RouterLink}
-                to={`/compare/${current.id}/${inst.id}`}
+                to={`/compare?ids=${[current.id, inst.id].sort((a, b) => a - b).join(",")}`}
                 target="_blank"
                 onClick={onClose}
               />
