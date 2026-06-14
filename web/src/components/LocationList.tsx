@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Button, Chip, List, ListItemButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  FormControlLabel,
+  List,
+  ListItemButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import type { Dayjs } from "dayjs";
 import { api } from "@/api/client";
@@ -17,12 +27,14 @@ interface Props {
 export default function LocationList({ selectedId, onSelect }: Props) {
   const [draft, setDraft] = useState<Range>({ start: null, end: null });
   const [applied, setApplied] = useState<Range>({ start: null, end: null });
+  const [openOnly, setOpenOnly] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: [
       "instances",
       applied.start?.toISOString() ?? null,
       applied.end?.toISOString() ?? null,
+      openOnly,
     ],
     queryFn: async () => {
       const { data, error } = await api.GET("/api/instances", {
@@ -30,6 +42,7 @@ export default function LocationList({ selectedId, onSelect }: Props) {
           query: {
             start: applied.start?.toISOString(),
             end: applied.end?.toISOString(),
+            is_open: openOnly ? true : undefined,
           },
         },
       });
@@ -55,6 +68,16 @@ export default function LocationList({ selectedId, onSelect }: Props) {
             slotProps={{ textField: { size: "small", fullWidth: true } }}
           />
         </Stack>
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={openOnly}
+              onChange={(e) => setOpenOnly(e.target.checked)}
+            />
+          }
+          label="オープン中のみ"
+        />
         <Button variant="contained" color="inherit" size="small" onClick={() => setApplied(draft)}>
           絞り込み
         </Button>
