@@ -1,21 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Chip,
-  FormControlLabel,
-  List,
-  ListItemButton,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Checkbox, FormControlLabel, List, Stack, Typography } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import type { Dayjs } from "dayjs";
 import { api } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
-import { fmtDate, extractInstanceNumber } from "@/utils/format";
+import InstanceListItem from "@/components/InstanceListItem";
 
 type Range = { start: Dayjs | null; end: Dayjs | null };
 
@@ -95,7 +85,7 @@ export default function LocationList({ selectedId, onSelect }: Props) {
         ) : (
           <List disablePadding>
             {data!.map((inst) => (
-              <LocationItem
+              <InstanceListItem
                 key={inst.id}
                 inst={inst}
                 selected={inst.id === selectedId}
@@ -106,40 +96,5 @@ export default function LocationList({ selectedId, onSelect }: Props) {
         )}
       </Box>
     </Box>
-  );
-}
-
-interface ItemProps {
-  inst: InstanceOut;
-  selected: boolean;
-  onClick: () => void;
-}
-
-function LocationItem({ inst, selected, onClick }: ItemProps) {
-  const ongoing = !inst.closed_at;
-  const rangeLabel = ongoing
-    ? `${fmtDate(inst.opened_at)} 〜`
-    : `${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at!)}`;
-
-  return (
-    <ListItemButton selected={selected} onClick={onClick} className="block! py-2!">
-      <Typography variant="body2" color="text.secondary" className="block font-mono">
-        {extractInstanceNumber(inst.location_id) || "—"}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" className="block truncate">
-        {inst.location_id}
-      </Typography>
-      <Stack direction="row" spacing={0.5} className="mt-1" sx={{ alignItems: "center" }}>
-        <Chip
-          size="small"
-          label={rangeLabel}
-          color={ongoing ? "success" : "default"}
-          variant="filled"
-        />
-        {ongoing && inst.user_count > 0 && (
-          <Chip size="small" label={`${inst.user_count}人`} color="warning" />
-        )}
-      </Stack>
-    </ListItemButton>
   );
 }

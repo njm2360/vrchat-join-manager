@@ -25,6 +25,12 @@ export function fmtDuration(sec: number): string {
   return `${h}時間${m}分`;
 }
 
+export function instanceRangeLabel(inst: { opened_at: string; closed_at?: string | null }): string {
+  return inst.closed_at
+    ? `${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}`
+    : `${fmtDate(inst.opened_at)} 〜`;
+}
+
 export function extractInstanceNumber(locationId: string | null | undefined): string {
   const m = String(locationId ?? "").match(/:(\d+)/);
   return m ? m[1] : "";

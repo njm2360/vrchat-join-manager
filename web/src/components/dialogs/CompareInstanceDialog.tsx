@@ -2,21 +2,18 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
-  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
   List,
-  ListItemButton,
-  Stack,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router-dom";
 import { api } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
-import { fmtDate } from "@/utils/format";
+import InstanceListItem from "@/components/InstanceListItem";
 
 interface Props {
   open: boolean;
@@ -64,35 +61,16 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
           </Typography>
         ) : (
           <List disablePadding>
-            {overlapping.map((inst) => {
-              const range = inst.closed_at
-                ? `${fmtDate(inst.opened_at)} 〜 ${fmtDate(inst.closed_at)}`
-                : `${fmtDate(inst.opened_at)} 〜`;
-              return (
-                <ListItemButton
-                  key={inst.id}
-                  className="block!"
-                  component={RouterLink}
-                  to={`/compare/${current.id}/${inst.id}`}
-                  target="_blank"
-                  onClick={onClose}
-                >
-                  <Typography variant="body2" className="font-medium truncate">
-                    {inst.world_name || inst.world_id}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" className="block truncate">
-                    {inst.location_id}
-                  </Typography>
-                  <Stack direction="row" className="mt-1">
-                    <Chip
-                      size="small"
-                      label={range}
-                      color={inst.closed_at ? "default" : "success"}
-                    />
-                  </Stack>
-                </ListItemButton>
-              );
-            })}
+            {overlapping.map((inst) => (
+              <InstanceListItem
+                key={inst.id}
+                inst={inst}
+                component={RouterLink}
+                to={`/compare/${current.id}/${inst.id}`}
+                target="_blank"
+                onClick={onClose}
+              />
+            ))}
           </List>
         )}
       </DialogContent>
