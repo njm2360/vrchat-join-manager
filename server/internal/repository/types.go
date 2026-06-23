@@ -103,6 +103,19 @@ type VisitorRow struct {
 	TotalDurationSeconds int    `db:"total_duration_seconds"`
 }
 
+type InstanceStatsRow struct {
+	EventCount           int            `db:"event_count"`
+	SessionCount         int            `db:"session_count"`
+	VisitorCount         int            `db:"visitor_count"`
+	PresentCount         int            `db:"present_count"`
+	PeakConcurrent       int            `db:"peak_concurrent"`
+	RepeatVisitorCount   int            `db:"repeat_visitor_count"`
+	TotalDurationSeconds int            `db:"total_duration_seconds"`
+	AvgSessionSeconds    int            `db:"avg_session_seconds"`
+	FirstEventAt         sql.NullString `db:"first_event_at"`
+	LastEventAt          sql.NullString `db:"last_event_at"`
+}
+
 type PlayerSessionRow struct {
 	ID               int            `db:"id"`
 	InstanceID       int            `db:"instance_id"`

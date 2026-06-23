@@ -193,6 +193,33 @@ func (s *Server) GetInstanceEvents(ctx context.Context, request gen.GetInstanceE
 	return out, nil
 }
 
+func (s *Server) GetInstanceStats(ctx context.Context, request gen.GetInstanceStatsRequestObject) (gen.GetInstanceStatsResponseObject, error) {
+	r, err := s.Locations.GetInstanceStats(ctx, request.InstanceId)
+	if err != nil {
+		return nil, err
+	}
+	return gen.GetInstanceStats200JSONResponse{
+		EventCount:           r.EventCount,
+		SessionCount:         r.SessionCount,
+		VisitorCount:         r.VisitorCount,
+		PresentCount:         r.PresentCount,
+		PeakConcurrent:       r.PeakConcurrent,
+		RepeatVisitorCount:   r.RepeatVisitorCount,
+		TotalDurationSeconds: r.TotalDurationSeconds,
+		AvgSessionSeconds:    r.AvgSessionSeconds,
+		FirstEventAt:         parseTimeFromNullable(r.FirstEventAt),
+		LastEventAt:          parseTimeFromNullable(r.LastEventAt),
+	}, nil
+}
+
+func (s *Server) GetInstanceDiscordMentions(ctx context.Context, request gen.GetInstanceDiscordMentionsRequestObject) (gen.GetInstanceDiscordMentionsResponseObject, error) {
+	ids, err := s.Locations.GetInstanceDiscordMentions(ctx, request.InstanceId)
+	if err != nil {
+		return nil, err
+	}
+	return gen.GetInstanceDiscordMentions200JSONResponse{DiscordIds: ids}, nil
+}
+
 func (s *Server) GetInstanceSessions(ctx context.Context, request gen.GetInstanceSessionsRequestObject) (gen.GetInstanceSessionsResponseObject, error) {
 	start := timePtrToStrPtr(request.Params.Start)
 	end := timePtrToStrPtr(request.Params.End)

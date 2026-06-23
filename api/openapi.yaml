@@ -352,6 +352,36 @@ paths:
                 items:
                   $ref: '#/components/schemas/VisitorOut'
 
+  /api/instances/{instance_id}/stats:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstanceStats
+      tags: [instances]
+      description: インスタンス単位の集計サマリー(常時表示用)。
+      responses:
+        '200':
+          description: 統計サマリー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceStatsOut'
+
+  /api/instances/{instance_id}/discord-mentions:
+    parameters:
+      - $ref: '#/components/parameters/InstanceIdPath'
+    get:
+      operationId: getInstanceDiscordMentions
+      tags: [instances]
+      description: 在室中プレイヤーのうち Discord ID が登録されている人の ID 一覧。
+      responses:
+        '200':
+          description: Discord メンション用 ID 一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordMentionsOut'
+
   /api/instances/{instance_id}/presence-timeline:
     parameters:
       - $ref: '#/components/parameters/InstanceIdPath'
@@ -818,6 +848,32 @@ components:
         last_seen: { type: string, format: date-time }
         join_count: { type: integer }
         total_duration_seconds: { type: integer }
+
+    InstanceStatsOut:
+      type: object
+      description: インスタンス単位の集計サマリー。
+      required:
+        [event_count, session_count, visitor_count, present_count, peak_concurrent,
+         repeat_visitor_count, total_duration_seconds, avg_session_seconds]
+      properties:
+        event_count: { type: integer, description: 入退場イベント総数 }
+        session_count: { type: integer, description: セッション総数 }
+        visitor_count: { type: integer, description: ユニーク訪問者数 }
+        present_count: { type: integer, description: 現在の在室人数 }
+        peak_concurrent: { type: integer, description: 最大同時接続人数 }
+        repeat_visitor_count: { type: integer, description: 2回以上訪問した人数 }
+        total_duration_seconds: { type: integer, description: 全セッション合計滞在秒 }
+        avg_session_seconds: { type: integer, description: 1セッション平均滞在秒 }
+        first_event_at: { type: string, format: date-time, nullable: true }
+        last_event_at: { type: string, format: date-time, nullable: true }
+
+    DiscordMentionsOut:
+      type: object
+      required: [discord_ids]
+      properties:
+        discord_ids:
+          type: array
+          items: { type: string }
 
     TimelinePoint:
       type: object

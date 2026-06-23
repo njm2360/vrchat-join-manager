@@ -178,6 +178,11 @@ type DailyActiveUsersPoint struct {
 	Day         openapi_types.Date `json:"day"`
 }
 
+// DiscordMentionsOut defines model for DiscordMentionsOut.
+type DiscordMentionsOut struct {
+	DiscordIds []string `json:"discord_ids"`
+}
+
 // EventOut defines model for EventOut.
 type EventOut struct {
 	DisplayName string            `json:"display_name"`
@@ -228,6 +233,35 @@ type InstanceOut struct {
 	UserCount       int        `json:"user_count"`
 	WorldId         string     `json:"world_id"`
 	WorldName       *string    `json:"world_name,omitempty"`
+}
+
+// InstanceStatsOut インスタンス単位の集計サマリー。
+type InstanceStatsOut struct {
+	// AvgSessionSeconds 1セッション平均滞在秒
+	AvgSessionSeconds int `json:"avg_session_seconds"`
+
+	// EventCount 入退場イベント総数
+	EventCount   int        `json:"event_count"`
+	FirstEventAt *time.Time `json:"first_event_at,omitempty"`
+	LastEventAt  *time.Time `json:"last_event_at,omitempty"`
+
+	// PeakConcurrent 最大同時接続人数
+	PeakConcurrent int `json:"peak_concurrent"`
+
+	// PresentCount 現在の在室人数
+	PresentCount int `json:"present_count"`
+
+	// RepeatVisitorCount 2回以上訪問した人数
+	RepeatVisitorCount int `json:"repeat_visitor_count"`
+
+	// SessionCount セッション総数
+	SessionCount int `json:"session_count"`
+
+	// TotalDurationSeconds 全セッション合計滞在秒
+	TotalDurationSeconds int `json:"total_duration_seconds"`
+
+	// VisitorCount ユニーク訪問者数
+	VisitorCount int `json:"visitor_count"`
 }
 
 // JoinViolationRankOut defines model for JoinViolationRankOut.
@@ -618,6 +652,9 @@ type ServerInterface interface {
 	// (GET /api/instances/{instance_id})
 	GetInstance(ctx echo.Context, instanceId InstanceIdPath) error
 
+	// (GET /api/instances/{instance_id}/discord-mentions)
+	GetInstanceDiscordMentions(ctx echo.Context, instanceId InstanceIdPath) error
+
 	// (GET /api/instances/{instance_id}/events)
 	GetInstanceEvents(ctx echo.Context, instanceId InstanceIdPath, params GetInstanceEventsParams) error
 
@@ -632,6 +669,9 @@ type ServerInterface interface {
 
 	// (GET /api/instances/{instance_id}/sessions)
 	GetInstanceSessions(ctx echo.Context, instanceId InstanceIdPath, params GetInstanceSessionsParams) error
+
+	// (GET /api/instances/{instance_id}/stats)
+	GetInstanceStats(ctx echo.Context, instanceId InstanceIdPath) error
 
 	// (GET /api/instances/{instance_id}/visitors)
 	GetInstanceVisitors(ctx echo.Context, instanceId InstanceIdPath, params GetInstanceVisitorsParams) error
@@ -1066,6 +1106,22 @@ func (w *ServerInterfaceWrapper) GetInstance(ctx echo.Context) error {
 	return err
 }
 
+// GetInstanceDiscordMentions converts echo context to params.
+func (w *ServerInterfaceWrapper) GetInstanceDiscordMentions(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instance_id" -------------
+	var instanceId InstanceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instance_id", ctx.Param("instance_id"), &instanceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instance_id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetInstanceDiscordMentions(ctx, instanceId)
+	return err
+}
+
 // GetInstanceEvents converts echo context to params.
 func (w *ServerInterfaceWrapper) GetInstanceEvents(ctx echo.Context) error {
 	var err error
@@ -1265,6 +1321,22 @@ func (w *ServerInterfaceWrapper) GetInstanceSessions(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetInstanceSessions(ctx, instanceId, params)
+	return err
+}
+
+// GetInstanceStats converts echo context to params.
+func (w *ServerInterfaceWrapper) GetInstanceStats(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instance_id" -------------
+	var instanceId InstanceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instance_id", ctx.Param("instance_id"), &instanceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instance_id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetInstanceStats(ctx, instanceId)
 	return err
 }
 
@@ -1703,11 +1775,13 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/api/instances", wrapper.ListInstances, options.OperationMiddlewares["listInstances"]...)
 	router.DELETE(options.BaseURL+"/api/instances/:instance_id", wrapper.DeleteInstance, options.OperationMiddlewares["deleteInstance"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id", wrapper.GetInstance, options.OperationMiddlewares["getInstance"]...)
+	router.GET(options.BaseURL+"/api/instances/:instance_id/discord-mentions", wrapper.GetInstanceDiscordMentions, options.OperationMiddlewares["getInstanceDiscordMentions"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/events", wrapper.GetInstanceEvents, options.OperationMiddlewares["getInstanceEvents"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/players", wrapper.GetInstancePlayers, options.OperationMiddlewares["getInstancePlayers"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/presence", wrapper.GetInstancePresence, options.OperationMiddlewares["getInstancePresence"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/presence-timeline", wrapper.GetInstancePresenceTimeline, options.OperationMiddlewares["getInstancePresenceTimeline"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/sessions", wrapper.GetInstanceSessions, options.OperationMiddlewares["getInstanceSessions"]...)
+	router.GET(options.BaseURL+"/api/instances/:instance_id/stats", wrapper.GetInstanceStats, options.OperationMiddlewares["getInstanceStats"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/visitors", wrapper.GetInstanceVisitors, options.OperationMiddlewares["getInstanceVisitors"]...)
 	router.POST(options.BaseURL+"/api/locations/:location_id/close", wrapper.CloseLocation, options.OperationMiddlewares["closeLocation"]...)
 	router.GET(options.BaseURL+"/api/locations/:location_id/potential-sessions", wrapper.GetPotentialSessions, options.OperationMiddlewares["getPotentialSessions"]...)
@@ -1974,6 +2048,28 @@ func (response GetInstance404Response) VisitGetInstanceResponse(w http.ResponseW
 	return nil
 }
 
+type GetInstanceDiscordMentionsRequestObject struct {
+	InstanceId InstanceIdPath `json:"instance_id"`
+}
+
+type GetInstanceDiscordMentionsResponseObject interface {
+	VisitGetInstanceDiscordMentionsResponse(w http.ResponseWriter) error
+}
+
+type GetInstanceDiscordMentions200JSONResponse DiscordMentionsOut
+
+func (response GetInstanceDiscordMentions200JSONResponse) VisitGetInstanceDiscordMentionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetInstanceEventsRequestObject struct {
 	InstanceId InstanceIdPath `json:"instance_id"`
 	Params     GetInstanceEventsParams
@@ -2078,6 +2174,28 @@ type GetInstanceSessionsResponseObject interface {
 type GetInstanceSessions200JSONResponse []SessionOut
 
 func (response GetInstanceSessions200JSONResponse) VisitGetInstanceSessionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstanceStatsRequestObject struct {
+	InstanceId InstanceIdPath `json:"instance_id"`
+}
+
+type GetInstanceStatsResponseObject interface {
+	VisitGetInstanceStatsResponse(w http.ResponseWriter) error
+}
+
+type GetInstanceStats200JSONResponse InstanceStatsOut
+
+func (response GetInstanceStats200JSONResponse) VisitGetInstanceStatsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -2406,6 +2524,9 @@ type StrictServerInterface interface {
 	// (GET /api/instances/{instance_id})
 	GetInstance(ctx context.Context, request GetInstanceRequestObject) (GetInstanceResponseObject, error)
 
+	// (GET /api/instances/{instance_id}/discord-mentions)
+	GetInstanceDiscordMentions(ctx context.Context, request GetInstanceDiscordMentionsRequestObject) (GetInstanceDiscordMentionsResponseObject, error)
+
 	// (GET /api/instances/{instance_id}/events)
 	GetInstanceEvents(ctx context.Context, request GetInstanceEventsRequestObject) (GetInstanceEventsResponseObject, error)
 
@@ -2420,6 +2541,9 @@ type StrictServerInterface interface {
 
 	// (GET /api/instances/{instance_id}/sessions)
 	GetInstanceSessions(ctx context.Context, request GetInstanceSessionsRequestObject) (GetInstanceSessionsResponseObject, error)
+
+	// (GET /api/instances/{instance_id}/stats)
+	GetInstanceStats(ctx context.Context, request GetInstanceStatsRequestObject) (GetInstanceStatsResponseObject, error)
 
 	// (GET /api/instances/{instance_id}/visitors)
 	GetInstanceVisitors(ctx context.Context, request GetInstanceVisitorsRequestObject) (GetInstanceVisitorsResponseObject, error)
@@ -2755,6 +2879,31 @@ func (sh *strictHandler) GetInstance(ctx echo.Context, instanceId InstanceIdPath
 	return nil
 }
 
+// GetInstanceDiscordMentions operation middleware
+func (sh *strictHandler) GetInstanceDiscordMentions(ctx echo.Context, instanceId InstanceIdPath) error {
+	var request GetInstanceDiscordMentionsRequestObject
+
+	request.InstanceId = instanceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstanceDiscordMentions(ctx.Request().Context(), request.(GetInstanceDiscordMentionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstanceDiscordMentions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetInstanceDiscordMentionsResponseObject); ok {
+		return validResponse.VisitGetInstanceDiscordMentionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetInstanceEvents operation middleware
 func (sh *strictHandler) GetInstanceEvents(ctx echo.Context, instanceId InstanceIdPath, params GetInstanceEventsParams) error {
 	var request GetInstanceEventsRequestObject
@@ -2879,6 +3028,31 @@ func (sh *strictHandler) GetInstanceSessions(ctx echo.Context, instanceId Instan
 		return err
 	} else if validResponse, ok := response.(GetInstanceSessionsResponseObject); ok {
 		return validResponse.VisitGetInstanceSessionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetInstanceStats operation middleware
+func (sh *strictHandler) GetInstanceStats(ctx echo.Context, instanceId InstanceIdPath) error {
+	var request GetInstanceStatsRequestObject
+
+	request.InstanceId = instanceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstanceStats(ctx.Request().Context(), request.(GetInstanceStatsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstanceStats")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetInstanceStatsResponseObject); ok {
+		return validResponse.VisitGetInstanceStatsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -3217,59 +3391,66 @@ func (sh *strictHandler) RenameWorld(ctx echo.Context, worldId string) error {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"AP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

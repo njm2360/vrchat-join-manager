@@ -335,3 +335,63 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 	}
 	return rows, nil
 }
+
+// GetInstanceStats returns instance-level aggregate counters in a single round
+// trip. Every sub-aggregate is an index-bounded scan over one instance's rows
+// (events / sessions are indexed by instance_id), so it stays light. The
+// heaviest piece is peak_concurrent, computed as the running max of a join(+1)
+// / leave(-1) delta stream over that instance's sessions.
+func (r *LocationsRepo) GetInstanceStats(ctx context.Context, instanceID int) (*InstanceStatsRow, error) {
+	const dur = `COALESCE(duration_seconds, CAST(ROUND((julianday('now')-julianday(join_ts))*86400) AS INTEGER))`
+	q := `
+		SELECT
+		  (SELECT COUNT(*) FROM events   WHERE instance_id = :id)                       AS event_count,
+		  (SELECT MIN(timestamp) FROM events WHERE instance_id = :id)                   AS first_event_at,
+		  (SELECT MAX(timestamp) FROM events WHERE instance_id = :id)                   AS last_event_at,
+		  (SELECT COUNT(*) FROM sessions WHERE instance_id = :id)                       AS session_count,
+		  (SELECT COUNT(DISTINCT user_id) FROM sessions WHERE instance_id = :id)        AS visitor_count,
+		  (SELECT COUNT(*) FROM sessions WHERE instance_id = :id AND leave_ts IS NULL)  AS present_count,
+		  (SELECT COUNT(*) FROM (
+		      SELECT 1 FROM sessions WHERE instance_id = :id GROUP BY user_id HAVING COUNT(*) > 1
+		   ))                                                                           AS repeat_visitor_count,
+		  (SELECT COALESCE(SUM(d),0)                FROM (SELECT ` + dur + ` AS d FROM sessions WHERE instance_id = :id)) AS total_duration_seconds,
+		  (SELECT COALESCE(CAST(ROUND(AVG(d)) AS INTEGER),0) FROM (SELECT ` + dur + ` AS d FROM sessions WHERE instance_id = :id)) AS avg_session_seconds,
+		  (SELECT COALESCE(MAX(run),0) FROM (
+		      SELECT SUM(delta) OVER (ORDER BY ts, delta DESC) AS run FROM (
+		          SELECT join_ts  AS ts, 1  AS delta FROM sessions WHERE instance_id = :id
+		          UNION ALL
+		          SELECT leave_ts AS ts, -1 AS delta FROM sessions WHERE instance_id = :id AND leave_ts IS NOT NULL
+		      )
+		   ))                                                                           AS peak_concurrent`
+
+	stmt, err := r.DB.PrepareNamedContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	var row InstanceStatsRow
+	if err := stmt.GetContext(ctx, &row, map[string]interface{}{"id": instanceID}); err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
+// GetInstanceDiscordMentions returns the Discord IDs of currently-present
+// players (open sessions) that have a registered Discord ID. One open session
+// per user is guaranteed by uq_sessions_open, so the result has no duplicates.
+func (r *LocationsRepo) GetInstanceDiscordMentions(ctx context.Context, instanceID int) ([]string, error) {
+	q := `
+		SELECT pd.discord_id
+		FROM sessions s
+		JOIN player_discord pd ON pd.user_id = s.user_id
+		WHERE s.instance_id = ?
+		  AND s.leave_ts IS NULL
+		  AND pd.discord_id IS NOT NULL
+		  AND pd.discord_id <> ''
+		ORDER BY s.internal_id`
+	ids := []string{}
+	if err := r.DB.SelectContext(ctx, &ids, q, instanceID); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
