@@ -19,6 +19,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import DeleteIcon from "@mui/icons-material/Delete";
 import type { InstanceOut } from "@/api/schemas";
 import InstanceInfo from "@/components/InstanceInfo";
+import InstanceStatsPanel from "@/components/InstanceStatsPanel";
 import TimelineTab from "@/components/tabs/TimelineTab";
 import EventsTab from "@/components/tabs/EventsTab";
 import SessionsTab from "@/components/tabs/SessionsTab";
@@ -131,6 +132,7 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
             "& .MuiCardHeader-content": { minWidth: 0, overflow: "hidden" },
           }}
         />
+        <InstanceStatsPanel instanceId={instanceId} />
         <Box className="border-b border-neutral-200" sx={{ px: 2 }}>
           <Tabs
             value={tab}

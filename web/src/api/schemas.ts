@@ -11,3 +11,4 @@ export type PlayerOut = Schemas["PlayerOut"];
 export type PlayerDetailOut = Schemas["PlayerDetailOut"];
 export type EventOut = Schemas["EventOut"];
 export type TimelinePoint = Schemas["TimelinePoint"];
+export type InstanceStatsOut = Schemas["InstanceStatsOut"];

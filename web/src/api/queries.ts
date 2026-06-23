@@ -33,7 +33,6 @@ export function useSetPlayerDiscord(userId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["player", userId] });
-      // セッション系の応答にも discord_id が乗っているので合わせて無効化
       qc.invalidateQueries({ queryKey: ["players"] });
       qc.invalidateQueries({ queryKey: ["sessions"] });
     },
@@ -66,6 +65,29 @@ export function useInstance(id: number | null, options?: { enabled?: boolean }) 
       return data;
     },
   });
+}
+
+export function useInstanceStats(id: number | null) {
+  return useQuery<InstanceStatsOut>({
+    queryKey: ["instance-stats", id],
+    enabled: id != null,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/instances/{instance_id}/stats", {
+        params: { path: { instance_id: id! } },
+      });
+      if (error || !data) throw new Error("failed to load instance stats");
+      return data;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+export async function fetchInstanceDiscordMentions(id: number): Promise<string[]> {
+  const { data, error } = await api.GET("/api/instances/{instance_id}/discord-mentions", {
+    params: { path: { instance_id: id } },
+  });
+  if (error || !data) throw new Error("failed to load discord mentions");
+  return data.discord_ids;
 }
 
 export function useTimeline(id: number | null, range: { start?: string; end?: string }) {

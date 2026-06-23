@@ -1,7 +1,5 @@
-import { useMemo } from "react";
 import {
   Box,
-  Button,
   Stack,
   Table,
   TableBody,
@@ -11,12 +9,9 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-  Typography,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import { usePlayers } from "@/api/queries";
 import { fmtDateFull } from "@/utils/format";
-import { copyText } from "@/utils/clipboard";
 import PlayerLink from "@/components/PlayerLink";
 import TablePlaceholderRow from "@/components/TablePlaceholderRow";
 import { useSortState } from "@/hooks/useSortState";
@@ -34,53 +29,11 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: "right" }[
 
 export default function PlayersTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>("internal_id", "asc", "asc");
-  const { enqueueSnackbar } = useSnackbar();
 
-  const {
-    data: players = [],
-    refetch,
-    isLoading,
-  } = usePlayers(instanceId, {
-    sort_by: sortBy,
-    order,
-  });
-
-  const mentionText = useMemo(
-    () =>
-      players
-        .filter((p) => p.discord_id)
-        .map((p) => `@${p.discord_id}`)
-        .join(" ") + " ",
-    [players],
-  );
-
-  const copyDiscord = async () => {
-    const count = players.filter((p) => p.discord_id).length;
-    if (count === 0) {
-      enqueueSnackbar("Discord IDが登録されているプレイヤーがいません", { variant: "info" });
-      return;
-    }
-    try {
-      await copyText(mentionText);
-      enqueueSnackbar(`${count}人分のDiscord IDをコピーしました`, { variant: "success" });
-    } catch {
-      enqueueSnackbar("クリップボードへのコピーに失敗しました", { variant: "error" });
-    }
-  };
+  const { data: players = [], isLoading } = usePlayers(instanceId, { sort_by: sortBy, order });
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
-        <Button variant="contained" size="small" onClick={() => refetch()}>
-          更新
-        </Button>
-        <Button variant="outlined" size="small" onClick={copyDiscord}>
-          全員のDiscord IDをコピー
-        </Button>
-        <Typography variant="h6" className="font-bold">
-          {players.length} 人
-        </Typography>
-      </Stack>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small" stickyHeader>
           <TableHead>
