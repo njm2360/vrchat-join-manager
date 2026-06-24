@@ -48,10 +48,6 @@ export default function PlayerPage() {
   };
 
   useEffect(() => {
-    document.title = `${displayName} — セッション履歴`;
-  }, [displayName]);
-
-  useEffect(() => {
     if (params.get("year") && params.get("month")) return;
     setParams(
       (prev) => {
@@ -83,6 +79,7 @@ export default function PlayerPage() {
 
   return (
     <Box className="h-full overflow-auto p-3">
+      <title>{`${displayName} — セッション履歴`}</title>
       <Card className="max-w-[960px] mx-auto">
         <CardHeader
           title={

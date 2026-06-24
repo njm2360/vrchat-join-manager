@@ -18,13 +18,13 @@ export function PlayerDetailProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <PlayerDetailContext.Provider value={{ open }}>
+    <PlayerDetailContext value={{ open }}>
       {children}
       {ctx && (
         <Suspense fallback={null}>
           <PlayerDetailDialog open={isOpen} onClose={close} ctx={ctx} />
         </Suspense>
       )}
-    </PlayerDetailContext.Provider>
+    </PlayerDetailContext>
   );
 }

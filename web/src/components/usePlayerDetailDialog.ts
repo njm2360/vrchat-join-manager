@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
 import type { PlayerDetailCtx } from "@/components/dialogs/PlayerDetailDialog";
 
 export interface PlayerDetailContextValue {
@@ -8,7 +8,7 @@ export interface PlayerDetailContextValue {
 export const PlayerDetailContext = createContext<PlayerDetailContextValue | null>(null);
 
 export function usePlayerDetailDialog() {
-  const value = useContext(PlayerDetailContext);
+  const value = use(PlayerDetailContext);
   if (!value) throw new Error("PlayerDetailProvider が必要です");
   return value;
 }
