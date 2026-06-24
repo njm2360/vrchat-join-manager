@@ -4,10 +4,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 )
+
+var baseTagRe = regexp.MustCompile(`<base\b[^>]*>`)
 
 type StaticHandler struct {
 	frontendDir string
@@ -42,12 +45,15 @@ func (h *StaticHandler) serveIndex(c echo.Context) error {
 }
 
 func injectBaseHref(html, baseHref string) string {
+	tag := `<base href="` + baseHref + `" />`
+	if baseTagRe.MatchString(html) {
+		return baseTagRe.ReplaceAllLiteralString(html, tag)
+	}
 	const headTag = "<head>"
 	i := strings.Index(html, headTag)
 	if i == -1 {
 		return html
 	}
-	tag := "\n    <base href=\"" + baseHref + "\" />"
 	pos := i + len(headTag)
-	return html[:pos] + tag + html[pos:]
+	return html[:pos] + "\n    " + tag + html[pos:]
 }
