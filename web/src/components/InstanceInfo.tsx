@@ -1,6 +1,9 @@
-import { Chip, Stack, Typography } from "@mui/material";
+import { Chip, IconButton, Stack, Typography } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useSnackbar } from "notistack";
 import type { InstanceOut } from "@/api/schemas";
 import { fmtDate, extractInstanceNumber } from "@/utils/format";
+import { copyText } from "@/utils/clipboard";
 
 function accessLabel(inst: InstanceOut): string {
   if (inst.group_id) {
@@ -21,6 +24,16 @@ interface Props {
 }
 
 export default function InstanceInfo({ instance, dense }: Props) {
+  const { enqueueSnackbar } = useSnackbar();
+  const copyLocationId = async () => {
+    try {
+      await copyText(instance.location_id);
+      enqueueSnackbar("Location IDをコピーしました", { variant: "success" });
+    } catch {
+      enqueueSnackbar("クリップボードへのコピーに失敗しました", { variant: "error" });
+    }
+  };
+
   const ongoing = !instance.closed_at;
   const rangeLabel = ongoing
     ? `${fmtDate(instance.opened_at)} 〜`
@@ -68,19 +81,30 @@ export default function InstanceInfo({ instance, dense }: Props) {
           <Chip size="small" color="warning" label={`${instance.user_count}人`} />
         )}
       </Stack>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        className="font-mono"
-        title={instance.location_id}
-        sx={{
-          whiteSpace: "nowrap",
-          overflowX: "auto",
-          display: "block",
-        }}
-      >
-        {instance.location_id}
-      </Typography>
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", minWidth: 0 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          className="font-mono"
+          title={instance.location_id}
+          sx={{
+            whiteSpace: "nowrap",
+            overflowX: "auto",
+            display: "block",
+            minWidth: 0,
+          }}
+        >
+          {instance.location_id}
+        </Typography>
+        <IconButton
+          size="small"
+          onClick={copyLocationId}
+          title="Location IDをコピー"
+          sx={{ flexShrink: 0 }}
+        >
+          <ContentCopyIcon fontSize="inherit" />
+        </IconButton>
+      </Stack>
     </Stack>
   );
 }
