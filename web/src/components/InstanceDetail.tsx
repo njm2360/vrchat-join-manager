@@ -17,6 +17,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import LockIcon from "@mui/icons-material/Lock";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useSnackbar } from "notistack";
+import { fetchInstanceDiscordMentions } from "@/api/queries";
+import { copyText } from "@/utils/clipboard";
 import type { InstanceOut } from "@/api/schemas";
 import InstanceInfo from "@/components/InstanceInfo";
 import InstanceStatsPanel from "@/components/InstanceStatsPanel";
@@ -73,6 +77,21 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(menuAnchor);
   const closeMenu = () => setMenuAnchor(null);
+  const { enqueueSnackbar } = useSnackbar();
+
+  const copyDiscordMentions = async () => {
+    try {
+      const ids = await fetchInstanceDiscordMentions(instanceId);
+      if (ids.length === 0) {
+        enqueueSnackbar("Discord IDが登録されているプレイヤーがいません", { variant: "info" });
+        return;
+      }
+      await copyText(ids.map((id) => `@${id}`).join(" ") + " ");
+      enqueueSnackbar(`${ids.length}人分のDiscord IDをコピーしました`, { variant: "success" });
+    } catch {
+      enqueueSnackbar("コピーに失敗しました", { variant: "error" });
+    }
+  };
 
   const actionMenu = instance && (
     <>
@@ -84,6 +103,17 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
         <MoreVertIcon />
       </IconButton>
       <Menu anchorEl={menuAnchor} open={menuOpen} onClose={closeMenu}>
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            copyDiscordMentions();
+          }}
+        >
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>在室者のDiscord IDをコピー</ListItemText>
+        </MenuItem>
         {!instance.closed_at && (
           <MenuItem
             onClick={() => {
