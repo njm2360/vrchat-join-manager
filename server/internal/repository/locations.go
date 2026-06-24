@@ -103,7 +103,7 @@ func (r *LocationsRepo) GetInstance(ctx context.Context, instanceID int) (*Insta
 
 func (r *LocationsRepo) GetPresence(ctx context.Context, instanceID int, at string) ([]SessionRow, error) {
 	q := `
-		SELECT s.id, s.instance_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
+		SELECT s.id, s.instance_id, s.internal_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
 		       COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       ) AS duration_seconds,
@@ -294,6 +294,7 @@ func (r *LocationsRepo) GetLocationEvents(ctx context.Context, instanceID int, s
 
 func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int, start, end *string, sortBy, order string, limit *int, offset int) ([]SessionRow, error) {
 	sortCol := pickSortColumn(sortBy, map[string]string{
+		"internal_id":      "s.internal_id",
 		"display_name":     "p.display_name",
 		"join_ts":          "s.join_ts",
 		"leave_ts":         "s.leave_ts",
@@ -312,7 +313,7 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 	where := strings.Join(conditions, " AND ")
 
 	q := `
-		SELECT s.id, s.instance_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
+		SELECT s.id, s.instance_id, s.internal_id, s.user_id, p.display_name, pd.discord_id, s.join_ts, s.leave_ts,
 		       COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       ) AS duration_seconds,

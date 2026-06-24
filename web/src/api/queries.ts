@@ -19,7 +19,12 @@ import type {
 } from "@/api/schemas";
 
 type Order = "asc" | "desc";
-export type SessionSortKey = "display_name" | "join_ts" | "leave_ts" | "duration_seconds";
+export type SessionSortKey =
+  | "internal_id"
+  | "display_name"
+  | "join_ts"
+  | "leave_ts"
+  | "duration_seconds";
 export type PlayerSortKey = "internal_id" | "display_name" | "join_ts";
 export type VisitorSortKey =
   | "display_name"

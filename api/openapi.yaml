@@ -440,7 +440,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [display_name, join_ts, leave_ts, duration_seconds]
+            enum: [internal_id, display_name, join_ts, leave_ts, duration_seconds]
             default: join_ts
         - $ref: '#/components/parameters/OrderAscQuery'
         - $ref: '#/components/parameters/LimitQuery'
@@ -886,10 +886,11 @@ components:
 
     SessionOut:
       type: object
-      required: [id, instance_id, user_id, display_name, join_ts, is_estimated_leave]
+      required: [id, instance_id, internal_id, user_id, display_name, join_ts, is_estimated_leave]
       properties:
         id: { type: integer }
         instance_id: { type: integer }
+        internal_id: { type: integer }
         user_id: { type: string }
         display_name: { type: string }
         discord_id: { type: string, nullable: true }

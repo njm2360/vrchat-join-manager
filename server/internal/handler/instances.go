@@ -31,6 +31,7 @@ func sessionRowToOut(r repository.SessionRow) gen.SessionOut {
 	return gen.SessionOut{
 		Id:               r.ID,
 		InstanceId:       r.InstanceID,
+		InternalId:       r.InternalID,
 		UserId:           r.UserID,
 		DisplayName:      r.DisplayName,
 		DiscordId:        strPtr(r.DiscordID),

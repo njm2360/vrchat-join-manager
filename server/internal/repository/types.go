@@ -76,6 +76,7 @@ type InstanceRow struct {
 type SessionRow struct {
 	ID               int            `db:"id"`
 	InstanceID       int            `db:"instance_id"`
+	InternalID       int            `db:"internal_id"`
 	UserID           string         `db:"user_id"`
 	DisplayName      string         `db:"display_name"`
 	DiscordID        sql.NullString `db:"discord_id"`

@@ -26,9 +26,10 @@ interface Props {
   instanceId: number;
 }
 
-type SortKey = "display_name" | "join_ts" | "leave_ts" | "duration_seconds";
+type SortKey = "internal_id" | "display_name" | "join_ts" | "leave_ts" | "duration_seconds";
 
 const COLUMNS: { key: SortKey; label: string; width?: number; align?: "right" }[] = [
+  { key: "internal_id", label: "ID", width: 64, align: "right" },
   { key: "display_name", label: "名前" },
   { key: "join_ts", label: "入室", width: 160 },
   { key: "leave_ts", label: "退室", width: 160 },
@@ -93,6 +94,9 @@ export default function SessionsTab({ instanceId }: Props) {
                   const s = sessions[vi.index];
                   return (
                     <TableRow key={s.id} hover ref={measureElement} data-index={vi.index}>
+                      <TableCell align="right" className="text-neutral-500">
+                        {s.internal_id}
+                      </TableCell>
                       <TableCell className="truncate max-w-[200px]">
                         <PlayerLink
                           userId={s.user_id}
