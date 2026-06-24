@@ -1,5 +1,7 @@
 import { useState } from "react";
 import {
+  Box,
+  CircularProgress,
   Stack,
   Table,
   TableBody,
@@ -10,12 +12,14 @@ import {
   TableSortLabel,
   Paper,
 } from "@mui/material";
-import { useSessions } from "@/api/queries";
+import { useSessionsInfinite } from "@/api/queries";
 import { fmtDateFull, fmtDuration } from "@/utils/format";
+import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import PlayerLink from "@/components/PlayerLink";
 import LeaveCell from "@/components/LeaveCell";
 import TablePlaceholderRow from "@/components/TablePlaceholderRow";
+import VirtualPaddingRow from "@/components/VirtualPaddingRow";
 import { useSortState } from "@/hooks/useSortState";
 
 interface Props {
@@ -35,16 +39,25 @@ export default function SessionsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>("leave_ts", "asc");
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({});
 
-  const { data: sessions = [], isLoading } = useSessions(instanceId, {
-    sort_by: sortBy,
-    order,
-    ...applied,
-  });
+  const query = useSessionsInfinite(instanceId, { sort_by: sortBy, order, ...applied });
+  const {
+    items: sessions,
+    scrollRef,
+    virtualItems,
+    paddingTop,
+    paddingBottom,
+    measureElement,
+  } = useInfiniteTable(query);
 
   return (
     <Stack spacing={2}>
       <DateRangeFilter onApply={setApplied} />
-      <TableContainer component={Paper} variant="outlined" className="max-h-[520px]">
+      <TableContainer
+        ref={scrollRef}
+        component={Paper}
+        variant="outlined"
+        className="max-h-[520px]"
+      >
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
@@ -70,32 +83,44 @@ export default function SessionsTab({ instanceId }: Props) {
             {sessions.length === 0 ? (
               <TablePlaceholderRow
                 colSpan={COLUMNS.length}
-                loading={isLoading}
+                loading={query.isLoading}
                 emptyText="データなし"
               />
             ) : (
-              sessions.map((s) => (
-                <TableRow key={s.id} hover>
-                  <TableCell className="truncate max-w-[200px]">
-                    <PlayerLink
-                      userId={s.user_id}
-                      displayName={s.display_name}
-                      instanceId={instanceId}
-                    />
-                  </TableCell>
-                  <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
-                  <TableCell>
-                    <LeaveCell s={s} />
-                  </TableCell>
-                  <TableCell align="right">
-                    {s.duration_seconds != null ? fmtDuration(s.duration_seconds) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))
+              <>
+                <VirtualPaddingRow height={paddingTop} colSpan={COLUMNS.length} />
+                {virtualItems.map((vi) => {
+                  const s = sessions[vi.index];
+                  return (
+                    <TableRow key={s.id} hover ref={measureElement} data-index={vi.index}>
+                      <TableCell className="truncate max-w-[200px]">
+                        <PlayerLink
+                          userId={s.user_id}
+                          displayName={s.display_name}
+                          instanceId={instanceId}
+                        />
+                      </TableCell>
+                      <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
+                      <TableCell>
+                        <LeaveCell s={s} />
+                      </TableCell>
+                      <TableCell align="right">
+                        {s.duration_seconds != null ? fmtDuration(s.duration_seconds) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <VirtualPaddingRow height={paddingBottom} colSpan={COLUMNS.length} />
+              </>
             )}
           </TableBody>
         </Table>
       </TableContainer>
+      {query.isFetchingNextPage && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+          <CircularProgress size={20} />
+        </Box>
+      )}
     </Stack>
   );
 }

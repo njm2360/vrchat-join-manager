@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
+  Box,
   Chip,
+  CircularProgress,
   Stack,
   Table,
   TableBody,
@@ -11,11 +13,13 @@ import {
   TableSortLabel,
   Paper,
 } from "@mui/material";
-import { useEvents } from "@/api/queries";
+import { useEventsInfinite } from "@/api/queries";
 import { fmtDateFull } from "@/utils/format";
+import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import PlayerLink from "@/components/PlayerLink";
 import TablePlaceholderRow from "@/components/TablePlaceholderRow";
+import VirtualPaddingRow from "@/components/VirtualPaddingRow";
 
 interface Props {
   instanceId: number;
@@ -25,12 +29,25 @@ export default function EventsTab({ instanceId }: Props) {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [applied, setApplied] = useState<{ start?: string; end?: string }>({});
 
-  const { data: events = [], isLoading } = useEvents(instanceId, { order, ...applied });
+  const query = useEventsInfinite(instanceId, { order, ...applied });
+  const {
+    items: events,
+    scrollRef,
+    virtualItems,
+    paddingTop,
+    paddingBottom,
+    measureElement,
+  } = useInfiniteTable(query);
 
   return (
     <Stack spacing={2}>
       <DateRangeFilter onApply={setApplied} />
-      <TableContainer component={Paper} variant="outlined" className="max-h-[520px]">
+      <TableContainer
+        ref={scrollRef}
+        component={Paper}
+        variant="outlined"
+        className="max-h-[520px]"
+      >
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
@@ -49,32 +66,44 @@ export default function EventsTab({ instanceId }: Props) {
           </TableHead>
           <TableBody>
             {events.length === 0 ? (
-              <TablePlaceholderRow colSpan={3} loading={isLoading} emptyText="データなし" />
+              <TablePlaceholderRow colSpan={3} loading={query.isLoading} emptyText="データなし" />
             ) : (
-              events.map((ev) => (
-                <TableRow key={ev.id} hover>
-                  <TableCell>{fmtDateFull(ev.timestamp)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={ev.event_type === "join" ? "JOIN" : "LEAVE"}
-                      color={ev.event_type === "join" ? "success" : "error"}
-                      className="w-[72px]"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <PlayerLink
-                      userId={ev.user_id}
-                      displayName={ev.display_name}
-                      instanceId={instanceId}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
+              <>
+                <VirtualPaddingRow height={paddingTop} colSpan={3} />
+                {virtualItems.map((vi) => {
+                  const ev = events[vi.index];
+                  return (
+                    <TableRow key={ev.id} hover ref={measureElement} data-index={vi.index}>
+                      <TableCell>{fmtDateFull(ev.timestamp)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={ev.event_type === "join" ? "JOIN" : "LEAVE"}
+                          color={ev.event_type === "join" ? "success" : "error"}
+                          className="w-[72px]"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <PlayerLink
+                          userId={ev.user_id}
+                          displayName={ev.display_name}
+                          instanceId={instanceId}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <VirtualPaddingRow height={paddingBottom} colSpan={3} />
+              </>
             )}
           </TableBody>
         </Table>
       </TableContainer>
+      {query.isFetchingNextPage && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+          <CircularProgress size={20} />
+        </Box>
+      )}
     </Stack>
   );
 }

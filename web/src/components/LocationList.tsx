@@ -1,13 +1,23 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Box, Button, Checkbox, FormControlLabel, List, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  FormControlLabel,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import type { Dayjs } from "dayjs";
-import { api } from "@/api/client";
+import { useInstancesInfinite } from "@/api/queries";
+import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import type { InstanceOut } from "@/api/schemas";
 import InstanceListItem from "@/components/InstanceListItem";
 
 type Range = { start: Dayjs | null; end: Dayjs | null };
+
+const ROW_HEIGHT = 88; // InstanceListItem の概算高さ
 
 interface Props {
   selectedId: number | null;
@@ -19,27 +29,13 @@ export default function LocationList({ selectedId, onSelect }: Props) {
   const [applied, setApplied] = useState<Range>({ start: null, end: null });
   const [openOnly, setOpenOnly] = useState(true);
 
-  const { data, isLoading } = useQuery({
-    queryKey: [
-      "instances",
-      applied.start?.toISOString() ?? null,
-      applied.end?.toISOString() ?? null,
-      openOnly,
-    ],
-    queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances", {
-        params: {
-          query: {
-            start: applied.start?.toISOString(),
-            end: applied.end?.toISOString(),
-            is_open: openOnly ? true : undefined,
-          },
-        },
-      });
-      if (error) throw new Error("failed to load instances");
-      return data ?? [];
-    },
+  const query = useInstancesInfinite({
+    start: applied.start?.toISOString(),
+    end: applied.end?.toISOString(),
+    isOpen: openOnly,
   });
+  const { items, scrollRef, virtualItems, paddingTop, paddingBottom, measureElement } =
+    useInfiniteTable(query, ROW_HEIGHT);
 
   return (
     <Box className="flex flex-col h-full bg-neutral-50 border-r border-neutral-200">
@@ -73,26 +69,33 @@ export default function LocationList({ selectedId, onSelect }: Props) {
         </Button>
       </Stack>
 
-      <Box className="flex-1 min-h-0 overflow-y-auto">
-        {isLoading ? (
+      <Box ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+        {items.length === 0 ? (
           <Typography variant="body2" color="text.secondary" className="p-3">
-            読み込み中...
-          </Typography>
-        ) : (data?.length ?? 0) === 0 ? (
-          <Typography variant="body2" color="text.secondary" className="p-3">
-            該当なし
+            {query.isLoading ? "読み込み中..." : "該当なし"}
           </Typography>
         ) : (
-          <List disablePadding>
-            {data!.map((inst) => (
-              <InstanceListItem
-                key={inst.id}
-                inst={inst}
-                selected={inst.id === selectedId}
-                onClick={() => onSelect(inst)}
-              />
-            ))}
-          </List>
+          <>
+            <div style={{ height: paddingTop }} />
+            {virtualItems.map((vi) => {
+              const inst = items[vi.index];
+              return (
+                <div key={inst.id} ref={measureElement} data-index={vi.index}>
+                  <InstanceListItem
+                    inst={inst}
+                    selected={inst.id === selectedId}
+                    onClick={() => onSelect(inst)}
+                  />
+                </div>
+              );
+            })}
+            <div style={{ height: paddingBottom }} />
+            {query.isFetchingNextPage && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+                <CircularProgress size={20} />
+              </Box>
+            )}
+          </>
         )}
       </Box>
     </Box>

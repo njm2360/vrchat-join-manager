@@ -1,6 +1,6 @@
 import {
   Box,
-  Button,
+  CircularProgress,
   Stack,
   Table,
   TableBody,
@@ -10,12 +10,13 @@ import {
   TableRow,
   TableSortLabel,
   Paper,
-  Typography,
 } from "@mui/material";
-import { useVisitors } from "@/api/queries";
+import { useVisitorsInfinite } from "@/api/queries";
 import { fmtDateFull, fmtDuration } from "@/utils/format";
+import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import PlayerLink from "@/components/PlayerLink";
 import TablePlaceholderRow from "@/components/TablePlaceholderRow";
+import VirtualPaddingRow from "@/components/VirtualPaddingRow";
 import { useSortState } from "@/hooks/useSortState";
 
 interface Props {
@@ -40,26 +41,24 @@ const COLUMNS: { key: SortKey; label: string; width?: number; align?: "right" }[
 export default function VisitorsTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>("last_seen", "desc");
 
+  const query = useVisitorsInfinite(instanceId, { sort_by: sortBy, order });
   const {
-    data: visitors = [],
-    refetch,
-    isLoading,
-  } = useVisitors(instanceId, {
-    sort_by: sortBy,
-    order,
-  });
+    items: visitors,
+    scrollRef,
+    virtualItems,
+    paddingTop,
+    paddingBottom,
+    measureElement,
+  } = useInfiniteTable(query);
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
-        <Button variant="contained" size="small" onClick={() => refetch()}>
-          更新
-        </Button>
-        <Typography variant="h6" className="font-bold">
-          {visitors.length} 人
-        </Typography>
-      </Stack>
-      <TableContainer component={Paper} variant="outlined" className="max-h-[520px]">
+      <TableContainer
+        ref={scrollRef}
+        component={Paper}
+        variant="outlined"
+        className="max-h-[520px]"
+      >
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
@@ -85,32 +84,45 @@ export default function VisitorsTab({ instanceId }: Props) {
             {visitors.length === 0 ? (
               <TablePlaceholderRow
                 colSpan={COLUMNS.length}
-                loading={isLoading}
+                loading={query.isLoading}
                 emptyText="データなし"
               />
             ) : (
-              visitors.map((v) => (
-                <TableRow key={v.user_id} hover>
-                  <TableCell className="truncate max-w-[240px]">
-                    <PlayerLink
-                      userId={v.user_id}
-                      displayName={v.display_name}
-                      instanceId={instanceId}
-                    />
-                  </TableCell>
-                  <TableCell>{fmtDateFull(v.first_seen)}</TableCell>
-                  <TableCell>{fmtDateFull(v.last_seen)}</TableCell>
-                  <TableCell align="right">{v.join_count}回</TableCell>
-                  <TableCell align="right">
-                    {v.total_duration_seconds != null ? fmtDuration(v.total_duration_seconds) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))
+              <>
+                <VirtualPaddingRow height={paddingTop} colSpan={COLUMNS.length} />
+                {virtualItems.map((vi) => {
+                  const v = visitors[vi.index];
+                  return (
+                    <TableRow key={v.user_id} hover ref={measureElement} data-index={vi.index}>
+                      <TableCell className="truncate max-w-[240px]">
+                        <PlayerLink
+                          userId={v.user_id}
+                          displayName={v.display_name}
+                          instanceId={instanceId}
+                        />
+                      </TableCell>
+                      <TableCell>{fmtDateFull(v.first_seen)}</TableCell>
+                      <TableCell>{fmtDateFull(v.last_seen)}</TableCell>
+                      <TableCell align="right">{v.join_count}回</TableCell>
+                      <TableCell align="right">
+                        {v.total_duration_seconds != null
+                          ? fmtDuration(v.total_duration_seconds)
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <VirtualPaddingRow height={paddingBottom} colSpan={COLUMNS.length} />
+              </>
             )}
           </TableBody>
         </Table>
       </TableContainer>
-      <Box />
+      {query.isFetchingNextPage && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+          <CircularProgress size={20} />
+        </Box>
+      )}
     </Stack>
   );
 }

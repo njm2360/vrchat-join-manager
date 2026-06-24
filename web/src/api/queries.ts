@@ -1,8 +1,15 @@
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { api } from "@/api/client";
 import type {
   EventOut,
   InstanceOut,
+  InstanceStatsOut,
   LocationPlayerOut,
   PlayerDetailOut,
   PlayerSessionOut,
@@ -108,35 +115,74 @@ export function useTimeline(id: number | null, range: { start?: string; end?: st
   });
 }
 
-export function useEvents(
+export const PAGE_SIZE = 100;
+
+function nextOffset(lastPage: unknown[], allPages: unknown[][]) {
+  return lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE;
+}
+
+export function useInstancesInfinite(params: { start?: string; end?: string; isOpen?: boolean }) {
+  return useInfiniteQuery<InstanceOut[]>({
+    queryKey: ["instances", params.start ?? null, params.end ?? null, params.isOpen ?? false],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await api.GET("/api/instances", {
+        params: {
+          query: {
+            start: params.start,
+            end: params.end,
+            is_open: params.isOpen ? true : undefined,
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
+          },
+        },
+      });
+      if (error) throw new Error("failed to load instances");
+      return data ?? [];
+    },
+    getNextPageParam: nextOffset,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useEventsInfinite(
   id: number | null,
   params: { order: Order; start?: string; end?: string },
 ) {
-  return useQuery<EventOut[]>({
-    queryKey: ["events", id, params.order, params.start, params.end],
+  return useInfiniteQuery<EventOut[]>({
+    queryKey: ["events-infinite", id, params.order, params.start, params.end],
     enabled: id != null,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const { data, error } = await api.GET("/api/instances/{instance_id}/events", {
         params: {
           path: { instance_id: id! },
-          query: { order: params.order, start: params.start, end: params.end },
+          query: {
+            order: params.order,
+            start: params.start,
+            end: params.end,
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
+          },
         },
       });
       if (error) throw new Error("failed to load events");
       return data ?? [];
     },
+    getNextPageParam: nextOffset,
     placeholderData: keepPreviousData,
   });
 }
 
-export function useSessions(
+export function useSessionsInfinite(
   id: number | null,
   params: { sort_by: SessionSortKey; order: Order; start?: string; end?: string },
 ) {
-  return useQuery<SessionOut[]>({
-    queryKey: ["sessions", id, params.sort_by, params.order, params.start, params.end],
+  return useInfiniteQuery<SessionOut[]>({
+    queryKey: ["sessions-infinite", id, params.sort_by, params.order, params.start, params.end],
     enabled: id != null,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const { data, error } = await api.GET("/api/instances/{instance_id}/sessions", {
         params: {
           path: { instance_id: id! },
@@ -145,12 +191,15 @@ export function useSessions(
             order: params.order,
             start: params.start,
             end: params.end,
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
           },
         },
       });
       if (error) throw new Error("failed to load sessions");
       return data ?? [];
     },
+    getNextPageParam: nextOffset,
     placeholderData: keepPreviousData,
   });
 }
@@ -173,20 +222,30 @@ export function usePlayers(id: number | null, params: { sort_by: PlayerSortKey; 
   });
 }
 
-export function useVisitors(id: number | null, params: { sort_by: VisitorSortKey; order: Order }) {
-  return useQuery<VisitorOut[]>({
-    queryKey: ["visitors", id, params.sort_by, params.order],
+export function useVisitorsInfinite(
+  id: number | null,
+  params: { sort_by: VisitorSortKey; order: Order },
+) {
+  return useInfiniteQuery<VisitorOut[]>({
+    queryKey: ["visitors-infinite", id, params.sort_by, params.order],
     enabled: id != null,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const { data, error } = await api.GET("/api/instances/{instance_id}/visitors", {
         params: {
           path: { instance_id: id! },
-          query: { sort_by: params.sort_by, order: params.order },
+          query: {
+            sort_by: params.sort_by,
+            order: params.order,
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
+          },
         },
       });
       if (error) throw new Error("failed to load visitors");
       return data ?? [];
     },
+    getNextPageParam: nextOffset,
     placeholderData: keepPreviousData,
   });
 }
