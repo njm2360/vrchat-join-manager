@@ -18,6 +18,7 @@ import type { PlayerSessionOut } from "@/api/schemas";
 import { fmtDateFull, fmtDuration } from "@/utils/format";
 
 const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+const DAY_MS = 86_400_000;
 
 export default function PlayerPage() {
   const { userId = "" } = useParams<{ userId: string }>();
@@ -144,34 +145,41 @@ interface MonthProps {
 }
 
 function MonthCalendar({ year, month, sessions }: MonthProps) {
-  const days = new Date(year, month + 1, 0).getDate();
   const [nowMs] = useState(() => Date.now());
-  const DAY_MS = 86_400_000;
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
+  const rows = useMemo(() => {
+    const days = new Date(year, month + 1, 0).getDate();
+    const parsed = sessions.map((s) => ({
+      s,
+      start: new Date(s.join_ts).getTime(),
+      end: s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs,
+    }));
+    return Array.from({ length: days }, (_, i) => {
+      const d = i + 1;
+      const dayStart = new Date(year, month, d).getTime();
+      const dayEnd = dayStart + DAY_MS;
+      const dow = new Date(year, month, d).getDay();
+      const segs = parsed
+        .map(({ s, start, end }) => {
+          if (start >= dayEnd || end <= dayStart) return null;
+          const segStart = Math.max(start, dayStart);
+          const segEnd = Math.min(end, dayEnd);
+          return {
+            s,
+            key: s.join_ts,
+            leftPct: ((segStart - dayStart) / DAY_MS) * 100,
+            widthPct: Math.max(0.2, ((segEnd - segStart) / DAY_MS) * 100),
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null);
+      return { d, dow, segs };
+    });
+  }, [sessions, year, month, nowMs]);
 
   return (
     <Box className="text-[13px]">
-      {Array.from({ length: days }, (_, i) => i + 1).map((d) => {
-        const dayStart = new Date(year, month, d).getTime();
-        const dayEnd = dayStart + DAY_MS;
-        const dow = new Date(year, month, d).getDay();
+      {rows.map(({ d, dow, segs }) => {
         const color = dow === 0 ? "text-red-600" : dow === 6 ? "text-blue-600" : "text-inherit";
-
-        const segs = sessions
-          .map((s) => {
-            const sStart = new Date(s.join_ts).getTime();
-            const sEnd = s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs;
-            if (sStart >= dayEnd || sEnd <= dayStart) return null;
-            const segStart = Math.max(sStart, dayStart);
-            const segEnd = Math.min(sEnd, dayEnd);
-            return {
-              s,
-              key: s.join_ts,
-              leftPct: ((segStart - dayStart) / DAY_MS) * 100,
-              widthPct: Math.max(0.2, ((segEnd - segStart) / DAY_MS) * 100),
-            };
-          })
-          .filter((x): x is NonNullable<typeof x> => x !== null);
 
         return (
           <Box key={d} className="flex items-center h-[30px] border-b border-neutral-100">
@@ -189,11 +197,10 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
                   "linear-gradient(#c8cdd2,#c8cdd2) no-repeat 75%/1px 100%, #dee2e6",
               }}
             >
-              {segs.map(({ s, key, leftPct, widthPct }, idx) => {
-                const active = hoveredKey === key;
+              {segs.map(({ s, key, leftPct, widthPct }) => {
                 return (
                   <Tooltip
-                    key={idx}
+                    key={key}
                     arrow
                     placement="top"
                     title={
@@ -229,13 +236,12 @@ function MonthCalendar({ year, month, sessions }: MonthProps) {
                     <Box
                       component={Link}
                       to={`/instances/${s.instance_id}`}
-                      onMouseEnter={() => setHoveredKey(key)}
-                      onMouseLeave={() => setHoveredKey((k) => (k === key ? null : k))}
                       className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] transition-colors cursor-pointer block"
                       sx={{
                         left: `${leftPct.toFixed(3)}%`,
                         width: `${widthPct.toFixed(3)}%`,
-                        backgroundColor: active ? "rgba(13,110,253,0.95)" : "rgba(13,110,253,0.6)",
+                        backgroundColor: "rgba(13,110,253,0.6)",
+                        "&:hover": { backgroundColor: "rgba(13,110,253,0.95)" },
                       }}
                     />
                   </Tooltip>
