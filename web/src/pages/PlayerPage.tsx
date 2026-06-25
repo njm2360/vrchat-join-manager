@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import {
   Box,
@@ -13,12 +13,8 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import SessionCalendar from "@/components/SessionCalendar";
 import { usePlayerDetail, usePlayerSessions } from "@/api/queries";
-import type { PlayerSessionOut } from "@/api/schemas";
-import { fmtDateFull, fmtDuration } from "@/utils/format";
-
-const DOW = ["日", "月", "火", "水", "木", "金", "土"];
-const DAY_MS = 86_400_000;
 
 export default function PlayerPage() {
   const { userId = "" } = useParams<{ userId: string }>();
@@ -83,174 +79,69 @@ export default function PlayerPage() {
       <title>{`${displayName} — セッション履歴`}</title>
       <Card className="max-w-[960px] mx-auto">
         <CardHeader
+          sx={{ pb: 1 }}
           title={
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-              <Typography
-                component={Link}
-                to="/"
-                variant="subtitle1"
-                className="font-medium no-underline text-inherit hover:underline"
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              sx={{ alignItems: { xs: "stretch", sm: "center" } }}
+            >
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, minWidth: 0 }}
               >
-                {displayName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                のセッション履歴
-              </Typography>
-              {worldId && (
-                <Tooltip title={worldId} arrow>
-                  <Chip size="small" label={worldId} className="max-w-[320px]" />
-                </Tooltip>
-              )}
-              <Box className="flex-1" />
-              <IconButton size="small" onClick={prev}>
-                <ChevronLeftIcon />
-              </IconButton>
-              <Typography variant="subtitle2" className="min-w-[6em] text-center font-semibold">
-                {year}年{String(month + 1).padStart(2, "0")}月
-              </Typography>
-              <IconButton size="small" onClick={next}>
-                <ChevronRightIcon />
-              </IconButton>
+                <Typography
+                  component={Link}
+                  to="/"
+                  variant="subtitle1"
+                  noWrap
+                  title={displayName}
+                  className="font-medium no-underline text-inherit hover:underline"
+                  sx={{ minWidth: 0, flexShrink: 1 }}
+                >
+                  {displayName}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                >
+                  のセッション履歴
+                </Typography>
+                {worldId && (
+                  <Tooltip title={worldId} arrow>
+                    <Chip size="small" label={worldId} sx={{ maxWidth: { xs: 180, sm: 320 } }} />
+                  </Tooltip>
+                )}
+              </Stack>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  alignItems: "center",
+                  flexShrink: 0,
+                  justifyContent: { xs: "space-between", sm: "flex-end" },
+                }}
+              >
+                <IconButton size="small" onClick={prev}>
+                  <ChevronLeftIcon />
+                </IconButton>
+                <Typography variant="subtitle2" className="min-w-[6em] text-center font-semibold">
+                  {year}年{String(month + 1).padStart(2, "0")}月
+                </Typography>
+                <IconButton size="small" onClick={next}>
+                  <ChevronRightIcon />
+                </IconButton>
+              </Stack>
             </Stack>
           }
         />
-        <CardContent>
-          <HourScale />
-          <MonthCalendar year={year} month={month} sessions={sessions} />
+        <CardContent sx={{ pt: 0 }}>
+          <SessionCalendar year={year} month={month} sessions={sessions} />
         </CardContent>
       </Card>
-    </Box>
-  );
-}
-
-function HourScale() {
-  return (
-    <Box className="flex items-center h-5 mb-1">
-      <Box className="basis-[84px] shrink-0" />
-      <Box className="flex-1 relative text-[10px] text-neutral-500">
-        <span className="absolute left-0">0:00</span>
-        <span className="absolute left-1/4 -translate-x-1/2">6:00</span>
-        <span className="absolute left-1/2 -translate-x-1/2">12:00</span>
-        <span className="absolute left-3/4 -translate-x-1/2">18:00</span>
-        <span className="absolute right-0 translate-x-0">24:00</span>
-      </Box>
-    </Box>
-  );
-}
-
-interface MonthProps {
-  year: number;
-  month: number;
-  sessions: PlayerSessionOut[];
-}
-
-function MonthCalendar({ year, month, sessions }: MonthProps) {
-  const [nowMs] = useState(() => Date.now());
-
-  const rows = useMemo(() => {
-    const days = new Date(year, month + 1, 0).getDate();
-    const parsed = sessions.map((s) => ({
-      s,
-      start: new Date(s.join_ts).getTime(),
-      end: s.leave_ts ? new Date(s.leave_ts).getTime() : nowMs,
-    }));
-    return Array.from({ length: days }, (_, i) => {
-      const d = i + 1;
-      const dayStart = new Date(year, month, d).getTime();
-      const dayEnd = dayStart + DAY_MS;
-      const dow = new Date(year, month, d).getDay();
-      const segs = parsed
-        .map(({ s, start, end }) => {
-          if (start >= dayEnd || end <= dayStart) return null;
-          const segStart = Math.max(start, dayStart);
-          const segEnd = Math.min(end, dayEnd);
-          return {
-            s,
-            key: s.join_ts,
-            leftPct: ((segStart - dayStart) / DAY_MS) * 100,
-            widthPct: Math.max(0.2, ((segEnd - segStart) / DAY_MS) * 100),
-          };
-        })
-        .filter((x): x is NonNullable<typeof x> => x !== null);
-      return { d, dow, segs };
-    });
-  }, [sessions, year, month, nowMs]);
-
-  return (
-    <Box className="text-[13px]">
-      {rows.map(({ d, dow, segs }) => {
-        const color = dow === 0 ? "text-red-600" : dow === 6 ? "text-blue-600" : "text-inherit";
-
-        return (
-          <Box key={d} className="flex items-center h-[30px] border-b border-neutral-100">
-            <Box
-              className={`basis-[84px] shrink-0 text-right pr-2 text-xs tabular-nums select-none ${color}`}
-            >
-              {String(month + 1).padStart(2, "0")}/{String(d).padStart(2, "0")} ({DOW[dow]})
-            </Box>
-            <Box
-              className="flex-1 relative h-[18px] rounded-sm"
-              sx={{
-                background:
-                  "linear-gradient(#c8cdd2,#c8cdd2) no-repeat 25%/1px 100%, " +
-                  "linear-gradient(#c8cdd2,#c8cdd2) no-repeat 50%/1px 100%, " +
-                  "linear-gradient(#c8cdd2,#c8cdd2) no-repeat 75%/1px 100%, #dee2e6",
-              }}
-            >
-              {segs.map(({ s, key, leftPct, widthPct }) => {
-                return (
-                  <Tooltip
-                    key={key}
-                    arrow
-                    placement="top"
-                    title={
-                      <Stack spacing={0.25} className="text-[12px] leading-snug">
-                        <Box>
-                          <Box component="span" className="opacity-70 mr-1">
-                            入室
-                          </Box>
-                          <Box component="span" className="tabular-nums">
-                            {fmtDateFull(s.join_ts)}
-                          </Box>
-                        </Box>
-                        <Box>
-                          <Box component="span" className="opacity-70 mr-1">
-                            退室
-                          </Box>
-                          <Box component="span" className="tabular-nums">
-                            {s.leave_ts ? fmtDateFull(s.leave_ts) : "在室中"}
-                            {s.is_estimated_leave ? " (推定)" : ""}
-                          </Box>
-                        </Box>
-                        <Box>
-                          <Box component="span" className="opacity-70 mr-1">
-                            滞在
-                          </Box>
-                          <Box component="span" className="tabular-nums">
-                            {s.duration_seconds != null ? fmtDuration(s.duration_seconds) : "—"}
-                          </Box>
-                        </Box>
-                      </Stack>
-                    }
-                  >
-                    <Box
-                      component={Link}
-                      to={`/instances/${s.instance_id}`}
-                      className="absolute top-[2px] bottom-[2px] rounded-sm min-w-[2px] transition-colors cursor-pointer block"
-                      sx={{
-                        left: `${leftPct.toFixed(3)}%`,
-                        width: `${widthPct.toFixed(3)}%`,
-                        backgroundColor: "rgba(13,110,253,0.6)",
-                        "&:hover": { backgroundColor: "rgba(13,110,253,0.95)" },
-                      }}
-                    />
-                  </Tooltip>
-                );
-              })}
-            </Box>
-          </Box>
-        );
-      })}
     </Box>
   );
 }
