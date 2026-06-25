@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 
 const ROW_HEIGHT = 33;
 
@@ -10,7 +10,19 @@ interface InfiniteQueryLike<T> {
   isFetchingNextPage: boolean;
 }
 
-export function useInfiniteTable<T>(query: InfiniteQueryLike<T>, rowHeight = ROW_HEIGHT) {
+export interface InfiniteTableState<T> {
+  items: T[];
+  scrollRef: RefObject<HTMLDivElement | null>;
+  virtualItems: VirtualItem[];
+  paddingTop: number;
+  paddingBottom: number;
+  measureElement: (node: Element | null) => void;
+}
+
+export function useInfiniteTable<T>(
+  query: InfiniteQueryLike<T>,
+  rowHeight = ROW_HEIGHT,
+): InfiniteTableState<T> {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = query;
   const items = useMemo(() => data?.pages.flat() ?? [], [data]);
 

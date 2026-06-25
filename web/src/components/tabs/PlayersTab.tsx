@@ -5,15 +5,14 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableHead,
   TableRow,
-  TableSortLabel,
   Paper,
 } from "@mui/material";
 import { usePlayers } from "@/api/queries";
 import { fmtDateFull } from "@/utils/format";
 import PlayerLink from "@/components/PlayerLink";
-import TablePlaceholderRow from "@/components/TablePlaceholderRow";
+import TablePlaceholderRow from "@/components/table/TablePlaceholderRow";
+import SortableTableHead, { type TableColumn } from "@/components/table/SortableTableHead";
 import { useSortState } from "@/hooks/useSortState";
 
 interface Props {
@@ -22,9 +21,11 @@ interface Props {
 
 type SortKey = "internal_id" | "display_name" | "join_ts";
 
-const COLUMNS: { key: SortKey; label: string; width?: number; align?: "right" }[] = [
-  { key: "internal_id", label: "ID", width: 64, align: "right" },
-  { key: "display_name", label: "名前" },
+const COLUMNS: TableColumn<SortKey>[] = [
+  { key: "internal_id", label: "ID", width: 64, align: "right", sortKey: "internal_id" },
+  { key: "display_name", label: "名前", sortKey: "display_name" },
+  { key: "discord_id", label: "Discord ID", width: 140 },
+  { key: "join_ts", label: "入室日時", width: 160, sortKey: "join_ts" },
 ];
 
 export default function PlayersTab({ instanceId }: Props) {
@@ -36,35 +37,11 @@ export default function PlayersTab({ instanceId }: Props) {
     <Stack spacing={2}>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              {COLUMNS.map((c) => (
-                <TableCell key={c.key} width={c.width} align={c.align}>
-                  <TableSortLabel
-                    active={sortBy === c.key}
-                    direction={sortBy === c.key ? order : "asc"}
-                    onClick={() => toggleSort(c.key)}
-                  >
-                    {c.label}
-                  </TableSortLabel>
-                </TableCell>
-              ))}
-              <TableCell width={140}>Discord ID</TableCell>
-              <TableCell width={160}>
-                <TableSortLabel
-                  active={sortBy === "join_ts"}
-                  direction={sortBy === "join_ts" ? order : "asc"}
-                  onClick={() => toggleSort("join_ts")}
-                >
-                  入室日時
-                </TableSortLabel>
-              </TableCell>
-            </TableRow>
-          </TableHead>
+          <SortableTableHead columns={COLUMNS} sortBy={sortBy} order={order} onSort={toggleSort} />
           <TableBody>
             {players.length === 0 ? (
               <TablePlaceholderRow
-                colSpan={4}
+                colSpan={COLUMNS.length}
                 loading={isLoading}
                 emptyText="在室中のプレイヤーなし"
               />

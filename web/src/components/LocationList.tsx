@@ -1,19 +1,12 @@
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import type { Dayjs } from "dayjs";
 import { useInstancesInfinite } from "@/api/queries";
 import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import type { InstanceOut } from "@/api/schemas";
 import InstanceListItem from "@/components/InstanceListItem";
+import InfiniteScrollFooter from "@/components/InfiniteScrollFooter";
 
 type Range = { start: Dayjs | null; end: Dayjs | null };
 
@@ -90,11 +83,7 @@ export default function LocationList({ selectedId, onSelect }: Props) {
               );
             })}
             <div style={{ height: paddingBottom }} />
-            {query.isFetchingNextPage && (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
-                <CircularProgress size={20} />
-              </Box>
-            )}
+            <InfiniteScrollFooter visible={query.isFetchingNextPage} />
           </>
         )}
       </Box>

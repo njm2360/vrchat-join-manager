@@ -1,14 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Box,
-  Popover,
-  Stack,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, Popover, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import type { PlayerSessionOut } from "@/api/schemas";
 import { fmtDateFull, fmtDuration } from "@/utils/format";
@@ -159,8 +151,9 @@ function SessionBar({ s, leftPct, widthPct, isMobile, onTap }: SessionBarProps) 
     backgroundColor: "rgba(13,110,253,0.6)",
     "&:hover": { backgroundColor: "rgba(13,110,253,0.95)" },
   };
-  const cls = `absolute top-[2px] bottom-[2px] rounded-sm transition-colors cursor-pointer block ${isMobile ? "min-w-[10px]" : "min-w-[2px]"
-    }`;
+  const cls = `absolute top-[2px] bottom-[2px] rounded-sm transition-colors cursor-pointer block ${
+    isMobile ? "min-w-[10px]" : "min-w-[2px]"
+  }`;
 
   if (isMobile) {
     return <Box className={cls} sx={sx} onClick={(e) => onTap(e.currentTarget)} />;

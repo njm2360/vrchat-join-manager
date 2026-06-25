@@ -6,12 +6,11 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableHead,
   TableRow,
-  TableSortLabel,
   Typography,
 } from "@mui/material";
 import PlayerLink from "@/components/PlayerLink";
+import SortableTableHead, { type TableColumn } from "@/components/table/SortableTableHead";
 import type { InstColor, Violation } from "@/utils/violations";
 import { fmtDateFull, fmtDuration } from "@/utils/format";
 
@@ -27,12 +26,12 @@ interface ViolationsTableProps {
   id2: number;
 }
 
-const COLS: { key: VSortKey; label: string }[] = [
-  { key: "display_name", label: "ユーザー名" },
-  { key: "join_ts", label: "違反時刻" },
-  { key: "instance", label: "参加先" },
-  { key: "diff", label: "人数差" },
-  { key: "duration_seconds", label: "滞在時間" },
+const COLUMNS: TableColumn<VSortKey>[] = [
+  { key: "display_name", label: "ユーザー名", sortKey: "display_name" },
+  { key: "join_ts", label: "違反時刻", sortKey: "join_ts" },
+  { key: "instance", label: "参加先", sortKey: "instance" },
+  { key: "diff", label: "人数差", sortKey: "diff" },
+  { key: "duration_seconds", label: "滞在時間", sortKey: "duration_seconds" },
 ];
 
 export default function ViolationsTable({
@@ -75,21 +74,7 @@ export default function ViolationsTable({
   return (
     <TableContainer component={Paper} variant="outlined" square>
       <Table size="small">
-        <TableHead>
-          <TableRow>
-            {COLS.map((c) => (
-              <TableCell key={c.key} sortDirection={sort.by === c.key ? sort.dir : false}>
-                <TableSortLabel
-                  active={sort.by === c.key}
-                  direction={sort.by === c.key ? sort.dir : "asc"}
-                  onClick={() => onSort(c.key)}
-                >
-                  {c.label}
-                </TableSortLabel>
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
+        <SortableTableHead columns={COLUMNS} sortBy={sort.by} order={sort.dir} onSort={onSort} />
         <TableBody>
           {sorted.map((v, i) => {
             const ts = v.join_ts.getTime();
