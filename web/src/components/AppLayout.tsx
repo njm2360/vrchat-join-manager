@@ -22,6 +22,14 @@ export default function AppLayout() {
           >
             VRChat Join Manager
           </Typography>
+          <Typography
+            component={Link}
+            to="/players"
+            variant="body2"
+            className="text-inherit! no-underline! opacity-80 hover:opacity-100"
+          >
+            プレイヤー検索
+          </Typography>
           {!isHome && (
             <Typography
               component={Link}

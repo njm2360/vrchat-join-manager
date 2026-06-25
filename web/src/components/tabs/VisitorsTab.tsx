@@ -53,11 +53,7 @@ export default function VisitorsTab({ instanceId }: Props) {
         renderCells={(v) => (
           <>
             <TableCell className="truncate max-w-[240px]">
-              <PlayerLink
-                userId={v.user_id}
-                displayName={v.display_name}
-                instanceId={instanceId}
-              />
+              <PlayerLink userId={v.user_id} displayName={v.display_name} instanceId={instanceId} />
             </TableCell>
             <TableCell>{fmtDateFull(v.first_seen)}</TableCell>
             <TableCell>{fmtDateFull(v.last_seen)}</TableCell>

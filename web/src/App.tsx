@@ -5,6 +5,7 @@ import AppLayout from "@/components/AppLayout";
 
 const InstancesPage = lazy(() => import("@/pages/InstancesPage"));
 const ComparePage = lazy(() => import("@/pages/ComparePage"));
+const PlayerSearchPage = lazy(() => import("@/pages/PlayerSearchPage"));
 const PlayerPage = lazy(() => import("@/pages/PlayerPage"));
 
 function PageFallback() {
@@ -40,6 +41,14 @@ export default function App() {
           element={
             <Suspense fallback={<PageFallback />}>
               <ComparePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/players"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <PlayerSearchPage />
             </Suspense>
           }
         />

@@ -11,6 +11,7 @@ import type {
   InstanceOut,
   InstanceStatsOut,
   LocationPlayerOut,
+  PlayerOut,
   PlayerDetailOut,
   PlayerSessionOut,
   SessionOut,
@@ -147,6 +148,29 @@ export function useInstancesInfinite(params: { start?: string; end?: string; isO
     },
     getNextPageParam: nextOffset,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function usePlayersInfinite(params: { name: string }, options?: { enabled?: boolean }) {
+  return useInfiniteQuery<PlayerOut[]>({
+    queryKey: ["players-search", params.name],
+    enabled: (options?.enabled ?? true) && !!params.name,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await api.GET("/api/players", {
+        params: {
+          query: {
+            name: params.name,
+            order: "desc",
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
+          },
+        },
+      });
+      if (error) throw new Error("failed to load players");
+      return data ?? [];
+    },
+    getNextPageParam: nextOffset,
   });
 }
 
