@@ -37,7 +37,7 @@ export default function App() {
           }
         />
         <Route
-          path="/compare"
+          path="/violations"
           element={
             <Suspense fallback={<PageFallback />}>
               <ComparePage />

@@ -19,9 +19,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   current: InstanceOut;
+  linkTarget?: string;
 }
 
-export default function CompareInstanceDialog({ open, onClose, current }: Props) {
+export default function CompareInstanceDialog({
+  open,
+  onClose,
+  current,
+  linkTarget = "_blank",
+}: Props) {
   const start = current.opened_at;
   const end = useMemo(
     () => current.closed_at ?? new Date().toISOString(),
@@ -66,8 +72,8 @@ export default function CompareInstanceDialog({ open, onClose, current }: Props)
                 key={inst.id}
                 inst={inst}
                 component={RouterLink}
-                to={`/compare?ids=${[current.id, inst.id].sort((a, b) => a - b).join(",")}`}
-                target="_blank"
+                to={`/violations?ids=${[current.id, inst.id].sort((a, b) => a - b).join(",")}`}
+                target={linkTarget}
                 onClick={onClose}
               />
             ))}

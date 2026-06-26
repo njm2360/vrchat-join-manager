@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import InstanceInfo from "@/components/InstanceInfo";
+import CompareLanding from "@/components/CompareLanding";
 import CompareChart from "@/components/CompareChart";
 import DiffChart from "@/components/DiffChart";
 import ViolationsTable, { type VSortKey } from "@/components/ViolationsTable";
@@ -105,11 +106,7 @@ export default function ComparePage() {
   }, [queries.data, grace]);
 
   if (!valid) {
-    return (
-      <Alert severity="error" className="m-3">
-        比較するインスタンスID 2件を ?ids=... で指定してください。
-      </Alert>
-    );
+    return <CompareLanding />;
   }
   if (queries.error) {
     return (
