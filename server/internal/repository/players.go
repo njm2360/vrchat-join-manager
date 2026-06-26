@@ -62,7 +62,9 @@ func (r *PlayersRepo) GetDetail(ctx context.Context, userID string) (*PlayerDeta
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       )), 0)                                               AS total_duration_seconds,
 		       MIN(s.join_ts)                                       AS first_seen,
-		       MAX(s.join_ts)                                       AS last_seen,
+		       MAX(CASE WHEN s.id IS NOT NULL
+		                THEN COALESCE(s.leave_ts, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+		           END)                                             AS last_seen,
 		       EXISTS(SELECT 1 FROM sessions s2
 		              WHERE s2.user_id = p.user_id AND s2.leave_ts IS NULL) AS in_room
 		FROM players p

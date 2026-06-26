@@ -158,7 +158,7 @@ func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int,
 	q := `
 		SELECT s.user_id, p.display_name,
 		       MIN(s.join_ts)          AS first_seen,
-		       MAX(s.join_ts)          AS last_seen,
+		       MAX(COALESCE(s.leave_ts, strftime('%Y-%m-%dT%H:%M:%SZ','now'))) AS last_seen,
 		       COUNT(*)                AS join_count,
 		       COALESCE(SUM(COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)

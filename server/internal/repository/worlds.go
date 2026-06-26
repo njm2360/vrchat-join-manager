@@ -36,7 +36,9 @@ func (r *WorldsRepo) List(ctx context.Context, start, end *string, order string,
 		       w.name,
 		       w.created_at,
 		       w.updated_at,
-		       MAX(s.join_ts) AS last_seen,
+		       MAX(CASE WHEN s.id IS NOT NULL
+		                THEN COALESCE(s.leave_ts, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+		           END) AS last_seen,
 		       COUNT(s.id)    AS session_count
 		FROM worlds w
 		LEFT JOIN sessions s ON s.world_id = w.world_id
