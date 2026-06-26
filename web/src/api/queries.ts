@@ -279,6 +279,34 @@ export function useVisitorsInfinite(
   });
 }
 
+export function usePlayerSessionsInfinite(
+  userId: string,
+  params: { order: Order },
+  options?: { enabled?: boolean },
+) {
+  return useInfiniteQuery<PlayerSessionOut[]>({
+    queryKey: ["player-sessions-infinite", userId, params.order],
+    enabled: (options?.enabled ?? true) && !!userId,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await api.GET("/api/players/{user_id}/sessions", {
+        params: {
+          path: { user_id: userId },
+          query: {
+            order: params.order,
+            limit: PAGE_SIZE,
+            offset: pageParam as number,
+          },
+        },
+      });
+      if (error) throw new Error("failed to load player sessions");
+      return data ?? [];
+    },
+    getNextPageParam: nextOffset,
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function usePlayerSessions(
   userId: string,
   params: {

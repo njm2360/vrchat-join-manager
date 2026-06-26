@@ -108,7 +108,7 @@ export default function PlayerSearchPage() {
                 columns={COLUMNS}
                 sortBy={"" as never}
                 order="asc"
-                onSort={() => { }}
+                onSort={() => {}}
                 table={table}
                 isLoading={query.isLoading}
                 isFetchingNextPage={query.isFetchingNextPage}

@@ -1,4 +1,4 @@
-export function fmtDate(iso: string | Date): string {
+export function fmtDate(iso: string | number | Date): string {
   return new Date(iso).toLocaleString("ja-JP", {
     month: "2-digit",
     day: "2-digit",
