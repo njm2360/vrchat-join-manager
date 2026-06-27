@@ -61,6 +61,14 @@ export function syncedZoomOptions(otherChartRef: RefObject<Chart<"line"> | null>
   };
 }
 
+const toMs = (v: unknown): number | null => {
+  if (v == null) return null;
+  if (typeof v === "number") return v;
+  if (v instanceof Date) return v.getTime();
+  const t = +new Date(v as string);
+  return Number.isNaN(t) ? null : t;
+};
+
 // 表示中のX軸範囲に応じてY軸を自動スケール
 export const visibleYRangePlugin: Plugin<"line"> = {
   id: "visibleYRange",
@@ -68,8 +76,9 @@ export const visibleYRangePlugin: Plugin<"line"> = {
     if (args.scale.axis !== "y") return;
     const xScale = chart.scales.x;
     if (!xScale) return;
-    const xMin = xScale.min;
-    const xMax = xScale.max;
+    const xOpts = xScale.options as { min?: unknown; max?: unknown };
+    const xMin = toMs(xOpts.min) ?? -Infinity;
+    const xMax = toMs(xOpts.max) ?? Infinity;
 
     let yMin = Infinity;
     let yMax = -Infinity;
