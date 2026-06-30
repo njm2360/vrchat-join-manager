@@ -1,17 +1,18 @@
 package db
 
 import (
-	_ "embed"
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )
 
-//go:embed schema.sql
-var schemaSQL string
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 func Open(path string) (*sqlx.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -31,10 +32,18 @@ func Open(path string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 
-	if _, err := db.Exec(schemaSQL); err != nil {
+	if err := migrate(db); err != nil {
 		_ = db.Close()
-		return nil, fmt.Errorf("apply schema: %w", err)
+		return nil, fmt.Errorf("migrate schema: %w", err)
 	}
 
 	return db, nil
+}
+
+func migrate(db *sqlx.DB) error {
+	goose.SetBaseFS(migrationsFS)
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
+	return goose.Up(db.DB, "migrations")
 }

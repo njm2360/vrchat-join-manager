@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS groups (
     group_id   TEXT PRIMARY KEY,
     name       TEXT,
@@ -58,11 +59,13 @@ CREATE TABLE IF NOT EXISTS player_discord (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- +goose StatementBegin
 CREATE TRIGGER IF NOT EXISTS trg_player_discord_updated
 AFTER UPDATE OF discord_id ON player_discord
 BEGIN
     UPDATE player_discord SET updated_at = CURRENT_TIMESTAMP WHERE user_id = NEW.user_id;
 END;
+-- +goose StatementEnd
 
 CREATE TABLE IF NOT EXISTS sessions (
     id                    INTEGER PRIMARY KEY,
@@ -81,3 +84,13 @@ CREATE INDEX IF NOT EXISTS idx_sessions_instance_time ON sessions(instance_id, j
 CREATE INDEX IF NOT EXISTS idx_sessions_user_time     ON sessions(user_id, join_ts);
 CREATE INDEX IF NOT EXISTS idx_sessions_world_time    ON sessions(world_id, join_ts);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sessions_open    ON sessions(user_id, instance_id) WHERE leave_ts IS NULL;
+
+-- +goose Down
+DROP TABLE IF EXISTS sessions;
+DROP TRIGGER IF EXISTS trg_player_discord_updated;
+DROP TABLE IF EXISTS player_discord;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS instances;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS worlds;
+DROP TABLE IF EXISTS groups;
