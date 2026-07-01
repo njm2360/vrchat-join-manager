@@ -87,14 +87,15 @@ func (r *EventsRepo) OpenSession(
 	instanceID, eventID int,
 	worldID, userID, ts string,
 	internalID int,
+	isEstimatedJoin bool,
 ) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT OR IGNORE INTO sessions(
 		    instance_id, world_id,
-		    user_id, internal_id, join_event_id, join_ts
+		    user_id, internal_id, join_event_id, join_ts, is_estimated_join
 		 )
-		 VALUES(?, ?, ?, ?, ?, ?)`,
-		instanceID, worldID, userID, internalID, eventID, ts,
+		 VALUES(?, ?, ?, ?, ?, ?, ?)`,
+		instanceID, worldID, userID, internalID, eventID, ts, isEstimatedJoin,
 	)
 	return err
 }

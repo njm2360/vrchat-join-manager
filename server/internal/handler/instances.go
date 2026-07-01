@@ -38,6 +38,7 @@ func sessionRowToOut(r repository.SessionRow) gen.SessionOut {
 		JoinTs:           parseTime(r.JoinTs),
 		LeaveTs:          parseTimeFromNullable(r.LeaveTs),
 		DurationSeconds:  intPtr(r.DurationSeconds),
+		IsEstimatedJoin:  r.IsEstimatedJoin,
 		IsEstimatedLeave: r.IsEstimatedLeave,
 	}
 }

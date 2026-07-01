@@ -17,6 +17,7 @@ type sendEventCall struct {
 	userID     string
 	internalID int
 	ts         time.Time
+	estimated  bool
 }
 
 type resumeCall struct {
@@ -40,8 +41,8 @@ type fakeAPI struct {
 	closes       []closeCall
 }
 
-func (f *fakeAPI) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time) {
-	f.sendEvents = append(f.sendEvents, sendEventCall{event, locationID, name, userID, internalID, ts})
+func (f *fakeAPI) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time, estimated bool) {
+	f.sendEvents = append(f.sendEvents, sendEventCall{event, locationID, name, userID, internalID, ts, estimated})
 }
 
 func (f *fakeAPI) GetPotentialSessions(locationID string) ([]PotentialSession, error) {
@@ -187,9 +188,9 @@ func TestOnLine_NameUserIDInternalIDMapping_ThreePlayers(t *testing.T) {
 
 	wantTs := mustTime(t, "2024.01.01 00:00:09") // Alice's Restored triggers flushPreJoins.
 	wantEvents := []sendEventCall{
-		{"join", "wrld_x:1", "Bob", "usr_bbbb", 10, wantTs},
-		{"join", "wrld_x:1", "Carol", "usr_cccc", 20, wantTs},
-		{"join", "wrld_x:1", "Alice", "usr_aaaa", 30, wantTs},
+		{"join", "wrld_x:1", "Bob", "usr_bbbb", 10, wantTs, true},
+		{"join", "wrld_x:1", "Carol", "usr_cccc", 20, wantTs, true},
+		{"join", "wrld_x:1", "Alice", "usr_aaaa", 30, wantTs, false},
 	}
 	if !reflect.DeepEqual(api.sendEvents, wantEvents) {
 		t.Fatalf("sendEvents mismatch\n got: %+v\nwant: %+v", api.sendEvents, wantEvents)
@@ -243,7 +244,7 @@ func TestOnLine_LocalPlayerFullFlow_NewInstance(t *testing.T) {
 		t.Fatalf("sendEvents = %d want 1: %+v", len(api.sendEvents), api.sendEvents)
 	}
 	got := api.sendEvents[0]
-	want := sendEventCall{"join", "wrld_x:1", "Alice", "usr_aaaa", 42, mustTime(t, "2024.01.01 00:00:03")}
+	want := sendEventCall{"join", "wrld_x:1", "Alice", "usr_aaaa", 42, mustTime(t, "2024.01.01 00:00:03"), false}
 	if got != want {
 		t.Fatalf("event = %+v want %+v", got, want)
 	}

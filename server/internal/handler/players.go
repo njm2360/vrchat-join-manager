@@ -112,6 +112,7 @@ func (s *Server) GetPlayerSessions(ctx context.Context, request gen.GetPlayerSes
 			JoinTs:           parseTime(r.JoinTs),
 			LeaveTs:          parseTimeFromNullable(r.LeaveTs),
 			DurationSeconds:  intPtr(r.DurationSeconds),
+			IsEstimatedJoin:  r.IsEstimatedJoin,
 			IsEstimatedLeave: r.IsEstimatedLeave,
 		})
 	}

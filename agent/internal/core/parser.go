@@ -74,7 +74,7 @@ func (s *instance) localRestored() bool {
 }
 
 type apiClient interface {
-	SendEvent(event, locationID, name, userID string, internalID int, ts time.Time)
+	SendEvent(event, locationID, name, userID string, internalID int, ts time.Time, estimated bool)
 	GetPotentialSessions(locationID string) ([]PotentialSession, error)
 	ResumeInstance(locationID string, userIDs []string) error
 	CloseLocation(locationID string, userID string, ts time.Time)
@@ -253,14 +253,14 @@ func (p *LogParser) flushPreJoins(ts time.Time) {
 		}
 		for _, pre := range s.preJoins {
 			if _, ok := matched[pre.userID]; !ok {
-				p.sendJoin(pre, ts)
+				p.sendEstimatedJoin(pre, ts)
 			}
 		}
 		log.Printf("REJOIN location=%s resumed=%d new=%d", s.locationID, len(matched), len(s.preJoins)-len(matched))
 	} else {
 		// 新規インスタンスは全員送信する
 		for _, pre := range s.preJoins {
-			p.sendJoin(pre, ts)
+			p.sendEstimatedJoin(pre, ts)
 		}
 	}
 	s.preJoins = nil
@@ -290,12 +290,17 @@ func (p *LogParser) fmtTs(ts time.Time) string {
 
 func (p *LogParser) sendJoin(pl *player, ts time.Time) {
 	log.Printf("JOIN  [%s] %s (%s) internal_id=%d", p.fmtTs(ts), pl.name, pl.userID, pl.internalID)
-	p.api.SendEvent("join", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts)
+	p.api.SendEvent("join", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts, false)
+}
+
+func (p *LogParser) sendEstimatedJoin(pl *player, ts time.Time) {
+	log.Printf("JOIN~ [%s] %s (%s) internal_id=%d (estimated)", p.fmtTs(ts), pl.name, pl.userID, pl.internalID)
+	p.api.SendEvent("join", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts, true)
 }
 
 func (p *LogParser) sendLeave(pl *player, ts time.Time) {
 	log.Printf("LEAVE [%s] %s (%s) internal_id=%d", p.fmtTs(ts), pl.name, pl.userID, pl.internalID)
-	p.api.SendEvent("leave", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts)
+	p.api.SendEvent("leave", p.instance.locationID, pl.name, pl.userID, pl.internalID, ts, false)
 }
 
 func (p *LogParser) closeLocation(ts time.Time) {

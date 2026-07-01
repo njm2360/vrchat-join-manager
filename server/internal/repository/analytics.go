@@ -220,15 +220,15 @@ func (r *AnalyticsRepo) PlayerRankings(ctx context.Context, worldID, groupID *st
 }
 
 type JoinViolationRankingsParams struct {
-	GroupID        string
-	Start, End     *string
-	Order          string
-	Limit          *int
-	Offset         int
-	AllowDiff      int
-	MinDuration    *int
-	RejoinSeconds  int
-	GraceSeconds   int
+	GroupID       string
+	Start, End    *string
+	Order         string
+	Limit         *int
+	Offset        int
+	AllowDiff     int
+	MinDuration   *int
+	RejoinSeconds int
+	GraceSeconds  int
 }
 
 func (r *AnalyticsRepo) JoinViolationRankings(ctx context.Context, p JoinViolationRankingsParams) ([]JoinViolationRankRow, error) {
@@ -369,4 +369,3 @@ func (r *AnalyticsRepo) JoinViolationRankings(ctx context.Context, p JoinViolati
 	}
 	return rows, nil
 }
-

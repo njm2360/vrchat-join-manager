@@ -39,7 +39,7 @@ func okStatus(code int) bool {
 	return code >= 200 && code < 300
 }
 
-func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time) {
+func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time, estimated bool) {
 	body := gen.PlayerEvent{
 		Event:      gen.PlayerEventEvent(event),
 		LocationId: locationID,
@@ -47,6 +47,9 @@ func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID
 		UserId:     userID,
 		InternalId: internalID,
 		Timestamp:  ts.UTC(),
+	}
+	if estimated {
+		body.Estimated = &estimated
 	}
 	resp, err := a.c.ReceiveEvent(context.Background(), body)
 	if err != nil {

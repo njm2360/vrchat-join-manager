@@ -701,6 +701,12 @@ components:
         user_id: { type: string }
         internal_id: { type: integer }
         timestamp: { type: string, format: date-time }
+        estimated:
+          type: boolean
+          default: false
+          description: |
+            true の場合、timestamp は入室時刻ではなく初観測時刻(真の入室はそれ以前)。
+            エージェントが途中参加した際、既に居たプレイヤーの Join に付与される。
 
     GroupOut:
       type: object
@@ -773,7 +779,7 @@ components:
 
     PlayerSessionOut:
       type: object
-      required: [id, instance_id, world_id, join_ts, is_estimated_leave]
+      required: [id, instance_id, world_id, join_ts, is_estimated_join, is_estimated_leave]
       properties:
         id: { type: integer }
         instance_id: { type: integer }
@@ -781,6 +787,7 @@ components:
         join_ts: { type: string, format: date-time }
         leave_ts: { type: string, format: date-time, nullable: true }
         duration_seconds: { type: integer, nullable: true }
+        is_estimated_join: { type: boolean }
         is_estimated_leave: { type: boolean }
 
     CloseLocationIn:
@@ -886,7 +893,7 @@ components:
 
     SessionOut:
       type: object
-      required: [id, instance_id, internal_id, user_id, display_name, join_ts, is_estimated_leave]
+      required: [id, instance_id, internal_id, user_id, display_name, join_ts, is_estimated_join, is_estimated_leave]
       properties:
         id: { type: integer }
         instance_id: { type: integer }
@@ -897,6 +904,7 @@ components:
         join_ts: { type: string, format: date-time }
         leave_ts: { type: string, format: date-time, nullable: true }
         duration_seconds: { type: integer, nullable: true }
+        is_estimated_join: { type: boolean }
         is_estimated_leave: { type: boolean }
 
     DailyActiveUsersPoint:

@@ -70,7 +70,8 @@ func (s *Server) ReceiveEvent(ctx context.Context, request gen.ReceiveEventReque
 		}
 		if eventID != nil {
 			// Open user session
-			if err := s.Events.OpenSession(ctx, tx, instID, *eventID, loc.WorldID, body.UserId, ts, body.InternalId); err != nil {
+			isEstimatedJoin := body.Estimated != nil && *body.Estimated
+			if err := s.Events.OpenSession(ctx, tx, instID, *eventID, loc.WorldID, body.UserId, ts, body.InternalId, isEstimatedJoin); err != nil {
 				return nil, err
 			}
 		}

@@ -84,6 +84,11 @@ type DailyActiveUsersPoint struct {
 	Day         openapi_types.Date `json:"day"`
 }
 
+// DiscordMentionsOut defines model for DiscordMentionsOut.
+type DiscordMentionsOut struct {
+	DiscordIds []string `json:"discord_ids"`
+}
+
 // EventOut defines model for EventOut.
 type EventOut struct {
 	DisplayName string            `json:"display_name"`
@@ -136,6 +141,35 @@ type InstanceOut struct {
 	WorldName       *string    `json:"world_name,omitempty"`
 }
 
+// InstanceStatsOut インスタンス単位の集計サマリー。
+type InstanceStatsOut struct {
+	// AvgSessionSeconds 1セッション平均滞在秒
+	AvgSessionSeconds int `json:"avg_session_seconds"`
+
+	// EventCount 入退場イベント総数
+	EventCount   int        `json:"event_count"`
+	FirstEventAt *time.Time `json:"first_event_at,omitempty"`
+	LastEventAt  *time.Time `json:"last_event_at,omitempty"`
+
+	// PeakConcurrent 最大同時接続人数
+	PeakConcurrent int `json:"peak_concurrent"`
+
+	// PresentCount 現在の在室人数
+	PresentCount int `json:"present_count"`
+
+	// RepeatVisitorCount 2回以上訪問した人数
+	RepeatVisitorCount int `json:"repeat_visitor_count"`
+
+	// SessionCount セッション総数
+	SessionCount int `json:"session_count"`
+
+	// TotalDurationSeconds 全セッション合計滞在秒
+	TotalDurationSeconds int `json:"total_duration_seconds"`
+
+	// VisitorCount ユニーク訪問者数
+	VisitorCount int `json:"visitor_count"`
+}
+
 // JoinViolationRankOut defines model for JoinViolationRankOut.
 type JoinViolationRankOut struct {
 	DisplayName    string `json:"display_name"`
@@ -186,6 +220,9 @@ type PlayerDiscordIn struct {
 
 // PlayerEvent defines model for PlayerEvent.
 type PlayerEvent struct {
+	// Estimated true の場合、timestamp は入室時刻ではなく初観測時刻(真の入室はそれ以前)。
+	// エージェントが途中参加した際、既に居たプレイヤーの Join に付与される。
+	Estimated  *bool            `json:"estimated,omitempty"`
 	Event      PlayerEventEvent `json:"event"`
 	InternalId int              `json:"internal_id"`
 	LocationId string           `json:"location_id"`
@@ -219,6 +256,7 @@ type PlayerSessionOut struct {
 	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
 	Id               int        `json:"id"`
 	InstanceId       int        `json:"instance_id"`
+	IsEstimatedJoin  bool       `json:"is_estimated_join"`
 	IsEstimatedLeave bool       `json:"is_estimated_leave"`
 	JoinTs           time.Time  `json:"join_ts"`
 	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
@@ -243,6 +281,8 @@ type SessionOut struct {
 	DurationSeconds  *int       `json:"duration_seconds,omitempty"`
 	Id               int        `json:"id"`
 	InstanceId       int        `json:"instance_id"`
+	InternalId       int        `json:"internal_id"`
+	IsEstimatedJoin  bool       `json:"is_estimated_join"`
 	IsEstimatedLeave bool       `json:"is_estimated_leave"`
 	JoinTs           time.Time  `json:"join_ts"`
 	LeaveTs          *time.Time `json:"leave_ts,omitempty"`

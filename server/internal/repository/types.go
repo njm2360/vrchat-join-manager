@@ -83,6 +83,7 @@ type SessionRow struct {
 	JoinTs           string         `db:"join_ts"`
 	LeaveTs          sql.NullString `db:"leave_ts"`
 	DurationSeconds  sql.NullInt64  `db:"duration_seconds"`
+	IsEstimatedJoin  bool           `db:"is_estimated_join"`
 	IsEstimatedLeave bool           `db:"is_estimated_leave"`
 }
 
@@ -124,6 +125,7 @@ type PlayerSessionRow struct {
 	JoinTs           string         `db:"join_ts"`
 	LeaveTs          sql.NullString `db:"leave_ts"`
 	DurationSeconds  sql.NullInt64  `db:"duration_seconds"`
+	IsEstimatedJoin  bool           `db:"is_estimated_join"`
 	IsEstimatedLeave bool           `db:"is_estimated_leave"`
 }
 

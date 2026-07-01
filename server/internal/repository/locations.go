@@ -107,7 +107,7 @@ func (r *LocationsRepo) GetPresence(ctx context.Context, instanceID int, at stri
 		       COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       ) AS duration_seconds,
-		       s.is_estimated_leave
+		       s.is_estimated_join, s.is_estimated_leave
 		FROM sessions s
 		JOIN players p ON p.user_id = s.user_id
 		LEFT JOIN player_discord pd ON pd.user_id = s.user_id
@@ -322,7 +322,7 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 		       COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       ) AS duration_seconds,
-		       s.is_estimated_leave
+		       s.is_estimated_join, s.is_estimated_leave
 		FROM sessions s
 		JOIN players p ON p.user_id = s.user_id
 		LEFT JOIN player_discord pd ON pd.user_id = s.user_id

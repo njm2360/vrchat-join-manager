@@ -183,7 +183,7 @@ func (r *PlayersRepo) Sessions(ctx context.Context, userID string, instanceID *i
 		       COALESCE(s.duration_seconds,
 		           CAST(ROUND((julianday('now') - julianday(s.join_ts)) * 86400) AS INTEGER)
 		       ) AS duration_seconds,
-		       s.is_estimated_leave
+		       s.is_estimated_join, s.is_estimated_leave
 		FROM sessions s
 		JOIN instances i ON i.id = s.instance_id
 		WHERE ` + where + `
