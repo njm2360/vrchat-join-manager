@@ -177,11 +177,11 @@ func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int,
 	return rows, nil
 }
 
-type timelineEventRow struct {
-	EventType   string `db:"event_type"`
-	Timestamp   string `db:"timestamp"`
+type timelinePointRow struct {
 	UserID      string `db:"user_id"`
 	DisplayName string `db:"display_name"`
+	Timestamp   string `db:"timestamp"`
+	Delta       int    `db:"delta"`
 }
 
 func (r *LocationsRepo) GetPresenceTimeline(ctx context.Context, instanceID int, start, end *string) ([]TimelinePointRow, error) {
@@ -198,40 +198,51 @@ func (r *LocationsRepo) GetPresenceTimeline(ctx context.Context, instanceID int,
 		}
 	}
 
-	conditions := []string{"instance_id = :instance_id"}
+	joinConds := []string{"s.instance_id = :instance_id"}
+	leaveConds := []string{"s.instance_id = :instance_id", "s.leave_ts IS NOT NULL"}
 	args := map[string]interface{}{"instance_id": instanceID}
 	if start != nil {
-		conditions = append(conditions, "timestamp > :start")
+		joinConds = append(joinConds, "s.join_ts > :start")
+		leaveConds = append(leaveConds, "s.leave_ts > :start")
 		args["start"] = *start
 	}
 	if end != nil {
-		conditions = append(conditions, "timestamp <= :end")
+		joinConds = append(joinConds, "s.join_ts <= :end")
+		leaveConds = append(leaveConds, "s.leave_ts <= :end")
 		args["end"] = *end
 	}
-	where := strings.Join(conditions, " AND ")
 
 	q := `
-		SELECT e.event_type, e.timestamp, e.user_id, p.display_name
-		FROM events e
-		JOIN players p ON p.user_id = e.user_id
-		WHERE ` + where + `
-		ORDER BY e.timestamp`
+		WITH pts AS (
+			SELECT s.user_id, p.display_name, s.join_ts AS timestamp, 1 AS delta, 1 AS ord
+			FROM sessions s
+			JOIN players p ON p.user_id = s.user_id
+			WHERE ` + strings.Join(joinConds, " AND ") + `
+			UNION ALL
+			SELECT s.user_id, p.display_name, s.leave_ts AS timestamp, -1 AS delta, 0 AS ord
+			FROM sessions s
+			JOIN players p ON p.user_id = s.user_id
+			WHERE ` + strings.Join(leaveConds, " AND ") + `
+		)
+		SELECT user_id, display_name, timestamp, delta
+		FROM pts
+		ORDER BY timestamp, ord, user_id`
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
-	events := []timelineEventRow{}
-	if err := stmt.SelectContext(ctx, &events, args); err != nil {
+	pts := []timelinePointRow{}
+	if err := stmt.SelectContext(ctx, &pts, args); err != nil {
 		return nil, err
 	}
 
 	var anchor string
 	if start != nil {
 		anchor = *start
-	} else if len(events) > 0 {
-		anchor = events[0].Timestamp
+	} else if len(pts) > 0 {
+		anchor = pts[0].Timestamp
 	} else {
 		return []TimelinePointRow{}, nil
 	}
@@ -241,19 +252,13 @@ func (r *LocationsRepo) GetPresenceTimeline(ctx context.Context, instanceID int,
 		Count:     initial,
 	}}
 	count := initial
-	for _, ev := range events {
-		if ev.EventType == "join" {
-			count++
-		} else {
-			count--
-		}
-		uid := ev.UserID
-		dn := ev.DisplayName
+	for _, pt := range pts {
+		count += pt.Delta
 		points = append(points, TimelinePointRow{
-			Timestamp:   ev.Timestamp,
+			Timestamp:   pt.Timestamp,
 			Count:       count,
-			UserID:      sql.NullString{String: uid, Valid: true},
-			DisplayName: sql.NullString{String: dn, Valid: true},
+			UserID:      sql.NullString{String: pt.UserID, Valid: true},
+			DisplayName: sql.NullString{String: pt.DisplayName, Valid: true},
 		})
 	}
 	return points, nil
