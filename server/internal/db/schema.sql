@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS instances (
 );
 CREATE INDEX IF NOT EXISTS idx_instances_location ON instances(location_id);
 CREATE INDEX IF NOT EXISTS idx_instances_group    ON instances(group_id);
+CREATE INDEX IF NOT EXISTS idx_instances_opened   ON instances(opened_at);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_instances_open ON instances(location_id) WHERE closed_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS events (
