@@ -101,7 +101,7 @@ func (r *PlayersRepo) List(ctx context.Context, name *string, order string, limi
 		SELECT user_id, display_name, created_at, updated_at
 		FROM players
 		` + where + `
-		ORDER BY created_at ` + orderUpper(order) + `
+		ORDER BY created_at ` + orderUpper(order) + `, user_id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
@@ -138,7 +138,7 @@ func (r *PlayersRepo) Events(ctx context.Context, userID string, instanceID *int
 		FROM events e
 		JOIN players p ON p.user_id = e.user_id
 		WHERE ` + where + `
-		ORDER BY e.timestamp ` + orderUpper(order) + `
+		ORDER BY e.timestamp ` + orderUpper(order) + `, e.id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
@@ -187,7 +187,7 @@ func (r *PlayersRepo) Sessions(ctx context.Context, userID string, instanceID *i
 		FROM sessions s
 		JOIN instances i ON i.id = s.instance_id
 		WHERE ` + where + `
-		ORDER BY s.join_ts ` + orderUpper(order) + `
+		ORDER BY s.join_ts ` + orderUpper(order) + `, s.id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)

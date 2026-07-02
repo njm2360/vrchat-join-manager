@@ -44,7 +44,7 @@ func (r *WorldsRepo) List(ctx context.Context, start, end *string, order string,
 		LEFT JOIN sessions s ON s.world_id = w.world_id
 		GROUP BY w.world_id
 		` + havingClause + `
-		ORDER BY last_seen ` + orderUpper(order) + ` NULLS LAST
+		ORDER BY last_seen ` + orderUpper(order) + ` NULLS LAST, w.world_id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	rows := []WorldRow{}

@@ -74,7 +74,7 @@ func (r *LocationsRepo) ListInstances(
 	}, "i.opened_at")
 
 	q := instanceSelect + where + `
-		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `
+		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `, i.id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
@@ -167,7 +167,7 @@ func (r *LocationsRepo) GetLocationVisitors(ctx context.Context, instanceID int,
 		JOIN players p ON p.user_id = s.user_id
 		WHERE s.instance_id = ?
 		GROUP BY s.user_id
-		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `
+		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `, s.user_id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	rows := []VisitorRow{}
@@ -277,7 +277,7 @@ func (r *LocationsRepo) GetLocationEvents(ctx context.Context, instanceID int, s
 		FROM events e
 		JOIN players p ON p.user_id = e.user_id
 		WHERE ` + where + `
-		ORDER BY e.timestamp ` + orderUpper(order) + `
+		ORDER BY e.timestamp ` + orderUpper(order) + `, e.id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
@@ -322,7 +322,7 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 		JOIN players p ON p.user_id = s.user_id
 		LEFT JOIN player_discord pd ON pd.user_id = s.user_id
 		WHERE ` + where + `
-		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `
+		ORDER BY ` + sortCol + ` ` + orderUpper(order) + `, s.id ` + orderUpper(order) + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)

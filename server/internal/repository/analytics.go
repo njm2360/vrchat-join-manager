@@ -204,7 +204,7 @@ func (r *AnalyticsRepo) PlayerRankings(ctx context.Context, worldID, groupID *st
 		    ` + where + `
 		    GROUP BY s.user_id
 		)
-		ORDER BY total_duration_seconds ` + o + `
+		ORDER BY total_duration_seconds ` + o + `, user_id ` + o + `
 		` + limitClause(limit, offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)
@@ -355,7 +355,7 @@ func (r *AnalyticsRepo) JoinViolationRankings(ctx context.Context, p JoinViolati
 		FROM user_stats us
 		JOIN players p ON p.user_id = us.user_id
 		WHERE us.violation_count > 0
-		ORDER BY violation_count ` + o + `
+		ORDER BY violation_count ` + o + `, us.user_id ` + o + `
 		` + limitClause(p.Limit, p.Offset)
 
 	stmt, err := r.DB.PrepareNamedContext(ctx, q)

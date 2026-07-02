@@ -15,7 +15,7 @@ func NewGroupsRepo(db *sqlx.DB) *GroupsRepo { return &GroupsRepo{DB: db} }
 func (r *GroupsRepo) List(ctx context.Context, order string, limit *int, offset int) ([]GroupRow, error) {
 	q := `SELECT group_id, name, created_at, updated_at
 	      FROM groups
-	      ORDER BY created_at ` + orderUpper(order) + limitClause(limit, offset)
+	      ORDER BY created_at ` + orderUpper(order) + `, group_id ` + orderUpper(order) + limitClause(limit, offset)
 
 	rows := []GroupRow{}
 	if err := r.DB.SelectContext(ctx, &rows, q); err != nil {
