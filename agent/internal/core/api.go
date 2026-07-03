@@ -16,7 +16,7 @@ type ApiClient struct {
 	c *gen.Client
 }
 
-type PotentialSession = gen.PotentialSessionOut
+type ObservedPlayer = gen.ObservedPlayer
 
 func NewApiClient(baseURL string) *ApiClient {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
@@ -62,32 +62,25 @@ func (a *ApiClient) SendEvent(event, locationID, name, userID string, internalID
 	}
 }
 
-func (a *ApiClient) GetPotentialSessions(locationID string) ([]PotentialSession, error) {
-	resp, err := a.c.GetPotentialSessions(context.Background(), locationID)
+func (a *ApiClient) Checkin(locationID string, at time.Time, self ObservedPlayer, players []ObservedPlayer) ([]string, error) {
+	body := gen.CheckinIn{
+		At:      at.UTC(),
+		Self:    self,
+		Players: players,
+	}
+	resp, err := a.c.CheckinLocation(context.Background(), locationID, body)
 	if err != nil {
-		return nil, fmt.Errorf("GetPotentialSessions request: %w", err)
+		return nil, fmt.Errorf("Checkin request: %w", err)
 	}
 	defer drain(resp)
 	if !okStatus(resp.StatusCode) {
-		return nil, fmt.Errorf("GetPotentialSessions unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("Checkin unexpected status: %d", resp.StatusCode)
 	}
-	var result []PotentialSession
+	var result gen.CheckinOut
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("GetPotentialSessions decode: %w", err)
+		return nil, fmt.Errorf("Checkin decode: %w", err)
 	}
-	return result, nil
-}
-
-func (a *ApiClient) ResumeInstance(locationID string, userIDs []string) error {
-	resp, err := a.c.ResumeInstance(context.Background(), locationID, gen.ResumeIn{UserIds: userIDs})
-	if err != nil {
-		return fmt.Errorf("ResumeInstance request: %w", err)
-	}
-	defer drain(resp)
-	if !okStatus(resp.StatusCode) {
-		return fmt.Errorf("ResumeInstance unexpected status: %d", resp.StatusCode)
-	}
-	return nil
+	return result.ResumedUserIds, nil
 }
 
 func (a *ApiClient) CloseLocation(locationID string, userID string, ts time.Time) {

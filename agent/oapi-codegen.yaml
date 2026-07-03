@@ -8,5 +8,4 @@ output-options:
   include-operation-ids:
     - receiveEvent
     - closeLocation
-    - getPotentialSessions
-    - resumeInstance
+    - checkinLocation

@@ -20,9 +20,11 @@ type sendEventCall struct {
 	estimated  bool
 }
 
-type resumeCall struct {
+type checkinCall struct {
 	locationID string
-	userIDs    []string
+	at         time.Time
+	self       ObservedPlayer
+	players    []ObservedPlayer
 }
 
 type closeCall struct {
@@ -32,28 +34,21 @@ type closeCall struct {
 }
 
 type fakeAPI struct {
-	sendEvents   []sendEventCall
-	potential    []PotentialSession
-	potentialErr error
-	getCalls     []string
-	resumes      []resumeCall
-	resumeErr    error
-	closes       []closeCall
+	sendEvents     []sendEventCall
+	checkins       []checkinCall
+	checkinResumed []string
+	checkinErr     error
+	closes         []closeCall
 }
 
 func (f *fakeAPI) SendEvent(event, locationID, name, userID string, internalID int, ts time.Time, estimated bool) {
 	f.sendEvents = append(f.sendEvents, sendEventCall{event, locationID, name, userID, internalID, ts, estimated})
 }
 
-func (f *fakeAPI) GetPotentialSessions(locationID string) ([]PotentialSession, error) {
-	f.getCalls = append(f.getCalls, locationID)
-	return f.potential, f.potentialErr
-}
-
-func (f *fakeAPI) ResumeInstance(locationID string, userIDs []string) error {
-	cp := append([]string(nil), userIDs...)
-	f.resumes = append(f.resumes, resumeCall{locationID, cp})
-	return f.resumeErr
+func (f *fakeAPI) Checkin(locationID string, at time.Time, self ObservedPlayer, players []ObservedPlayer) ([]string, error) {
+	cp := append([]ObservedPlayer(nil), players...)
+	f.checkins = append(f.checkins, checkinCall{locationID, at, self, cp})
+	return f.checkinResumed, f.checkinErr
 }
 
 func (f *fakeAPI) CloseLocation(locationID string, userID string, ts time.Time) {
@@ -126,35 +121,6 @@ func TestParseTimestampConvertsToUTC(t *testing.T) {
 	}
 }
 
-func TestMatchSessions(t *testing.T) {
-	potential := []PotentialSession{
-		{UserId: "usr_a", InternalId: 1},
-		{UserId: "usr_b", InternalId: 2},
-	}
-	pre := []*player{
-		{name: "A", userID: "usr_a", internalID: 1},
-		{name: "B", userID: "usr_b", internalID: 99}, // internal mismatch
-		{name: "C", userID: "usr_c", internalID: 3},  // not in potential
-	}
-	got := matchSessions(potential, pre)
-	if _, ok := got["usr_a"]; !ok {
-		t.Errorf("expected usr_a matched")
-	}
-	if _, ok := got["usr_b"]; ok {
-		t.Errorf("usr_b should not match (internal id differs)")
-	}
-	if _, ok := got["usr_c"]; ok {
-		t.Errorf("usr_c should not match")
-	}
-}
-
-func TestMatchSessionsEmpty(t *testing.T) {
-	got := matchSessions(nil, []*player{{name: "A", userID: "usr_a", internalID: 1}})
-	if len(got) != 0 {
-		t.Fatalf("expected empty, got %v", got)
-	}
-}
-
 // helper to feed several full log lines.
 func feed(p *LogParser, lines ...string) {
 	for _, l := range lines {
@@ -167,7 +133,7 @@ func feed(p *LogParser, lines ...string) {
 // order, producing the expected (name, userID, internalID) tuple per join event.
 func TestOnLine_NameUserIDInternalIDMapping_ThreePlayers(t *testing.T) {
 	p, api := newTestParser()
-	api.potential = nil // no resume → all preJoins are sent as new
+	api.checkinResumed = nil // no resume → all preJoins are sent as new
 
 	feed(p,
 		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
@@ -186,7 +152,7 @@ func TestOnLine_NameUserIDInternalIDMapping_ThreePlayers(t *testing.T) {
 		"2024.01.01 00:00:09 [Behaviour] Restored player 30",
 	)
 
-	wantTs := mustTime(t, "2024.01.01 00:00:09") // Alice's Restored triggers flushPreJoins.
+	wantTs := mustTime(t, "2024.01.01 00:00:09") // Alice's Restored triggers resolvePreJoins.
 	wantEvents := []sendEventCall{
 		{"join", "wrld_x:1", "Bob", "usr_bbbb", 10, wantTs, true},
 		{"join", "wrld_x:1", "Carol", "usr_cccc", 20, wantTs, true},
@@ -248,14 +214,14 @@ func TestOnLine_LocalPlayerFullFlow_NewInstance(t *testing.T) {
 	if got != want {
 		t.Fatalf("event = %+v want %+v", got, want)
 	}
-	if len(api.getCalls) != 0 {
-		t.Errorf("GetPotentialSessions should not be called when no pre-joins")
+	if len(api.checkins) != 0 {
+		t.Errorf("Checkin should not be called when no pre-joins")
 	}
 }
 
 func TestOnLine_PreExistingPlayers_ResumeMatched(t *testing.T) {
 	p, api := newTestParser()
-	api.potential = []PotentialSession{{UserId: "usr_bbbb", InternalId: 1}}
+	api.checkinResumed = []string{"usr_bbbb"}
 
 	feed(p,
 		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
@@ -270,17 +236,22 @@ func TestOnLine_PreExistingPlayers_ResumeMatched(t *testing.T) {
 		"2024.01.01 00:00:06 [Behaviour] Restored player 2",
 	)
 
-	if len(api.getCalls) != 1 || api.getCalls[0] != "wrld_x:1" {
-		t.Fatalf("GetPotentialSessions calls = %v", api.getCalls)
+	if len(api.checkins) != 1 {
+		t.Fatalf("Checkin calls = %d want 1", len(api.checkins))
 	}
-	if len(api.resumes) != 1 {
-		t.Fatalf("ResumeInstance calls = %d want 1", len(api.resumes))
+	call := api.checkins[0]
+	if call.locationID != "wrld_x:1" {
+		t.Errorf("checkin location = %q", call.locationID)
 	}
-	if api.resumes[0].locationID != "wrld_x:1" {
-		t.Errorf("resume location = %q", api.resumes[0].locationID)
+	// 自分のRestored時刻・自分のペア・観測名簿が渡ること
+	if !call.at.Equal(mustTime(t, "2024.01.01 00:00:06")) {
+		t.Errorf("checkin at = %v", call.at)
 	}
-	if !reflect.DeepEqual(api.resumes[0].userIDs, []string{"usr_bbbb"}) {
-		t.Errorf("resume userIDs = %v want [usr_bbbb]", api.resumes[0].userIDs)
+	if call.self != (ObservedPlayer{UserId: "usr_aaaa", InternalId: 2}) {
+		t.Errorf("checkin self = %+v", call.self)
+	}
+	if !reflect.DeepEqual(call.players, []ObservedPlayer{{UserId: "usr_bbbb", InternalId: 1}}) {
+		t.Errorf("checkin players = %+v", call.players)
 	}
 	// Bob is matched (resumed) → not sent. Only Alice's join is sent.
 	for _, ev := range api.sendEvents {
@@ -298,7 +269,7 @@ func TestOnLine_PreExistingPlayers_ResumeMatched(t *testing.T) {
 
 func TestOnLine_PreExistingPlayers_NoMatch_SendsAll(t *testing.T) {
 	p, api := newTestParser()
-	api.potential = nil // empty
+	api.checkinResumed = nil // server decided: new instance
 
 	feed(p,
 		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
@@ -310,8 +281,8 @@ func TestOnLine_PreExistingPlayers_NoMatch_SendsAll(t *testing.T) {
 		"2024.01.01 00:00:06 [Behaviour] Restored player 2",
 	)
 
-	if len(api.resumes) != 0 {
-		t.Errorf("ResumeInstance must not be called when nothing matched")
+	if len(api.checkins) != 1 {
+		t.Errorf("Checkin calls = %d want 1", len(api.checkins))
 	}
 	if len(api.sendEvents) != 2 {
 		t.Fatalf("sendEvents = %d want 2: %+v", len(api.sendEvents), api.sendEvents)
@@ -330,9 +301,42 @@ func TestOnLine_PreExistingPlayers_NoMatch_SendsAll(t *testing.T) {
 	}
 }
 
-func TestOnLine_PreExistingPlayers_GetPotentialError_TreatsAllAsNew(t *testing.T) {
+// A pre-existing player who leaves before our own Restored must not appear in
+// the rejoin roster nor be sent as a join.
+func TestOnLine_PreExistingPlayer_LeftBeforeLocalRestored_NotSent(t *testing.T) {
 	p, api := newTestParser()
-	api.potentialErr = errors.New("boom")
+
+	feed(p,
+		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:00:02 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		"2024.01.01 00:00:03 [Behaviour] Restored player 1",
+		"2024.01.01 00:00:04 [Behaviour] OnPlayerJoined Alice (usr_aaaa)",
+		`2024.01.01 00:00:05 [Behaviour] Initialized PlayerAPI "Alice" is local`,
+		// Bob leaves before Alice finishes loading.
+		"2024.01.01 00:00:06 [Behaviour] OnPlayerLeft Bob (usr_bbbb)",
+		"2024.01.01 00:00:07 [Behaviour] Restored player 2",
+	)
+
+	if len(api.checkins) != 0 {
+		t.Errorf("Checkin should not be called when all preJoins already left: %+v", api.checkins)
+	}
+	// Bobのleaveは送られる(クラッシュ復旧でopenセッションが残っている場合に
+	// 正しい時刻で閉じられる)が、joinとしては送られない
+	if len(api.sendEvents) != 2 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	if api.sendEvents[0].event != "leave" || api.sendEvents[0].name != "Bob" {
+		t.Errorf("expected Bob leave first, got %+v", api.sendEvents[0])
+	}
+	if api.sendEvents[1].event != "join" || api.sendEvents[1].name != "Alice" {
+		t.Errorf("expected Alice join, got %+v", api.sendEvents[1])
+	}
+}
+
+func TestOnLine_PreExistingPlayers_RejoinError_TreatsAllAsNew(t *testing.T) {
+	p, api := newTestParser()
+	api.checkinErr = errors.New("boom")
 
 	feed(p,
 		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
@@ -343,9 +347,7 @@ func TestOnLine_PreExistingPlayers_GetPotentialError_TreatsAllAsNew(t *testing.T
 		"2024.01.01 00:00:05 [Behaviour] Restored player 1",
 		"2024.01.01 00:00:06 [Behaviour] Restored player 2",
 	)
-	if len(api.resumes) != 0 {
-		t.Errorf("must not resume when potential lookup failed")
-	}
+	// 判定不能時は全員送信に倒れる (resumeされたはずの人が消えない)
 	if len(api.sendEvents) != 2 {
 		t.Fatalf("sendEvents = %+v", api.sendEvents)
 	}
@@ -637,7 +639,7 @@ func TestOnLine_IgnoresEventsBeforeJoining(t *testing.T) {
 	if p.instance != nil {
 		t.Errorf("no instance should be created without Joining")
 	}
-	if len(api.sendEvents)+len(api.closes)+len(api.resumes) != 0 {
+	if len(api.sendEvents)+len(api.closes)+len(api.checkins) != 0 {
 		t.Errorf("no api calls expected before Joining")
 	}
 }

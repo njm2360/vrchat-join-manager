@@ -187,37 +187,30 @@ paths:
         '404':
           description: オープン中のインスタンスがない
 
-  /api/locations/{location_id}/potential-sessions:
-    parameters:
-      - $ref: '#/components/parameters/LocationIdPath'
-    get:
-      operationId: getPotentialSessions
-      tags: [instances]
-      responses:
-        '200':
-          description: 直近クローズインスタンスの推定退室セッション
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PotentialSessionOut'
-
-  /api/locations/{location_id}/resume:
+  /api/locations/{location_id}/checkin:
     parameters:
       - $ref: '#/components/parameters/LocationIdPath'
     post:
-      operationId: resumeInstance
+      operationId: checkinLocation
       tags: [instances]
+      description: |
+        インスタンス参加時の同一性判定。観測名簿をもとに、直近にクローズした
+        同一 location_id のインスタンスへの復帰かをサーバーが判定し、
+        復帰なら該当セッションを復元して復元済み user_id を返す。
+        復元されなかった在室者は呼び出し側が join として送信すること。
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResumeIn'
+              $ref: '#/components/schemas/CheckinIn'
       responses:
-        '204':
-          description: 復元
+        '200':
+          description: 判定結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckinOut'
 
   /api/instances:
     get:
@@ -797,18 +790,30 @@ components:
         at: { type: string, format: date-time }
         user_id: { type: string, nullable: true }
 
-    PotentialSessionOut:
+    ObservedPlayer:
       type: object
       required: [user_id, internal_id]
       properties:
         user_id: { type: string }
         internal_id: { type: integer }
 
-    ResumeIn:
+    CheckinIn:
       type: object
-      required: [user_ids]
+      required: [at, self, players]
       properties:
-        user_ids:
+        at: { type: string, format: date-time }
+        self:
+          $ref: '#/components/schemas/ObservedPlayer'
+        players:
+          type: array
+          items: { $ref: '#/components/schemas/ObservedPlayer' }
+
+    CheckinOut:
+      type: object
+      required: [resumed, resumed_user_ids]
+      properties:
+        resumed: { type: boolean }
+        resumed_user_ids:
           type: array
           items: { type: string }
 

@@ -2,7 +2,6 @@ package core
 
 import (
 	"log"
-	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -75,8 +74,7 @@ func (s *instance) localRestored() bool {
 
 type apiClient interface {
 	SendEvent(event, locationID, name, userID string, internalID int, ts time.Time, estimated bool)
-	GetPotentialSessions(locationID string) ([]PotentialSession, error)
-	ResumeInstance(locationID string, userIDs []string) error
+	Checkin(locationID string, at time.Time, self ObservedPlayer, players []ObservedPlayer) ([]string, error)
 	CloseLocation(locationID string, userID string, ts time.Time)
 }
 
@@ -184,7 +182,7 @@ func (p *LogParser) handleRestored(internalID int, ts time.Time) {
 	switch {
 	case pl == s.local:
 		// 自分自身のイベント
-		p.flushPreJoins(ts)
+		p.resolvePreJoins(ts)
 		p.sendJoin(pl, ts)
 	case !s.localRestored():
 		// 自分より前に滞在しているプレイヤー
@@ -209,6 +207,8 @@ func (p *LogParser) handlePlayerLeft(name string, ts time.Time) {
 	}
 	s.removePendingRestored(name)
 	delete(s.players, name)
+	// 自分のRestored前に退室した人はpreJoinsから外す
+	s.preJoins = slices.DeleteFunc(s.preJoins, func(x *player) bool { return x == pl })
 	// Restoredしてない異常プレイヤーはLeaveイベントを送信しない
 	if !pl.restored {
 		return
@@ -234,54 +234,40 @@ func (p *LogParser) handleDestroying(name string, ts time.Time) {
 	p.instance = nil
 }
 
-func (p *LogParser) flushPreJoins(ts time.Time) {
+func (p *LogParser) resolvePreJoins(ts time.Time) {
 	s := p.instance
 	if len(s.preJoins) == 0 {
 		return
 	}
-	potential, err := p.api.GetPotentialSessions(s.locationID)
-	if err != nil {
-		log.Printf("ERROR GetPotentialSessions failed: %v (treating all as new)", err)
+	// サーバー側で同一インスタンスへの復帰か判定する
+	self := ObservedPlayer{UserId: s.local.userID, InternalId: s.local.internalID}
+	players := make([]ObservedPlayer, 0, len(s.preJoins))
+	for _, pre := range s.preJoins {
+		players = append(players, ObservedPlayer{UserId: pre.userID, InternalId: pre.internalID})
 	}
-	matched := matchSessions(potential, s.preJoins)
+	resumedIDs, err := p.api.Checkin(s.locationID, ts, self, players)
+	if err != nil {
+		// 判定不能時は全員送信する（サーバーの冪等性で保証）
+		log.Printf("ERROR Checkin failed: %v (treating all as new)", err)
+	}
+	resumed := make(map[string]struct{}, len(resumedIDs))
+	for _, id := range resumedIDs {
+		resumed[id] = struct{}{}
+	}
 
-	// Note: 既存プレイヤーの正確なJoin時間は知れないため、自分のJoin時間で投げる
-	if len(matched) > 0 {
-		// 同一インスタンスはインスタンスとセッションを復元する
-		if err := p.api.ResumeInstance(s.locationID, slices.Collect(maps.Keys(matched))); err != nil {
-			log.Printf("ERROR ResumeInstance failed: %v", err)
-		}
-		for _, pre := range s.preJoins {
-			if _, ok := matched[pre.userID]; !ok {
-				p.sendEstimatedJoin(pre, ts)
-			}
-		}
-		log.Printf("REJOIN location=%s resumed=%d new=%d", s.locationID, len(matched), len(s.preJoins)-len(matched))
-	} else {
-		// 新規インスタンスは全員送信する
-		for _, pre := range s.preJoins {
+	// 既に在室している人のJoin時間は不明のため、自分の時間で投げる（推定）
+	sent := 0
+	for _, pre := range s.preJoins {
+		// 証人はサーバー側で復元済みなので送信しない
+		if _, ok := resumed[pre.userID]; !ok {
 			p.sendEstimatedJoin(pre, ts)
+			sent++
 		}
+	}
+	if len(resumed) > 0 {
+		log.Printf("REJOIN location=%s resumed=%d new=%d", s.locationID, len(resumed), sent)
 	}
 	s.preJoins = nil
-}
-
-func matchSessions(potential []PotentialSession, preJoins []*player) map[string]struct{} {
-	type key struct {
-		userID     string
-		internalID int
-	}
-	set := make(map[key]struct{}, len(potential))
-	for _, e := range potential {
-		set[key{e.UserId, e.InternalId}] = struct{}{}
-	}
-	matched := make(map[string]struct{})
-	for _, pre := range preJoins {
-		if _, ok := set[key{pre.userID, pre.internalID}]; ok {
-			matched[pre.userID] = struct{}{}
-		}
-	}
-	return matched
 }
 
 func (p *LogParser) fmtTs(ts time.Time) string {

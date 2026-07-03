@@ -72,6 +72,19 @@ func (e PlayerEventEvent) Valid() bool {
 	}
 }
 
+// CheckinIn defines model for CheckinIn.
+type CheckinIn struct {
+	At      time.Time        `json:"at"`
+	Players []ObservedPlayer `json:"players"`
+	Self    ObservedPlayer   `json:"self"`
+}
+
+// CheckinOut defines model for CheckinOut.
+type CheckinOut struct {
+	Resumed        bool     `json:"resumed"`
+	ResumedUserIds []string `json:"resumed_user_ids"`
+}
+
 // CloseLocationIn defines model for CloseLocationIn.
 type CloseLocationIn struct {
 	At     time.Time `json:"at"`
@@ -189,6 +202,12 @@ type LocationPlayerOut struct {
 	UserId      string    `json:"user_id"`
 }
 
+// ObservedPlayer defines model for ObservedPlayer.
+type ObservedPlayer struct {
+	InternalId int    `json:"internal_id"`
+	UserId     string `json:"user_id"`
+}
+
 // Order defines model for Order.
 type Order string
 
@@ -261,17 +280,6 @@ type PlayerSessionOut struct {
 	JoinTs           time.Time  `json:"join_ts"`
 	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
 	WorldId          string     `json:"world_id"`
-}
-
-// PotentialSessionOut defines model for PotentialSessionOut.
-type PotentialSessionOut struct {
-	InternalId int    `json:"internal_id"`
-	UserId     string `json:"user_id"`
-}
-
-// ResumeIn defines model for ResumeIn.
-type ResumeIn struct {
-	UserIds []string `json:"user_ids"`
 }
 
 // SessionOut defines model for SessionOut.
@@ -358,11 +366,11 @@ type WorldIdQuery = string
 // ReceiveEventJSONRequestBody defines body for ReceiveEvent for application/json ContentType.
 type ReceiveEventJSONRequestBody = PlayerEvent
 
+// CheckinLocationJSONRequestBody defines body for CheckinLocation for application/json ContentType.
+type CheckinLocationJSONRequestBody = CheckinIn
+
 // CloseLocationJSONRequestBody defines body for CloseLocation for application/json ContentType.
 type CloseLocationJSONRequestBody = CloseLocationIn
-
-// ResumeInstanceJSONRequestBody defines body for ResumeInstance for application/json ContentType.
-type ResumeInstanceJSONRequestBody = ResumeIn
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -442,18 +450,15 @@ type ClientInterface interface {
 
 	ReceiveEvent(ctx context.Context, body ReceiveEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CheckinLocationWithBody request with any body
+	CheckinLocationWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CheckinLocation(ctx context.Context, locationId LocationIdPath, body CheckinLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CloseLocationWithBody request with any body
 	CloseLocationWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CloseLocation(ctx context.Context, locationId LocationIdPath, body CloseLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetPotentialSessions request
-	GetPotentialSessions(ctx context.Context, locationId LocationIdPath, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ResumeInstanceWithBody request with any body
-	ResumeInstanceWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ResumeInstance(ctx context.Context, locationId LocationIdPath, body ResumeInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ReceiveEventWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -480,6 +485,30 @@ func (c *Client) ReceiveEvent(ctx context.Context, body ReceiveEventJSONRequestB
 	return c.Client.Do(req)
 }
 
+func (c *Client) CheckinLocationWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckinLocationRequestWithBody(c.Server, locationId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CheckinLocation(ctx context.Context, locationId LocationIdPath, body CheckinLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckinLocationRequest(c.Server, locationId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CloseLocationWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCloseLocationRequestWithBody(c.Server, locationId, contentType, body)
 	if err != nil {
@@ -494,42 +523,6 @@ func (c *Client) CloseLocationWithBody(ctx context.Context, locationId LocationI
 
 func (c *Client) CloseLocation(ctx context.Context, locationId LocationIdPath, body CloseLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCloseLocationRequest(c.Server, locationId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetPotentialSessions(ctx context.Context, locationId LocationIdPath, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetPotentialSessionsRequest(c.Server, locationId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResumeInstanceWithBody(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResumeInstanceRequestWithBody(c.Server, locationId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResumeInstance(ctx context.Context, locationId LocationIdPath, body ResumeInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResumeInstanceRequest(c.Server, locationId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -580,6 +573,53 @@ func NewReceiveEventRequestWithBody(server string, contentType string, body io.R
 	return req, nil
 }
 
+// NewCheckinLocationRequest calls the generic CheckinLocation builder with application/json body
+func NewCheckinLocationRequest(server string, locationId LocationIdPath, body CheckinLocationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckinLocationRequestWithBody(server, locationId, "application/json", bodyReader)
+}
+
+// NewCheckinLocationRequestWithBody generates requests for CheckinLocation with any type of body
+func NewCheckinLocationRequestWithBody(server string, locationId LocationIdPath, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "location_id", locationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/locations/%s/checkin", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewCloseLocationRequest calls the generic CloseLocation builder with application/json body
 func NewCloseLocationRequest(server string, locationId LocationIdPath, body CloseLocationJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -608,87 +648,6 @@ func NewCloseLocationRequestWithBody(server string, locationId LocationIdPath, c
 	}
 
 	operationPath := fmt.Sprintf("/api/locations/%s/close", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetPotentialSessionsRequest generates requests for GetPotentialSessions
-func NewGetPotentialSessionsRequest(server string, locationId LocationIdPath) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "location_id", locationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/locations/%s/potential-sessions", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewResumeInstanceRequest calls the generic ResumeInstance builder with application/json body
-func NewResumeInstanceRequest(server string, locationId LocationIdPath, body ResumeInstanceJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewResumeInstanceRequestWithBody(server, locationId, "application/json", bodyReader)
-}
-
-// NewResumeInstanceRequestWithBody generates requests for ResumeInstance with any type of body
-func NewResumeInstanceRequestWithBody(server string, locationId LocationIdPath, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "location_id", locationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/locations/%s/resume", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -756,18 +715,15 @@ type ClientWithResponsesInterface interface {
 
 	ReceiveEventWithResponse(ctx context.Context, body ReceiveEventJSONRequestBody, reqEditors ...RequestEditorFn) (*ReceiveEventResponse, error)
 
+	// CheckinLocationWithBodyWithResponse request with any body
+	CheckinLocationWithBodyWithResponse(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckinLocationResponse, error)
+
+	CheckinLocationWithResponse(ctx context.Context, locationId LocationIdPath, body CheckinLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckinLocationResponse, error)
+
 	// CloseLocationWithBodyWithResponse request with any body
 	CloseLocationWithBodyWithResponse(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CloseLocationResponse, error)
 
 	CloseLocationWithResponse(ctx context.Context, locationId LocationIdPath, body CloseLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*CloseLocationResponse, error)
-
-	// GetPotentialSessionsWithResponse request
-	GetPotentialSessionsWithResponse(ctx context.Context, locationId LocationIdPath, reqEditors ...RequestEditorFn) (*GetPotentialSessionsResponse, error)
-
-	// ResumeInstanceWithBodyWithResponse request with any body
-	ResumeInstanceWithBodyWithResponse(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResumeInstanceResponse, error)
-
-	ResumeInstanceWithResponse(ctx context.Context, locationId LocationIdPath, body ResumeInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*ResumeInstanceResponse, error)
 }
 
 type ReceiveEventResponse struct {
@@ -793,6 +749,36 @@ func (r ReceiveEventResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ReceiveEventResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CheckinLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CheckinOut
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckinLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckinLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CheckinLocationResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -828,65 +814,6 @@ func (r CloseLocationResponse) ContentType() string {
 	return ""
 }
 
-type GetPotentialSessionsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]PotentialSessionOut
-}
-
-// Status returns HTTPResponse.Status
-func (r GetPotentialSessionsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetPotentialSessionsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r GetPotentialSessionsResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type ResumeInstanceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r ResumeInstanceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ResumeInstanceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ResumeInstanceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 // ReceiveEventWithBodyWithResponse request with arbitrary body returning *ReceiveEventResponse
 func (c *ClientWithResponses) ReceiveEventWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReceiveEventResponse, error) {
 	rsp, err := c.ReceiveEventWithBody(ctx, contentType, body, reqEditors...)
@@ -902,6 +829,23 @@ func (c *ClientWithResponses) ReceiveEventWithResponse(ctx context.Context, body
 		return nil, err
 	}
 	return ParseReceiveEventResponse(rsp)
+}
+
+// CheckinLocationWithBodyWithResponse request with arbitrary body returning *CheckinLocationResponse
+func (c *ClientWithResponses) CheckinLocationWithBodyWithResponse(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckinLocationResponse, error) {
+	rsp, err := c.CheckinLocationWithBody(ctx, locationId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckinLocationResponse(rsp)
+}
+
+func (c *ClientWithResponses) CheckinLocationWithResponse(ctx context.Context, locationId LocationIdPath, body CheckinLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckinLocationResponse, error) {
+	rsp, err := c.CheckinLocation(ctx, locationId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckinLocationResponse(rsp)
 }
 
 // CloseLocationWithBodyWithResponse request with arbitrary body returning *CloseLocationResponse
@@ -921,32 +865,6 @@ func (c *ClientWithResponses) CloseLocationWithResponse(ctx context.Context, loc
 	return ParseCloseLocationResponse(rsp)
 }
 
-// GetPotentialSessionsWithResponse request returning *GetPotentialSessionsResponse
-func (c *ClientWithResponses) GetPotentialSessionsWithResponse(ctx context.Context, locationId LocationIdPath, reqEditors ...RequestEditorFn) (*GetPotentialSessionsResponse, error) {
-	rsp, err := c.GetPotentialSessions(ctx, locationId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetPotentialSessionsResponse(rsp)
-}
-
-// ResumeInstanceWithBodyWithResponse request with arbitrary body returning *ResumeInstanceResponse
-func (c *ClientWithResponses) ResumeInstanceWithBodyWithResponse(ctx context.Context, locationId LocationIdPath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResumeInstanceResponse, error) {
-	rsp, err := c.ResumeInstanceWithBody(ctx, locationId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResumeInstanceResponse(rsp)
-}
-
-func (c *ClientWithResponses) ResumeInstanceWithResponse(ctx context.Context, locationId LocationIdPath, body ResumeInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*ResumeInstanceResponse, error) {
-	rsp, err := c.ResumeInstance(ctx, locationId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResumeInstanceResponse(rsp)
-}
-
 // ParseReceiveEventResponse parses an HTTP response from a ReceiveEventWithResponse call
 func ParseReceiveEventResponse(rsp *http.Response) (*ReceiveEventResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -963,38 +881,22 @@ func ParseReceiveEventResponse(rsp *http.Response) (*ReceiveEventResponse, error
 	return response, nil
 }
 
-// ParseCloseLocationResponse parses an HTTP response from a CloseLocationWithResponse call
-func ParseCloseLocationResponse(rsp *http.Response) (*CloseLocationResponse, error) {
+// ParseCheckinLocationResponse parses an HTTP response from a CheckinLocationWithResponse call
+func ParseCheckinLocationResponse(rsp *http.Response) (*CheckinLocationResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CloseLocationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseGetPotentialSessionsResponse parses an HTTP response from a GetPotentialSessionsWithResponse call
-func ParseGetPotentialSessionsResponse(rsp *http.Response) (*GetPotentialSessionsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetPotentialSessionsResponse{
+	response := &CheckinLocationResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []PotentialSessionOut
+		var dest CheckinOut
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1005,15 +907,15 @@ func ParseGetPotentialSessionsResponse(rsp *http.Response) (*GetPotentialSession
 	return response, nil
 }
 
-// ParseResumeInstanceResponse parses an HTTP response from a ResumeInstanceWithResponse call
-func ParseResumeInstanceResponse(rsp *http.Response) (*ResumeInstanceResponse, error) {
+// ParseCloseLocationResponse parses an HTTP response from a CloseLocationWithResponse call
+func ParseCloseLocationResponse(rsp *http.Response) (*CloseLocationResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ResumeInstanceResponse{
+	response := &CloseLocationResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

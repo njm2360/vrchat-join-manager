@@ -69,91 +69,163 @@ func (r *InstancesRepo) GetOpenInstanceID(ctx context.Context, tx *sqlx.Tx, loca
 	return &id, nil
 }
 
-type PotentialSession struct {
-	UserID     string `db:"user_id"`
-	InternalID int    `db:"internal_id"`
+type ObservedPlayer struct {
+	UserID     string
+	InternalID int
 }
 
-func (r *InstancesRepo) GetPotentialSessions(ctx context.Context, locationID string) ([]PotentialSession, error) {
-	var latestID int
-	if err := r.DB.GetContext(ctx, &latestID,
-		`SELECT id FROM instances
-		 WHERE location_id = ? AND closed_at IS NOT NULL
-		 ORDER BY closed_at DESC LIMIT 1`,
-		locationID,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []PotentialSession{}, nil
-		}
-		return nil, err
-	}
-
-	rows := []PotentialSession{}
-	if err := r.DB.SelectContext(ctx, &rows,
-		`SELECT user_id, internal_id FROM sessions WHERE instance_id = ? AND is_estimated_leave = 1`,
-		latestID,
-	); err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
-func (r *InstancesRepo) Resume(ctx context.Context, locationID string, userIDs []string) error {
-	if len(userIDs) == 0 {
-		return nil
-	}
+func (r *InstancesRepo) Checkin(ctx context.Context, locationID, at string, self ObservedPlayer, players []ObservedPlayer) ([]string, error) {
 	tx, err := r.DB.BeginTxx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	none := func() ([]string, error) {
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return []string{}, nil
+	}
+
+	// openなインスタンスが残っている場合は復元しない
 	var openID int
 	err = tx.GetContext(ctx, &openID,
 		`SELECT id FROM instances WHERE location_id = ? AND closed_at IS NULL`,
 		locationID,
 	)
 	if err == nil {
-		return tx.Commit()
+		return none()
 	} else if !errors.Is(err, sql.ErrNoRows) {
-		return err
+		return nil, err
 	}
 
-	var latestID int
-	if err := tx.GetContext(ctx, &latestID,
-		`SELECT id FROM instances
+	// LocationIDで最後に閉じたインスタンスを探す
+	var cand struct {
+		ID       int    `db:"id"`
+		OpenedAt string `db:"opened_at"`
+	}
+	if err := tx.GetContext(ctx, &cand,
+		`SELECT id, opened_at FROM instances
 		 WHERE location_id = ? AND closed_at IS NOT NULL
 		 ORDER BY closed_at DESC LIMIT 1`,
 		locationID,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return tx.Commit()
+			return none()
 		}
-		return err
+		return nil, err
 	}
 
+	// 7日以上前に開かれたインスタンスは除外する
+	var ageDays float64
+	if err := tx.GetContext(ctx, &ageDays,
+		`SELECT julianday(?) - julianday(?)`,
+		at, cand.OpenedAt,
+	); err != nil {
+		return nil, err
+	}
+	if ageDays < 0 || ageDays >= 7 {
+		return none()
+	}
+
+	// Note: internal_idはインスタンス生存中は巻き戻らない
+	var maxInternalId int
+	if err := tx.GetContext(ctx, &maxInternalId,
+		`SELECT COALESCE(MAX(internal_id), 0) FROM sessions WHERE instance_id = ?`,
+		cand.ID,
+	); err != nil {
+		return nil, err
+	}
+
+	// 自分のIDが記録上の最大を超えていなければ別インスタンス
+	// ※インスタンスリセットならほぼここで弾ける
+	if self.InternalID <= maxInternalId {
+		return none()
+	}
+
+	type witness struct {
+		userID    string
+		sessionID int
+	}
+	witnesses := []witness{}
+	seen := map[string]struct{}{self.UserID: {}}
+	for _, p := range players {
+		if _, dup := seen[p.UserID]; dup {
+			continue
+		}
+		seen[p.UserID] = struct{}{}
+
+		// 不在中に採番されたIDは記録に存在し得ないため照合しない
+		if p.InternalID > maxInternalId {
+			continue
+		}
+
+		// InternalIDとUserIDがマッチする推定Leaveなセッションを探す
+		var sessionID int
+		err := tx.GetContext(ctx, &sessionID,
+			`SELECT id FROM sessions
+			 WHERE instance_id = ? AND user_id = ? AND internal_id = ?
+			   AND is_estimated_leave = 1
+			 ORDER BY join_ts DESC LIMIT 1`,
+			cand.ID, p.UserID, p.InternalID,
+		)
+		if err == nil {
+			witnesses = append(witnesses, witness{p.UserID, sessionID})
+			continue
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+
+		// 既知ユーザーの低ID不一致は再採番の証拠なので拒否
+		// ※未知ユーザーは記録漏れがありうるため許容
+		var known int
+		if err := tx.GetContext(ctx, &known,
+			`SELECT COUNT(*) FROM sessions WHERE instance_id = ? AND user_id = ?`,
+			cand.ID, p.UserID,
+		); err != nil {
+			return nil, err
+		}
+		if known > 0 {
+			return none()
+		}
+	}
+
+	// 証人ゼロなら新規インスタンス扱い
+	if len(witnesses) == 0 {
+		return none()
+	}
+
+	// ↓↓↓ 同一インスタンス確定 ↓↓↓
+
+	// インスタンスを復元
 	if _, err := tx.ExecContext(ctx,
 		`UPDATE instances SET closed_at = NULL WHERE id = ?`,
-		latestID,
+		cand.ID,
 	); err != nil {
-		return err
+		return nil, err
 	}
-	for _, uid := range userIDs {
+	// 証人のセッションを復元する
+	resumed := make([]string, 0, len(witnesses))
+	for _, w := range witnesses {
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE sessions
 			    SET leave_ts           = NULL,
+			        leave_event_id     = NULL,
 			        duration_seconds   = NULL,
 			        is_estimated_leave = 0
-			  WHERE user_id     = ?
-			    AND instance_id = ?
-			    AND is_estimated_leave = 1`,
-			uid, latestID,
+			  WHERE id = ?`,
+			w.sessionID,
 		); err != nil {
-			return err
+			return nil, err
 		}
+		resumed = append(resumed, w.userID)
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return resumed, nil
 }
 
 func (r *InstancesRepo) Delete(ctx context.Context, instanceID int) (bool, error) {

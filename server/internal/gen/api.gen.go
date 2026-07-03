@@ -169,6 +169,19 @@ func (e GetInstanceVisitorsParamsSortBy) Valid() bool {
 	}
 }
 
+// CheckinIn defines model for CheckinIn.
+type CheckinIn struct {
+	At      time.Time        `json:"at"`
+	Players []ObservedPlayer `json:"players"`
+	Self    ObservedPlayer   `json:"self"`
+}
+
+// CheckinOut defines model for CheckinOut.
+type CheckinOut struct {
+	Resumed        bool     `json:"resumed"`
+	ResumedUserIds []string `json:"resumed_user_ids"`
+}
+
 // CloseLocationIn defines model for CloseLocationIn.
 type CloseLocationIn struct {
 	At     time.Time `json:"at"`
@@ -286,6 +299,12 @@ type LocationPlayerOut struct {
 	UserId      string    `json:"user_id"`
 }
 
+// ObservedPlayer defines model for ObservedPlayer.
+type ObservedPlayer struct {
+	InternalId int    `json:"internal_id"`
+	UserId     string `json:"user_id"`
+}
+
 // Order defines model for Order.
 type Order string
 
@@ -358,17 +377,6 @@ type PlayerSessionOut struct {
 	JoinTs           time.Time  `json:"join_ts"`
 	LeaveTs          *time.Time `json:"leave_ts,omitempty"`
 	WorldId          string     `json:"world_id"`
-}
-
-// PotentialSessionOut defines model for PotentialSessionOut.
-type PotentialSessionOut struct {
-	InternalId int    `json:"internal_id"`
-	UserId     string `json:"user_id"`
-}
-
-// ResumeIn defines model for ResumeIn.
-type ResumeIn struct {
-	UserIds []string `json:"user_ids"`
 }
 
 // SessionOut defines model for SessionOut.
@@ -613,11 +621,11 @@ type ReceiveEventJSONRequestBody = PlayerEvent
 // RenameGroupJSONRequestBody defines body for RenameGroup for application/json ContentType.
 type RenameGroupJSONRequestBody = GroupRenameIn
 
+// CheckinLocationJSONRequestBody defines body for CheckinLocation for application/json ContentType.
+type CheckinLocationJSONRequestBody = CheckinIn
+
 // CloseLocationJSONRequestBody defines body for CloseLocation for application/json ContentType.
 type CloseLocationJSONRequestBody = CloseLocationIn
-
-// ResumeInstanceJSONRequestBody defines body for ResumeInstance for application/json ContentType.
-type ResumeInstanceJSONRequestBody = ResumeIn
 
 // SetPlayerDiscordJSONRequestBody defines body for SetPlayerDiscord for application/json ContentType.
 type SetPlayerDiscordJSONRequestBody = PlayerDiscordIn
@@ -685,14 +693,11 @@ type ServerInterface interface {
 	// (GET /api/instances/{instance_id}/visitors)
 	GetInstanceVisitors(ctx echo.Context, instanceId InstanceIdPath, params GetInstanceVisitorsParams) error
 
+	// (POST /api/locations/{location_id}/checkin)
+	CheckinLocation(ctx echo.Context, locationId LocationIdPath) error
+
 	// (POST /api/locations/{location_id}/close)
 	CloseLocation(ctx echo.Context, locationId LocationIdPath) error
-
-	// (GET /api/locations/{location_id}/potential-sessions)
-	GetPotentialSessions(ctx echo.Context, locationId LocationIdPath) error
-
-	// (POST /api/locations/{location_id}/resume)
-	ResumeInstance(ctx echo.Context, locationId LocationIdPath) error
 
 	// (GET /api/players)
 	ListPlayers(ctx echo.Context, params ListPlayersParams) error
@@ -1395,6 +1400,22 @@ func (w *ServerInterfaceWrapper) GetInstanceVisitors(ctx echo.Context) error {
 	return err
 }
 
+// CheckinLocation converts echo context to params.
+func (w *ServerInterfaceWrapper) CheckinLocation(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "location_id" -------------
+	var locationId LocationIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "location_id", ctx.Param("location_id"), &locationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter location_id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CheckinLocation(ctx, locationId)
+	return err
+}
+
 // CloseLocation converts echo context to params.
 func (w *ServerInterfaceWrapper) CloseLocation(ctx echo.Context) error {
 	var err error
@@ -1408,38 +1429,6 @@ func (w *ServerInterfaceWrapper) CloseLocation(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CloseLocation(ctx, locationId)
-	return err
-}
-
-// GetPotentialSessions converts echo context to params.
-func (w *ServerInterfaceWrapper) GetPotentialSessions(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "location_id" -------------
-	var locationId LocationIdPath
-
-	err = runtime.BindStyledParameterWithOptions("simple", "location_id", ctx.Param("location_id"), &locationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter location_id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetPotentialSessions(ctx, locationId)
-	return err
-}
-
-// ResumeInstance converts echo context to params.
-func (w *ServerInterfaceWrapper) ResumeInstance(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "location_id" -------------
-	var locationId LocationIdPath
-
-	err = runtime.BindStyledParameterWithOptions("simple", "location_id", ctx.Param("location_id"), &locationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter location_id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.ResumeInstance(ctx, locationId)
 	return err
 }
 
@@ -1792,9 +1781,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/api/instances/:instance_id/sessions", wrapper.GetInstanceSessions, options.OperationMiddlewares["getInstanceSessions"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/stats", wrapper.GetInstanceStats, options.OperationMiddlewares["getInstanceStats"]...)
 	router.GET(options.BaseURL+"/api/instances/:instance_id/visitors", wrapper.GetInstanceVisitors, options.OperationMiddlewares["getInstanceVisitors"]...)
+	router.POST(options.BaseURL+"/api/locations/:location_id/checkin", wrapper.CheckinLocation, options.OperationMiddlewares["checkinLocation"]...)
 	router.POST(options.BaseURL+"/api/locations/:location_id/close", wrapper.CloseLocation, options.OperationMiddlewares["closeLocation"]...)
-	router.GET(options.BaseURL+"/api/locations/:location_id/potential-sessions", wrapper.GetPotentialSessions, options.OperationMiddlewares["getPotentialSessions"]...)
-	router.POST(options.BaseURL+"/api/locations/:location_id/resume", wrapper.ResumeInstance, options.OperationMiddlewares["resumeInstance"]...)
 	router.GET(options.BaseURL+"/api/players", wrapper.ListPlayers, options.OperationMiddlewares["listPlayers"]...)
 	router.GET(options.BaseURL+"/api/players/:user_id", wrapper.GetPlayer, options.OperationMiddlewares["getPlayer"]...)
 	router.PUT(options.BaseURL+"/api/players/:user_id/discord", wrapper.SetPlayerDiscord, options.OperationMiddlewares["setPlayerDiscord"]...)
@@ -2239,6 +2227,29 @@ func (response GetInstanceVisitors200JSONResponse) VisitGetInstanceVisitorsRespo
 	return err
 }
 
+type CheckinLocationRequestObject struct {
+	LocationId LocationIdPath `json:"location_id"`
+	Body       *CheckinLocationJSONRequestBody
+}
+
+type CheckinLocationResponseObject interface {
+	VisitCheckinLocationResponse(w http.ResponseWriter) error
+}
+
+type CheckinLocation200JSONResponse CheckinOut
+
+func (response CheckinLocation200JSONResponse) VisitCheckinLocationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CloseLocationRequestObject struct {
 	LocationId LocationIdPath `json:"location_id"`
 	Body       *CloseLocationJSONRequestBody
@@ -2261,45 +2272,6 @@ type CloseLocation404Response struct {
 
 func (response CloseLocation404Response) VisitCloseLocationResponse(w http.ResponseWriter) error {
 	w.WriteHeader(404)
-	return nil
-}
-
-type GetPotentialSessionsRequestObject struct {
-	LocationId LocationIdPath `json:"location_id"`
-}
-
-type GetPotentialSessionsResponseObject interface {
-	VisitGetPotentialSessionsResponse(w http.ResponseWriter) error
-}
-
-type GetPotentialSessions200JSONResponse []PotentialSessionOut
-
-func (response GetPotentialSessions200JSONResponse) VisitGetPotentialSessionsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ResumeInstanceRequestObject struct {
-	LocationId LocationIdPath `json:"location_id"`
-	Body       *ResumeInstanceJSONRequestBody
-}
-
-type ResumeInstanceResponseObject interface {
-	VisitResumeInstanceResponse(w http.ResponseWriter) error
-}
-
-type ResumeInstance204Response struct {
-}
-
-func (response ResumeInstance204Response) VisitResumeInstanceResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
 	return nil
 }
 
@@ -2557,14 +2529,11 @@ type StrictServerInterface interface {
 	// (GET /api/instances/{instance_id}/visitors)
 	GetInstanceVisitors(ctx context.Context, request GetInstanceVisitorsRequestObject) (GetInstanceVisitorsResponseObject, error)
 
+	// (POST /api/locations/{location_id}/checkin)
+	CheckinLocation(ctx context.Context, request CheckinLocationRequestObject) (CheckinLocationResponseObject, error)
+
 	// (POST /api/locations/{location_id}/close)
 	CloseLocation(ctx context.Context, request CloseLocationRequestObject) (CloseLocationResponseObject, error)
-
-	// (GET /api/locations/{location_id}/potential-sessions)
-	GetPotentialSessions(ctx context.Context, request GetPotentialSessionsRequestObject) (GetPotentialSessionsResponseObject, error)
-
-	// (POST /api/locations/{location_id}/resume)
-	ResumeInstance(ctx context.Context, request ResumeInstanceRequestObject) (ResumeInstanceResponseObject, error)
 
 	// (GET /api/players)
 	ListPlayers(ctx context.Context, request ListPlayersRequestObject) (ListPlayersResponseObject, error)
@@ -3094,6 +3063,37 @@ func (sh *strictHandler) GetInstanceVisitors(ctx echo.Context, instanceId Instan
 	return nil
 }
 
+// CheckinLocation operation middleware
+func (sh *strictHandler) CheckinLocation(ctx echo.Context, locationId LocationIdPath) error {
+	var request CheckinLocationRequestObject
+
+	request.LocationId = locationId
+
+	var body CheckinLocationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckinLocation(ctx.Request().Context(), request.(CheckinLocationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckinLocation")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CheckinLocationResponseObject); ok {
+		return validResponse.VisitCheckinLocationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // CloseLocation operation middleware
 func (sh *strictHandler) CloseLocation(ctx echo.Context, locationId LocationIdPath) error {
 	var request CloseLocationRequestObject
@@ -3119,62 +3119,6 @@ func (sh *strictHandler) CloseLocation(ctx echo.Context, locationId LocationIdPa
 		return err
 	} else if validResponse, ok := response.(CloseLocationResponseObject); ok {
 		return validResponse.VisitCloseLocationResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// GetPotentialSessions operation middleware
-func (sh *strictHandler) GetPotentialSessions(ctx echo.Context, locationId LocationIdPath) error {
-	var request GetPotentialSessionsRequestObject
-
-	request.LocationId = locationId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetPotentialSessions(ctx.Request().Context(), request.(GetPotentialSessionsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetPotentialSessions")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(GetPotentialSessionsResponseObject); ok {
-		return validResponse.VisitGetPotentialSessionsResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// ResumeInstance operation middleware
-func (sh *strictHandler) ResumeInstance(ctx echo.Context, locationId LocationIdPath) error {
-	var request ResumeInstanceRequestObject
-
-	request.LocationId = locationId
-
-	var body ResumeInstanceJSONRequestBody
-	if err := ctx.Bind(&body); err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ResumeInstance(ctx.Request().Context(), request.(ResumeInstanceRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ResumeInstance")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(ResumeInstanceResponseObject); ok {
-		return validResponse.VisitResumeInstanceResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -3400,68 +3344,72 @@ func (sh *strictHandler) RenameWorld(ctx echo.Context, worldId string) error {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"/w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
