@@ -1,7 +1,8 @@
 import { Box, TableCell } from "@mui/material";
 import { usePlayerSessionsInfinite } from "@/api/queries";
 import { useInfiniteTable } from "@/hooks/useInfiniteTable";
-import { fmtDateFull, fmtDuration } from "@/utils/format";
+import { fmtDuration } from "@/utils/format";
+import JoinCell from "@/components/JoinCell";
 import LeaveCell from "@/components/LeaveCell";
 import VirtualTable from "@/components/table/VirtualTable";
 import type { TableColumn } from "@/components/table/SortableTableHead";
@@ -34,7 +35,9 @@ export default function SessionsTab({ userId }: Props) {
         rowKey={(s) => s.id}
         renderCells={(s) => (
           <>
-            <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
+            <TableCell>
+              <JoinCell s={s} />
+            </TableCell>
             <TableCell>
               <LeaveCell s={s} />
             </TableCell>

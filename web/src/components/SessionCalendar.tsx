@@ -175,6 +175,7 @@ function SessionDetail({ s }: { s: PlayerSessionOut }) {
         </Box>
         <Box component="span" className="tabular-nums">
           {fmtDateFull(s.join_ts)}
+          {s.is_estimated_join ? " (推定)" : ""}
         </Box>
       </Box>
       <Box>

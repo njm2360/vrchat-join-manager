@@ -9,7 +9,8 @@ import {
   Typography,
 } from "@mui/material";
 import type { PlayerSessionOut } from "@/api/schemas";
-import { fmtDateFull, fmtDuration } from "@/utils/format";
+import { fmtDuration } from "@/utils/format";
+import JoinCell from "@/components/JoinCell";
 import LeaveCell from "@/components/LeaveCell";
 
 interface Props {
@@ -53,7 +54,9 @@ export default function PlayerSessionTable({
                 onMouseEnter={onHover ? () => onHover(i) : undefined}
                 onMouseLeave={onHover ? () => onHover(null) : undefined}
               >
-                <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
+                <TableCell>
+                  <JoinCell s={s} />
+                </TableCell>
                 <TableCell>
                   <LeaveCell s={s} />
                 </TableCell>

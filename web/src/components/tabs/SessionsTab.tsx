@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Stack, TableCell } from "@mui/material";
 import { useSessionsInfinite } from "@/api/queries";
-import { fmtDateFull, fmtDuration } from "@/utils/format";
+import { fmtDuration } from "@/utils/format";
 import { useInfiniteTable } from "@/hooks/useInfiniteTable";
 import { useSortState } from "@/hooks/useSortState";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import PlayerLink from "@/components/PlayerLink";
+import JoinCell from "@/components/JoinCell";
 import LeaveCell from "@/components/LeaveCell";
 import VirtualTable from "@/components/table/VirtualTable";
 import type { TableColumn } from "@/components/table/SortableTableHead";
@@ -58,7 +59,9 @@ export default function SessionsTab({ instanceId }: Props) {
             <TableCell className="truncate max-w-[200px]">
               <PlayerLink userId={s.user_id} displayName={s.display_name} instanceId={instanceId} />
             </TableCell>
-            <TableCell>{fmtDateFull(s.join_ts)}</TableCell>
+            <TableCell>
+              <JoinCell s={s} />
+            </TableCell>
             <TableCell>
               <LeaveCell s={s} />
             </TableCell>
