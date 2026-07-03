@@ -89,7 +89,36 @@ func (r *EventsRepo) OpenSession(
 	internalID int,
 	isEstimatedJoin bool,
 ) error {
-	_, err := tx.ExecContext(ctx,
+	// 同一(user_id, internal_id)の推定Leave行が残っていれば推定Leaveを取り消す
+	// 同一ユーザーのopen行が既にある場合はuq_sessions_openを壊さないよう何もしない
+	res, err := tx.ExecContext(ctx,
+		`UPDATE sessions
+		    SET leave_ts           = NULL,
+		        leave_event_id     = NULL,
+		        duration_seconds   = NULL,
+		        is_estimated_leave = 0
+		  WHERE id = (
+		        SELECT id FROM sessions
+		        WHERE instance_id = ? AND user_id = ? AND internal_id = ?
+		          AND is_estimated_leave = 1 AND leave_ts IS NOT NULL
+		        ORDER BY join_ts DESC LIMIT 1
+		    )
+		    AND NOT EXISTS (
+		        SELECT 1 FROM sessions
+		        WHERE user_id = ? AND instance_id = ? AND leave_ts IS NULL
+		    )`,
+		instanceID, userID, internalID, userID, instanceID,
+	)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return err
+	} else if n > 0 {
+		return nil
+	}
+
+	_, err = tx.ExecContext(ctx,
 		`INSERT OR IGNORE INTO sessions(
 		    instance_id, world_id,
 		    user_id, internal_id, join_event_id, join_ts, is_estimated_join
