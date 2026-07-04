@@ -22,6 +22,8 @@ export default function SessionCalendar({ year, month, sessions }: Props) {
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; s: PlayerSessionOut } | null>(
     null,
   );
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const activeKey = popover?.s.join_ts ?? hoveredKey;
 
   const rows = useMemo(() => {
     const days = new Date(year, month + 1, 0).getDate();
@@ -85,6 +87,8 @@ export default function SessionCalendar({ year, month, sessions }: Props) {
                     leftPct={leftPct}
                     widthPct={widthPct}
                     isMobile={isMobile}
+                    highlighted={activeKey === key}
+                    onHover={(hovering) => setHoveredKey(hovering ? key : null)}
                     onTap={(el) => setPopover({ anchorEl: el, s })}
                   />
                 ))}
@@ -141,15 +145,25 @@ interface SessionBarProps {
   leftPct: number;
   widthPct: number;
   isMobile: boolean;
+  highlighted: boolean;
+  onHover: (hovering: boolean) => void;
   onTap: (anchorEl: HTMLElement) => void;
 }
 
-function SessionBar({ s, leftPct, widthPct, isMobile, onTap }: SessionBarProps) {
+function SessionBar({
+  s,
+  leftPct,
+  widthPct,
+  isMobile,
+  highlighted,
+  onHover,
+  onTap,
+}: SessionBarProps) {
   const sx = {
     left: `${leftPct.toFixed(3)}%`,
     width: `${widthPct.toFixed(3)}%`,
-    backgroundColor: "rgba(13,110,253,0.6)",
-    "&:hover": { backgroundColor: "rgba(13,110,253,0.95)" },
+    backgroundColor: highlighted ? "#0a58ca" : "rgba(13,110,253,0.55)",
+    zIndex: highlighted ? 1 : "auto",
   };
   const cls = `absolute top-[2px] bottom-[2px] rounded-sm transition-colors cursor-pointer block ${
     isMobile ? "min-w-[10px]" : "min-w-[2px]"
@@ -161,7 +175,14 @@ function SessionBar({ s, leftPct, widthPct, isMobile, onTap }: SessionBarProps) 
 
   return (
     <Tooltip arrow placement="top" title={<SessionDetail s={s} />}>
-      <Box component={Link} to={`/instances/${s.instance_id}`} className={cls} sx={sx} />
+      <Box
+        component={Link}
+        to={`/instances/${s.instance_id}`}
+        className={cls}
+        sx={sx}
+        onMouseEnter={() => onHover(true)}
+        onMouseLeave={() => onHover(false)}
+      />
     </Tooltip>
   );
 }
