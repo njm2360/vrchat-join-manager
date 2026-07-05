@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import type { PlayerDetailCtx } from "@/components/dialogs/PlayerDetailDialog";
 import { PlayerDetailContext } from "@/components/usePlayerDetailDialog";
 
@@ -17,8 +17,10 @@ export function PlayerDetailProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
   }, []);
 
+  const value = useMemo(() => ({ open }), [open]);
+
   return (
-    <PlayerDetailContext value={{ open }}>
+    <PlayerDetailContext value={value}>
       {children}
       {ctx && (
         <Suspense fallback={null}>
