@@ -76,12 +76,12 @@ export default function ViolationsTable({
       <Table size="small">
         <SortableTableHead columns={COLUMNS} sortBy={sort.by} order={sort.dir} onSort={onSort} />
         <TableBody>
-          {sorted.map((v, i) => {
+          {sorted.map((v) => {
             const ts = v.join_ts.getTime();
             const color: InstColor = v.instance;
             return (
               <TableRow
-                key={i}
+                key={`${v.user_id}-${ts}-${v.instance}`}
                 hover
                 selected={highlightedTs === ts}
                 onClick={() => onPickTime(ts)}
