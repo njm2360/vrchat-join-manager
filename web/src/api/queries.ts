@@ -47,7 +47,9 @@ export function useSetPlayerDiscord(userId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["player", userId] });
       qc.invalidateQueries({ queryKey: ["players"] });
-      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["sessions-infinite"] });
+      qc.invalidateQueries({ queryKey: ["player-sessions-infinite"] });
+      qc.invalidateQueries({ queryKey: ["player-sessions"] });
     },
   });
 }
