@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Stack } from "@mui/material";
 import { Line } from "react-chartjs-2";
 import type { ChartOptions, ChartData } from "chart.js";
@@ -87,6 +87,10 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
     },
   };
 
+  const setChartRef = useCallback((c: unknown) => {
+    chartRef.current = (c as Chart<"line"> | null) ?? null;
+  }, []);
+
   return (
     <Stack spacing={2}>
       <DateRangeFilter onApply={setApplied}>
@@ -101,9 +105,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
       </DateRangeFilter>
       <Box className="relative h-[420px]">
         <Line
-          ref={(c) => {
-            chartRef.current = c as unknown as Chart<"line"> | null;
-          }}
+          ref={setChartRef}
           data={data}
           options={options}
           plugins={[visibleYRangePlugin]}

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import type { Chart, ChartData, ChartOptions } from "chart.js";
 import { buildDiffPoints, type Point } from "@/utils/violations";
@@ -7,7 +7,7 @@ import { COMMON_X, syncedZoomOptions, visibleYRangePlugin } from "@/utils/chart"
 interface DiffChartProps {
   pts1: Point[];
   pts2: Point[];
-  onReady: (chart: Chart<"line">) => void;
+  onReady: (chart: Chart<"line"> | null) => void;
   otherChartRef: React.RefObject<Chart<"line"> | null>;
 }
 
@@ -88,11 +88,16 @@ const DiffChart = memo(function DiffChart({ pts1, pts2, onReady, otherChartRef }
     [xMin, xMax, diffPts, otherChartRef],
   );
 
+  const setRef = useCallback(
+    (c: unknown) => {
+      onReady((c as Chart<"line"> | null) ?? null);
+    },
+    [onReady],
+  );
+
   return (
     <Line
-      ref={(c) => {
-        if (c) onReady(c as unknown as Chart<"line">);
-      }}
+      ref={setRef}
       data={data}
       options={options}
       plugins={[visibleYRangePlugin]}

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import type { Chart, ChartData, ChartOptions } from "chart.js";
 import type { Point } from "@/utils/violations";
@@ -14,7 +14,7 @@ interface CompareChartProps {
   pts2: Point[];
   rawLen1: number;
   rawLen2: number;
-  onReady: (chart: Chart<"line">) => void;
+  onReady: (chart: Chart<"line"> | null) => void;
   otherChartRef: React.RefObject<Chart<"line"> | null>;
 }
 
@@ -80,11 +80,17 @@ const CompareChart = memo(function CompareChart({
     }),
     [otherChartRef],
   );
+
+  const setRef = useCallback(
+    (c: unknown) => {
+      onReady((c as Chart<"line"> | null) ?? null);
+    },
+    [onReady],
+  );
+
   return (
     <Line
-      ref={(c) => {
-        if (c) onReady(c as unknown as Chart<"line">);
-      }}
+      ref={setRef}
       data={data}
       options={options}
       plugins={[verticalLinePlugin, visibleYRangePlugin]}

@@ -43,10 +43,10 @@ export default function ComparePage() {
   const [grace, setGrace] = useState(15);
   const vSort = useSortState<VSortKey>("join_ts", "asc", "asc");
 
-  const handleCompareReady = useCallback((c: Chart<"line">) => {
+  const handleCompareReady = useCallback((c: Chart<"line"> | null) => {
     compareRef.current = c;
   }, []);
-  const handleDiffReady = useCallback((c: Chart<"line">) => {
+  const handleDiffReady = useCallback((c: Chart<"line"> | null) => {
     diffRef.current = c;
   }, []);
 
