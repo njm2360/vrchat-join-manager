@@ -22,7 +22,12 @@ export function PlayerDetailProvider({ children }: { children: ReactNode }) {
       {children}
       {ctx && (
         <Suspense fallback={null}>
-          <PlayerDetailDialog open={isOpen} onClose={close} ctx={ctx} />
+          <PlayerDetailDialog
+            key={`${ctx.userId}:${ctx.instanceId ?? ""}`}
+            open={isOpen}
+            onClose={close}
+            ctx={ctx}
+          />
         </Suspense>
       )}
     </PlayerDetailContext>
