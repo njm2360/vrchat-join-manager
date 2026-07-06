@@ -12,11 +12,7 @@ interface Props {
 }
 
 type SortKey =
-  | "display_name"
-  | "first_seen"
-  | "last_seen"
-  | "join_count"
-  | "total_duration_seconds";
+  "display_name" | "first_seen" | "last_seen" | "join_count" | "total_duration_seconds";
 
 const COLUMNS: TableColumn<SortKey>[] = [
   { key: "display_name", label: "名前", sortKey: "display_name" },

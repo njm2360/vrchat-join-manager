@@ -21,18 +21,10 @@ import type {
 
 type Order = "asc" | "desc";
 export type SessionSortKey =
-  | "internal_id"
-  | "display_name"
-  | "join_ts"
-  | "leave_ts"
-  | "duration_seconds";
+  "internal_id" | "display_name" | "join_ts" | "leave_ts" | "duration_seconds";
 export type PlayerSortKey = "internal_id" | "display_name" | "join_ts";
 export type VisitorSortKey =
-  | "display_name"
-  | "first_seen"
-  | "last_seen"
-  | "join_count"
-  | "total_duration_seconds";
+  "display_name" | "first_seen" | "last_seen" | "join_count" | "total_duration_seconds";
 
 export function useSetPlayerDiscord(userId: string) {
   const qc = useQueryClient();

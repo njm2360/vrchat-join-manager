@@ -104,12 +104,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
         </Box>
       </DateRangeFilter>
       <Box className="relative h-[420px]">
-        <Line
-          ref={setChartRef}
-          data={data}
-          options={options}
-          plugins={[visibleYRangePlugin]}
-        />
+        <Line ref={setChartRef} data={data} options={options} plugins={[visibleYRangePlugin]} />
       </Box>
     </Stack>
   );

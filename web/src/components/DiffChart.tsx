@@ -95,14 +95,7 @@ const DiffChart = memo(function DiffChart({ pts1, pts2, onReady, otherChartRef }
     [onReady],
   );
 
-  return (
-    <Line
-      ref={setRef}
-      data={data}
-      options={options}
-      plugins={[visibleYRangePlugin]}
-    />
-  );
+  return <Line ref={setRef} data={data} options={options} plugins={[visibleYRangePlugin]} />;
 });
 
 export default DiffChart;
