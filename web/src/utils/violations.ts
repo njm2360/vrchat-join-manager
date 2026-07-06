@@ -31,14 +31,42 @@ export function buildPoints(data: TimelinePoint[], closedAt: string | null | und
   return pts;
 }
 
-// ステップ補間: 秒 t における pts の値を返す。
-export function stepValue(pts: Point[], t: number): number {
+// 非減少な t に対して繰り返し呼ばれる前提で、内部ポインタにより償却 O(1) の
+// ステップ補間を行うステッパを生成する。時刻 t におけるステップ値（t 以下で最後の
+// 点の y、無ければ 0）を返す。pts は x について昇順であることを前提とする。
+function makeStepper(pts: Point[]): (t: number) => number {
+  const secs = pts.map((p) => toSec(p.x));
+  let i = 0;
   let val = 0;
-  for (const p of pts) {
-    if (toSec(p.x) <= t) val = p.y;
-    else break;
+  return (t: number): number => {
+    while (i < pts.length && secs[i] <= t) {
+      val = pts[i].y;
+      i++;
+    }
+    return val;
+  };
+}
+
+// 複数の Point 配列の全時刻(秒)をマージし、重複を除いた昇順配列を返す。
+function mergedSecs(...ptsArrays: Point[][]): number[] {
+  const set = new Set<number>();
+  for (const pts of ptsArrays) {
+    for (const p of pts) set.add(toSec(p.x));
   }
-  return val;
+  return [...set].sort((a, b) => a - b);
+}
+
+// t 昇順の配列から、t 以下で最大の要素のインデックスを二分探索で返す（無ければ -1）。
+function lastIndexAtOrBefore(arr: { t: number }[], t: number): number {
+  if (arr.length === 0 || arr[0].t > t) return -1;
+  let lo = 0;
+  let hi = arr.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (arr[mid].t <= t) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
 }
 
 // セッションマップ: user_id -> [{join_s, duration_seconds}]
@@ -73,14 +101,14 @@ function isRejoin(sessions: SessionMap, userId: string, t: number, rejoinSeconds
 // 任意の時刻に対して返すルックアップ関数を構築する。
 function buildDiffStartLookup(tl: TimelinePoint[], otherPts: Point[]) {
   const selfPts: Point[] = tl.map((d) => ({ x: new Date(d.timestamp), y: d.count }));
-  const times = [
-    ...new Set([...selfPts.map((p) => toSec(p.x)), ...otherPts.map((p) => toSec(p.x))]),
-  ].sort((a, b) => a - b);
+  const times = mergedSecs(selfPts, otherPts);
 
+  const selfStep = makeStepper(selfPts);
+  const otherStep = makeStepper(otherPts);
   let streakStart: number | null = null;
   const snapshots: { t: number; streakStart: number | null }[] = [];
   for (const t of times) {
-    const diff = stepValue(selfPts, t) - stepValue(otherPts, t);
+    const diff = selfStep(t) - otherStep(t);
     if (diff > 0) {
       if (streakStart === null) streakStart = t;
     } else {
@@ -90,15 +118,8 @@ function buildDiffStartLookup(tl: TimelinePoint[], otherPts: Point[]) {
   }
 
   return (t: number): number | null => {
-    if (snapshots.length === 0 || snapshots[0].t > t) return null;
-    let lo = 0;
-    let hi = snapshots.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi + 1) >> 1;
-      if (snapshots[mid].t <= t) lo = mid;
-      else hi = mid - 1;
-    }
-    return snapshots[lo].streakStart;
+    const idx = lastIndexAtOrBefore(snapshots, t);
+    return idx === -1 ? null : snapshots[idx].streakStart;
   };
 }
 
@@ -117,6 +138,8 @@ export function detectViolations(
 
   const violations: Violation[] = [];
   const getDiffStart = buildDiffStartLookup(tl, otherPts);
+  // tl は時刻昇順のため、otherPts への参照も非減少な t で行える。
+  const otherStep = makeStepper(otherPts);
   for (let i = 1; i < tl.length; i++) {
     const pt = tl[i];
     if (!pt.user_id) continue;
@@ -126,7 +149,7 @@ export function detectViolations(
     const t = toSec(pt.timestamp);
     if (isRejoin(sessions, pt.user_id, t, REJOIN_S)) continue; // 直近のRejoin → 除外
 
-    const otherCount = stepValue(otherPts, t);
+    const otherCount = otherStep(t);
     if (otherCount === 0) continue; // 相手インスタンスがまだ存在しない期間は除外
     const diff = countBefore - otherCount;
     if (diff <= 0) continue;
@@ -150,11 +173,15 @@ export function detectViolations(
 }
 
 export function buildDiffPoints(pts1: Point[], pts2: Point[]): Point[] {
-  const times = [...new Set([...pts1.map((p) => toSec(p.x)), ...pts2.map((p) => toSec(p.x))])].sort(
-    (a, b) => a - b,
-  );
+  const times = mergedSecs(pts1, pts2);
 
-  return times
-    .filter((t) => stepValue(pts1, t) > 0 && stepValue(pts2, t) > 0)
-    .map((t) => ({ x: new Date(t * 1000), y: stepValue(pts1, t) - stepValue(pts2, t) }));
+  const step1 = makeStepper(pts1);
+  const step2 = makeStepper(pts2);
+  const out: Point[] = [];
+  for (const t of times) {
+    const v1 = step1(t);
+    const v2 = step2(t);
+    if (v1 > 0 && v2 > 0) out.push({ x: new Date(t * 1000), y: v1 - v2 });
+  }
+  return out;
 }
