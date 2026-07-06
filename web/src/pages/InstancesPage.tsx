@@ -54,6 +54,7 @@ export default function InstancesPage() {
             </Box>
           ) : (
             <InstanceDetail
+              key={instanceId}
               instanceId={instanceId}
               instance={instance ?? null}
               onBack={() => navigate("/")}
