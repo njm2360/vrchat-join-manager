@@ -38,6 +38,7 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instances"] });
+      qc.invalidateQueries({ queryKey: ["instance", instance.id] });
       enqueueSnackbar("インスタンスを削除しました", { variant: "success" });
       onClose();
       onDeleted();

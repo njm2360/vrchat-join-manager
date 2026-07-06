@@ -34,7 +34,7 @@ export default function CompareInstanceDialog({
     [current.id, current.closed_at, open],
   );
 
-  const { data: instances = [], isLoading } = useQuery<InstanceOut[]>({
+  const { data: instances = [], isLoading, isError } = useQuery<InstanceOut[]>({
     queryKey: ["instances", "overlap", current.id, start, end],
     enabled: open,
     queryFn: async () => {
@@ -60,6 +60,10 @@ export default function CompareInstanceDialog({
         {isLoading ? (
           <Typography variant="body2" color="text.secondary" className="p-3">
             読み込み中...
+          </Typography>
+        ) : isError ? (
+          <Typography variant="body2" color="error" className="p-3">
+            インスタンスの読み込みに失敗しました
           </Typography>
         ) : overlapping.length === 0 ? (
           <Typography variant="body2" color="text.secondary" className="p-3">
