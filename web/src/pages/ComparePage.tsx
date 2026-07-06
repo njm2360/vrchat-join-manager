@@ -20,7 +20,7 @@ import CompareChart from "@/components/CompareChart";
 import DiffChart from "@/components/DiffChart";
 import ViolationsTable, { type VSortKey } from "@/components/ViolationsTable";
 import type { Chart } from "chart.js";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type { InstanceOut, SessionOut, TimelinePoint } from "@/api/schemas";
 import { buildPoints, buildSessionMap, detectViolations } from "@/utils/violations";
 import { useSortState } from "@/hooks/useSortState";
@@ -78,7 +78,8 @@ export default function ComparePage() {
           params: { path: { instance_id: id2 } },
         }),
       ]);
-      if (results.some((r) => r.error || !r.response.ok)) throw new Error("failed to load compare data");
+      const failed = results.find((r) => r.error || !r.response.ok);
+      if (failed) throw new ApiError(failed.response.status, "failed to load compare data");
       return {
         inst1: results[0].data as InstanceOut,
         inst2: results[1].data as InstanceOut,

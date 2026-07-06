@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
 import { extractInstanceNumber } from "@/utils/format";
 
@@ -34,7 +34,7 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
       const { error, response } = await api.DELETE("/api/instances/{instance_id}", {
         params: { path: { instance_id: instance.id } },
       });
-      if (error || !response.ok) throw new Error("削除に失敗しました");
+      if (error || !response.ok) throw new ApiError(response.status, "削除に失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instances"] });

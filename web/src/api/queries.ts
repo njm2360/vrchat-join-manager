@@ -5,7 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type {
   EventOut,
   InstanceOut,
@@ -34,7 +34,8 @@ export function useSetPlayerDiscord(userId: string) {
         params: { path: { user_id: userId } },
         body: { discord_id: discordId },
       });
-      if (error || !response.ok) throw new Error("Discord IDの更新に失敗しました");
+      if (error || !response.ok)
+        throw new ApiError(response.status, "Discord IDの更新に失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["player", userId] });
@@ -51,10 +52,10 @@ export function usePlayerDetail(userId: string, options?: { enabled?: boolean })
     queryKey: ["player", userId],
     enabled: (options?.enabled ?? true) && !!userId,
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/players/{user_id}", {
+      const { data, error, response } = await api.GET("/api/players/{user_id}", {
         params: { path: { user_id: userId } },
       });
-      if (error || !data) throw new Error("failed to load player");
+      if (error || !data) throw new ApiError(response.status, "failed to load player");
       return data;
     },
   });
@@ -65,10 +66,10 @@ export function useInstance(id: number | null, options?: { enabled?: boolean }) 
     queryKey: ["instance", id],
     enabled: id != null && (options?.enabled ?? true),
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}", {
         params: { path: { instance_id: id! } },
       });
-      if (error || !data) throw new Error("failed to load instance");
+      if (error || !data) throw new ApiError(response.status, "failed to load instance");
       return data;
     },
   });
@@ -79,10 +80,11 @@ export function useInstanceStats(id: number | null) {
     queryKey: ["instance-stats", id],
     enabled: id != null,
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/stats", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/stats", {
         params: { path: { instance_id: id! } },
       });
-      if (error || !data) throw new Error("failed to load instance stats");
+      const status = response.status;
+      if (error || !data) throw new ApiError(status, "failed to load instance stats");
       return data;
     },
     placeholderData: keepPreviousData,
@@ -90,10 +92,11 @@ export function useInstanceStats(id: number | null) {
 }
 
 export async function fetchInstanceDiscordMentions(id: number): Promise<string[]> {
-  const { data, error } = await api.GET("/api/instances/{instance_id}/discord-mentions", {
+  const { data, error, response } = await api.GET("/api/instances/{instance_id}/discord-mentions", {
     params: { path: { instance_id: id } },
   });
-  if (error || !data) throw new Error("failed to load discord mentions");
+  const status = response.status;
+  if (error || !data) throw new ApiError(status, "failed to load discord mentions");
   return data.discord_ids;
 }
 
@@ -102,13 +105,16 @@ export function useTimeline(id: number | null, range: { start?: string; end?: st
     queryKey: ["timeline", id, range.start, range.end],
     enabled: id != null,
     queryFn: async () => {
-      const { data, error, response } = await api.GET("/api/instances/{instance_id}/presence-timeline", {
-        params: {
-          path: { instance_id: id! },
-          query: { start: range.start, end: range.end },
+      const { data, error, response } = await api.GET(
+        "/api/instances/{instance_id}/presence-timeline",
+        {
+          params: {
+            path: { instance_id: id! },
+            query: { start: range.start, end: range.end },
+          },
         },
-      });
-      if (error || !response.ok) throw new Error("failed to load timeline");
+      );
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load timeline");
       return data ?? [];
     },
     placeholderData: keepPreviousData,
@@ -137,7 +143,7 @@ export function useInstancesInfinite(params: { start?: string; end?: string; isO
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load instances");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load instances");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -161,7 +167,7 @@ export function usePlayersInfinite(params: { name: string }, options?: { enabled
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load players");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load players");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -189,7 +195,7 @@ export function useEventsInfinite(
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load events");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load events");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -219,7 +225,7 @@ export function useSessionsInfinite(
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load sessions");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load sessions");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -238,7 +244,7 @@ export function usePlayers(id: number | null, params: { sort_by: PlayerSortKey; 
           query: { sort_by: params.sort_by, order: params.order },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load players");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load players");
       return data ?? [];
     },
     placeholderData: keepPreviousData,
@@ -265,7 +271,7 @@ export function useVisitorsInfinite(
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load visitors");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load visitors");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -293,7 +299,8 @@ export function usePlayerSessionsInfinite(
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load player sessions");
+      if (error || !response.ok)
+        throw new ApiError(response.status, "failed to load player sessions");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -338,7 +345,8 @@ export function usePlayerSessions(
           },
         },
       });
-      if (error || !response.ok) throw new Error("failed to load player sessions");
+      if (error || !response.ok)
+        throw new ApiError(response.status, "failed to load player sessions");
       return data ?? [];
     },
     ...options,

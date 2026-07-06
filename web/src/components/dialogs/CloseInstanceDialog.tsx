@@ -13,7 +13,7 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { type Dayjs } from "dayjs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "notistack";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
 import { extractInstanceNumber } from "@/utils/format";
 
@@ -37,7 +37,7 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
         params: { path: { location_id: instance.location_id } },
         body: { at: at.toISOString() },
       });
-      if (error || !response.ok) throw new Error("クローズに失敗しました");
+      if (error || !response.ok) throw new ApiError(response.status, "クローズに失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instance", instance.id] });

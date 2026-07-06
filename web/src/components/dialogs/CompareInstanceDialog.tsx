@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router-dom";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type { InstanceOut } from "@/api/schemas";
 import InstanceListItem from "@/components/InstanceListItem";
 
@@ -45,7 +45,7 @@ export default function CompareInstanceDialog({
       const { data, error, response } = await api.GET("/api/instances", {
         params: { query: { start, end } },
       });
-      if (error || !response.ok) throw new Error("failed to load instances");
+      if (error || !response.ok) throw new ApiError(response.status, "failed to load instances");
       return data ?? [];
     },
   });
