@@ -64,8 +64,16 @@ export default function LocationList({ selectedId, onSelect }: Props) {
 
       <Box ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         {items.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" className="p-3">
-            {query.isLoading ? "読み込み中..." : "該当なし"}
+          <Typography
+            variant="body2"
+            color={query.isError ? "error" : "text.secondary"}
+            className="p-3"
+          >
+            {query.isError
+              ? "読み込みに失敗しました"
+              : query.isLoading
+                ? "読み込み中..."
+                : "該当なし"}
           </Typography>
         ) : (
           <>

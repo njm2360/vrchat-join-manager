@@ -42,10 +42,10 @@ export default function CompareInstanceDialog({
     queryKey: ["instances", "overlap", current.id, start, end],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances", {
+      const { data, error, response } = await api.GET("/api/instances", {
         params: { query: { start, end } },
       });
-      if (error) throw new Error("failed to load instances");
+      if (error || !response.ok) throw new Error("failed to load instances");
       return data ?? [];
     },
   });

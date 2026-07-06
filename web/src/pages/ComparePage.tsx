@@ -78,7 +78,7 @@ export default function ComparePage() {
           params: { path: { instance_id: id2 } },
         }),
       ]);
-      if (results.some((r) => r.error)) throw new Error("failed to load compare data");
+      if (results.some((r) => r.error || !r.response.ok)) throw new Error("failed to load compare data");
       return {
         inst1: results[0].data as InstanceOut,
         inst2: results[1].data as InstanceOut,

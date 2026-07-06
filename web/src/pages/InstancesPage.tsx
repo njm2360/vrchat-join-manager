@@ -17,7 +17,7 @@ export default function InstancesPage() {
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [idStr]);
 
-  const { data: instance } = useInstance(instanceId);
+  const { data: instance, isError: instanceError } = useInstance(instanceId);
 
   useEffect(() => {
     if (idStr && !instanceId) {
@@ -47,6 +47,10 @@ export default function InstancesPage() {
               <Typography color="text.secondary">
                 左のリストからロケーションを選択してください
               </Typography>
+            </Box>
+          ) : instanceError ? (
+            <Box className="h-full flex items-center justify-center p-4">
+              <Typography color="error">インスタンスの読み込みに失敗しました</Typography>
             </Box>
           ) : (
             <InstanceDetail

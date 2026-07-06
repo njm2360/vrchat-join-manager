@@ -31,7 +31,14 @@ const COLUMNS: TableColumn<SortKey>[] = [
 export default function PlayersTab({ instanceId }: Props) {
   const { sortBy, order, toggleSort } = useSortState<SortKey>("internal_id", "asc", "asc");
 
-  const { data: players = [], isLoading } = usePlayers(instanceId, { sort_by: sortBy, order });
+  const {
+    data: players = [],
+    isLoading,
+    isError,
+  } = usePlayers(instanceId, {
+    sort_by: sortBy,
+    order,
+  });
 
   return (
     <Stack spacing={2}>
@@ -43,6 +50,7 @@ export default function PlayersTab({ instanceId }: Props) {
               <TablePlaceholderRow
                 colSpan={COLUMNS.length}
                 loading={isLoading}
+                error={isError}
                 emptyText="在室中のプレイヤーなし"
               />
             ) : (

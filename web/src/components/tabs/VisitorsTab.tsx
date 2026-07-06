@@ -43,6 +43,7 @@ export default function VisitorsTab({ instanceId }: Props) {
         onSort={toggleSort}
         table={table}
         isLoading={query.isLoading}
+        isError={query.isError}
         isFetchingNextPage={query.isFetchingNextPage}
         emptyText="データなし"
         rowKey={(v) => v.user_id}

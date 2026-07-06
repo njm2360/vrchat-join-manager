@@ -30,11 +30,11 @@ export function useSetPlayerDiscord(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (discordId: string | null) => {
-      const { error } = await api.PUT("/api/players/{user_id}/discord", {
+      const { error, response } = await api.PUT("/api/players/{user_id}/discord", {
         params: { path: { user_id: userId } },
         body: { discord_id: discordId },
       });
-      if (error) throw new Error("Discord IDの更新に失敗しました");
+      if (error || !response.ok) throw new Error("Discord IDの更新に失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["player", userId] });
@@ -102,13 +102,13 @@ export function useTimeline(id: number | null, range: { start?: string; end?: st
     queryKey: ["timeline", id, range.start, range.end],
     enabled: id != null,
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/presence-timeline", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/presence-timeline", {
         params: {
           path: { instance_id: id! },
           query: { start: range.start, end: range.end },
         },
       });
-      if (error) throw new Error("failed to load timeline");
+      if (error || !response.ok) throw new Error("failed to load timeline");
       return data ?? [];
     },
     placeholderData: keepPreviousData,
@@ -126,7 +126,7 @@ export function useInstancesInfinite(params: { start?: string; end?: string; isO
     queryKey: ["instances", params.start ?? null, params.end ?? null, params.isOpen ?? false],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/instances", {
+      const { data, error, response } = await api.GET("/api/instances", {
         params: {
           query: {
             start: params.start,
@@ -137,7 +137,7 @@ export function useInstancesInfinite(params: { start?: string; end?: string; isO
           },
         },
       });
-      if (error) throw new Error("failed to load instances");
+      if (error || !response.ok) throw new Error("failed to load instances");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -151,7 +151,7 @@ export function usePlayersInfinite(params: { name: string }, options?: { enabled
     enabled: (options?.enabled ?? true) && !!params.name,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/players", {
+      const { data, error, response } = await api.GET("/api/players", {
         params: {
           query: {
             name: params.name,
@@ -161,7 +161,7 @@ export function usePlayersInfinite(params: { name: string }, options?: { enabled
           },
         },
       });
-      if (error) throw new Error("failed to load players");
+      if (error || !response.ok) throw new Error("failed to load players");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -177,7 +177,7 @@ export function useEventsInfinite(
     enabled: id != null,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/events", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/events", {
         params: {
           path: { instance_id: id! },
           query: {
@@ -189,7 +189,7 @@ export function useEventsInfinite(
           },
         },
       });
-      if (error) throw new Error("failed to load events");
+      if (error || !response.ok) throw new Error("failed to load events");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -206,7 +206,7 @@ export function useSessionsInfinite(
     enabled: id != null,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/sessions", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/sessions", {
         params: {
           path: { instance_id: id! },
           query: {
@@ -219,7 +219,7 @@ export function useSessionsInfinite(
           },
         },
       });
-      if (error) throw new Error("failed to load sessions");
+      if (error || !response.ok) throw new Error("failed to load sessions");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -232,13 +232,13 @@ export function usePlayers(id: number | null, params: { sort_by: PlayerSortKey; 
     queryKey: ["players", id, params.sort_by, params.order],
     enabled: id != null,
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/players", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/players", {
         params: {
           path: { instance_id: id! },
           query: { sort_by: params.sort_by, order: params.order },
         },
       });
-      if (error) throw new Error("failed to load players");
+      if (error || !response.ok) throw new Error("failed to load players");
       return data ?? [];
     },
     placeholderData: keepPreviousData,
@@ -254,7 +254,7 @@ export function useVisitorsInfinite(
     enabled: id != null,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/instances/{instance_id}/visitors", {
+      const { data, error, response } = await api.GET("/api/instances/{instance_id}/visitors", {
         params: {
           path: { instance_id: id! },
           query: {
@@ -265,7 +265,7 @@ export function useVisitorsInfinite(
           },
         },
       });
-      if (error) throw new Error("failed to load visitors");
+      if (error || !response.ok) throw new Error("failed to load visitors");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -283,7 +283,7 @@ export function usePlayerSessionsInfinite(
     enabled: (options?.enabled ?? true) && !!userId,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await api.GET("/api/players/{user_id}/sessions", {
+      const { data, error, response } = await api.GET("/api/players/{user_id}/sessions", {
         params: {
           path: { user_id: userId },
           query: {
@@ -293,7 +293,7 @@ export function usePlayerSessionsInfinite(
           },
         },
       });
-      if (error) throw new Error("failed to load player sessions");
+      if (error || !response.ok) throw new Error("failed to load player sessions");
       return data ?? [];
     },
     getNextPageParam: nextOffset,
@@ -325,7 +325,7 @@ export function usePlayerSessions(
       params.world_id ?? null,
     ],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/players/{user_id}/sessions", {
+      const { data, error, response } = await api.GET("/api/players/{user_id}/sessions", {
         params: {
           path: { user_id: userId },
           query: {
@@ -338,7 +338,7 @@ export function usePlayerSessions(
           },
         },
       });
-      if (error) throw new Error("failed to load player sessions");
+      if (error || !response.ok) throw new Error("failed to load player sessions");
       return data ?? [];
     },
     ...options,

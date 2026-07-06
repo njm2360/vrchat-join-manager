@@ -13,7 +13,11 @@ interface Props {
 export default function InstanceTab({ userId, instance }: Props) {
   const [highlight, setHighlight] = useState<number | null>(null);
 
-  const { data: sessions = [], isLoading } = usePlayerSessions(
+  const {
+    data: sessions = [],
+    isLoading,
+    isError,
+  } = usePlayerSessions(
     userId,
     { instance_id: instance?.id, order: "asc" },
     { enabled: !!instance },
@@ -31,6 +35,14 @@ export default function InstanceTab({ userId, instance }: Props) {
     return (
       <Typography variant="body2" color="text.secondary" className="p-3 text-center">
         読み込み中...
+      </Typography>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Typography variant="body2" color="error" className="p-3 text-center">
+        読み込みに失敗しました
       </Typography>
     );
   }

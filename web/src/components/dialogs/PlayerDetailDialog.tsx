@@ -39,7 +39,7 @@ export default function PlayerDetailDialog({ open, onClose, ctx }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
   const { enqueueSnackbar } = useSnackbar();
 
-  const { data: detail } = usePlayerDetail(userId, { enabled: open });
+  const { data: detail, isError: detailError } = usePlayerDetail(userId, { enabled: open });
   const { data: instance } = useInstance(instanceId ?? null, { enabled: hasInstance && open });
 
   const displayName = detail?.display_name ?? fallbackName;
@@ -98,7 +98,9 @@ export default function PlayerDetailDialog({ open, onClose, ctx }: Props) {
       </Box>
 
       <DialogContent dividers className="p-0!">
-        {tab === "overview" && <OverviewTab userId={userId} detail={detail ?? null} />}
+        {tab === "overview" && (
+          <OverviewTab userId={userId} detail={detail ?? null} error={detailError} />
+        )}
         {tab === "sessions" && <SessionsTab userId={userId} />}
         {tab === "instance" && hasInstance && (
           <InstanceTab userId={userId} instance={instance ?? null} />

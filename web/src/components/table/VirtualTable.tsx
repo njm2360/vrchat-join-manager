@@ -14,6 +14,7 @@ interface Props<T, K extends string> {
   onSort: (key: K) => void;
   table: InfiniteTableState<T>;
   isLoading: boolean;
+  isError: boolean;
   isFetchingNextPage: boolean;
   emptyText: string;
   rowKey: (item: T) => Key;
@@ -28,6 +29,7 @@ export default function VirtualTable<T, K extends string>({
   onSort,
   table,
   isLoading,
+  isError,
   isFetchingNextPage,
   emptyText,
   rowKey,
@@ -46,6 +48,7 @@ export default function VirtualTable<T, K extends string>({
               <TablePlaceholderRow
                 colSpan={columns.length}
                 loading={isLoading}
+                error={isError}
                 emptyText={emptyText}
               />
             ) : (

@@ -38,6 +38,7 @@ export default function EventsTab({ instanceId }: Props) {
         onSort={toggleSort}
         table={table}
         isLoading={query.isLoading}
+        isError={query.isError}
         isFetchingNextPage={query.isFetchingNextPage}
         emptyText="データなし"
         rowKey={(ev) => ev.id}

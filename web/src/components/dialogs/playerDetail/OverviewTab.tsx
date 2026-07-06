@@ -7,9 +7,18 @@ import { fmtDate, fmtDuration } from "@/utils/format";
 interface Props {
   userId: string;
   detail: PlayerDetailOut | null;
+  error?: boolean;
 }
 
-export default function OverviewTab({ userId, detail }: Props) {
+export default function OverviewTab({ userId, detail, error }: Props) {
+  if (error) {
+    return (
+      <Typography variant="body2" color="error" className="p-3 text-center">
+        読み込みに失敗しました
+      </Typography>
+    );
+  }
+
   if (!detail) {
     return (
       <Typography variant="body2" color="text.secondary" className="p-3 text-center">

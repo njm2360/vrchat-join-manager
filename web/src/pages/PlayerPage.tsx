@@ -61,7 +61,7 @@ export default function PlayerPage() {
   const start = new Date(year, month, 0).toISOString();
   const end = new Date(year, month + 1, 1).toISOString();
 
-  const { data: sessions = [] } = usePlayerSessions(userId, {
+  const { data: sessions = [], isError: sessionsError } = usePlayerSessions(userId, {
     start,
     end,
     order: "asc",
@@ -139,7 +139,13 @@ export default function PlayerPage() {
           }
         />
         <CardContent sx={{ pt: 0 }}>
-          <SessionCalendar year={year} month={month} sessions={sessions} />
+          {sessionsError ? (
+            <Typography variant="body2" color="error" className="p-3">
+              セッションの読み込みに失敗しました
+            </Typography>
+          ) : (
+            <SessionCalendar year={year} month={month} sessions={sessions} />
+          )}
         </CardContent>
       </Card>
     </Box>

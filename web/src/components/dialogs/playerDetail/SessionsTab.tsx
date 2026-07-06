@@ -30,6 +30,7 @@ export default function SessionsTab({ userId }: Props) {
         onSort={() => {}}
         table={table}
         isLoading={query.isLoading}
+        isError={query.isError}
         isFetchingNextPage={query.isFetchingNextPage}
         emptyText="セッション履歴なし"
         rowKey={(s) => s.id}

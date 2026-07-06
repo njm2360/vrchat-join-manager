@@ -20,7 +20,17 @@ function StatItem({ label, value }: { label: string; value: string }) {
 }
 
 export default function InstanceStatsPanel({ instanceId }: Props) {
-  const { data: stats, isLoading } = useInstanceStats(instanceId);
+  const { data: stats, isLoading, isError } = useInstanceStats(instanceId);
+
+  if (isError) {
+    return (
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="body2" color="error">
+          統計の読み込みに失敗しました
+        </Typography>
+      </Box>
+    );
+  }
 
   if (isLoading || !stats) {
     return (

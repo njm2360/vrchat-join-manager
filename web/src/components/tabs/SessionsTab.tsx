@@ -48,6 +48,7 @@ export default function SessionsTab({ instanceId }: Props) {
         onSort={toggleSort}
         table={table}
         isLoading={query.isLoading}
+        isError={query.isError}
         isFetchingNextPage={query.isFetchingNextPage}
         emptyText="データなし"
         rowKey={(s) => s.id}

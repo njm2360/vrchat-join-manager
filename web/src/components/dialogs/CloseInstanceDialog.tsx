@@ -33,11 +33,11 @@ export default function CloseInstanceDialog({ open, onClose, instance }: Props) 
   const closeMut = useMutation({
     mutationFn: async () => {
       if (!at) throw new Error("クローズ時刻を入力してください");
-      const { error } = await api.POST("/api/locations/{location_id}/close", {
+      const { error, response } = await api.POST("/api/locations/{location_id}/close", {
         params: { path: { location_id: instance.location_id } },
         body: { at: at.toISOString() },
       });
-      if (error) throw new Error("クローズに失敗しました");
+      if (error || !response.ok) throw new Error("クローズに失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instance", instance.id] });

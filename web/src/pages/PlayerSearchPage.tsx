@@ -111,6 +111,7 @@ export default function PlayerSearchPage() {
                 onSort={() => {}}
                 table={table}
                 isLoading={query.isLoading}
+                isError={query.isError}
                 isFetchingNextPage={query.isFetchingNextPage}
                 emptyText="該当なし"
                 rowKey={(p) => p.user_id}

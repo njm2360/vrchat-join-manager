@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { Line } from "react-chartjs-2";
 import type { ChartOptions, ChartData } from "chart.js";
 import type { Chart } from "chart.js";
@@ -21,7 +21,7 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
   const [nowMs] = useState(() => Date.now());
   const chartRef = useRef<Chart<"line"> | null>(null);
 
-  const { data: timeline = [] } = useTimeline(instanceId, applied);
+  const { data: timeline = [], isError } = useTimeline(instanceId, applied);
 
   useEffect(() => {
     chartRef.current?.resetZoom();
@@ -104,7 +104,13 @@ export default function TimelineTab({ instanceId, instance, onCompare }: Props) 
         </Box>
       </DateRangeFilter>
       <Box className="relative h-[420px]">
-        <Line ref={setChartRef} data={data} options={options} plugins={[visibleYRangePlugin]} />
+        {isError ? (
+          <Typography variant="body2" color="error" className="p-3">
+            タイムラインの読み込みに失敗しました
+          </Typography>
+        ) : (
+          <Line ref={setChartRef} data={data} options={options} plugins={[visibleYRangePlugin]} />
+        )}
       </Box>
     </Stack>
   );

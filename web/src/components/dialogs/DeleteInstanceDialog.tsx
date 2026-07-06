@@ -31,10 +31,10 @@ export default function DeleteInstanceDialog({ open, onClose, instance, onDelete
 
   const deleteMut = useMutation({
     mutationFn: async () => {
-      const { error } = await api.DELETE("/api/instances/{instance_id}", {
+      const { error, response } = await api.DELETE("/api/instances/{instance_id}", {
         params: { path: { instance_id: instance.id } },
       });
-      if (error) throw new Error("削除に失敗しました");
+      if (error || !response.ok) throw new Error("削除に失敗しました");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["instances"] });
