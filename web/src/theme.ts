@@ -13,9 +13,8 @@ export const theme = createTheme(
       background: { default: "#f8f9fa" },
     },
     typography: {
-      fontFamily: ['"Roboto"', '"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', "sans-serif"].join(
-        ",",
-      ),
+      fontFamily:
+        'system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif',
     },
     shape: { borderRadius: 6 },
   },

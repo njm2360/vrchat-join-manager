@@ -9,11 +9,6 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { SnackbarProvider } from "notistack";
 import "dayjs/locale/ja";
 
-import "@fontsource/roboto/300.css";
-import "@fontsource/roboto/400.css";
-import "@fontsource/roboto/500.css";
-import "@fontsource/roboto/700.css";
-
 import "./index.css";
 import "./chartSetup";
 import { theme } from "@/theme";
