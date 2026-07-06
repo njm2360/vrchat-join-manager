@@ -1,4 +1,4 @@
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, Tooltip } from "@mui/material";
 import type { SessionOut } from "@/api/schemas";
 import { fmtDateFull } from "@/utils/format";
 
@@ -11,13 +11,9 @@ export default function JoinCell({ s }: Props) {
     <Box className="flex items-center gap-1">
       <span>{fmtDateFull(s.join_ts)}</span>
       {s.is_estimated_join && (
-        <Chip
-          size="small"
-          color="warning"
-          label="!"
-          title="観測開始時刻を使用した推定値です"
-          className="h-[18px]!"
-        />
+        <Tooltip title="観測開始時刻を使用した推定値です">
+          <Chip size="small" color="warning" label="!" className="h-[18px]!" />
+        </Tooltip>
       )}
     </Box>
   );

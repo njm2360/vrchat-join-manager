@@ -1,4 +1,4 @@
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, Tooltip } from "@mui/material";
 import type { SessionOut } from "@/api/schemas";
 import { fmtDateFull } from "@/utils/format";
 
@@ -12,13 +12,9 @@ export default function LeaveCell({ s }: Props) {
     <Box className="flex items-center gap-1">
       <span>{fmtDateFull(s.leave_ts)}</span>
       {s.is_estimated_leave && (
-        <Chip
-          size="small"
-          color="warning"
-          label="!"
-          title="退室時刻を使用した推定値です"
-          className="h-[18px]!"
-        />
+        <Tooltip title="退室時刻を使用した推定値です">
+          <Chip size="small" color="warning" label="!" className="h-[18px]!" />
+        </Tooltip>
       )}
     </Box>
   );
