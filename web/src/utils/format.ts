@@ -19,10 +19,10 @@ export function fmtDateFull(iso: string | Date): string {
 
 export function fmtDuration(sec: number): string {
   if (sec < 60) return `${sec}秒`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}分${sec % 60}秒`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}分${String(sec % 60).padStart(2, "0")}秒`;
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
-  return `${h}時間${m}分`;
+  return `${h}時間${String(m).padStart(2, "0")}分`;
 }
 
 export function instanceRangeLabel(inst: { opened_at: string; closed_at?: string | null }): string {
