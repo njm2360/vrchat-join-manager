@@ -366,7 +366,18 @@ paths:
     get:
       operationId: getInstanceDiscordMentions
       tags: [instances]
-      description: 在室中プレイヤーのうち Discord ID が登録されている人の ID 一覧。
+      description: >
+        Discord ID が登録されているプレイヤーの ID 一覧。
+        scope=present は在室中プレイヤー、
+        scope=last_seen は観測終了時(退出時)にまだ在室していたプレイヤー
+        (閉じたインスタンスのみ、途中退出者と観測者自身は除外)を返す。
+      parameters:
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [present, last_seen]
+            default: present
       responses:
         '200':
           description: Discord メンション用 ID 一覧

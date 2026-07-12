@@ -215,7 +215,9 @@ func (s *Server) GetInstanceStats(ctx context.Context, request gen.GetInstanceSt
 }
 
 func (s *Server) GetInstanceDiscordMentions(ctx context.Context, request gen.GetInstanceDiscordMentionsRequestObject) (gen.GetInstanceDiscordMentionsResponseObject, error) {
-	ids, err := s.Locations.GetInstanceDiscordMentions(ctx, request.InstanceId)
+	ids, err := s.Locations.GetInstanceDiscordMentions(ctx, request.InstanceId,
+		enumStrOr(request.Params.Scope, "present"),
+	)
 	if err != nil {
 		return nil, err
 	}

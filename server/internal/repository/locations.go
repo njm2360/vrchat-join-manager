@@ -342,11 +342,6 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 	return rows, nil
 }
 
-// GetInstanceStats returns instance-level aggregate counters in a single round
-// trip. Every sub-aggregate is an index-bounded scan over one instance's rows
-// (events / sessions are indexed by instance_id), so it stays light. The
-// heaviest piece is peak_concurrent, computed as the running max of a join(+1)
-// / leave(-1) delta stream over that instance's sessions.
 func (r *LocationsRepo) GetInstanceStats(ctx context.Context, instanceID int) (*InstanceStatsRow, error) {
 	const dur = `COALESCE(duration_seconds, CAST(ROUND((julianday('now')-julianday(join_ts))*86400) AS INTEGER))`
 	q := `
@@ -382,19 +377,32 @@ func (r *LocationsRepo) GetInstanceStats(ctx context.Context, instanceID int) (*
 	return &row, nil
 }
 
-// GetInstanceDiscordMentions returns the Discord IDs of currently-present
-// players (open sessions) that have a registered Discord ID. One open session
-// per user is guaranteed by uq_sessions_open, so the result has no duplicates.
-func (r *LocationsRepo) GetInstanceDiscordMentions(ctx context.Context, instanceID int) ([]string, error) {
-	q := `
-		SELECT pd.discord_id
-		FROM sessions s
-		JOIN player_discord pd ON pd.user_id = s.user_id
-		WHERE s.instance_id = ?
-		  AND s.leave_ts IS NULL
-		  AND pd.discord_id IS NOT NULL
-		  AND pd.discord_id <> ''
-		ORDER BY s.internal_id`
+func (r *LocationsRepo) GetInstanceDiscordMentions(ctx context.Context, instanceID int, scope string) ([]string, error) {
+	var q string
+	if scope == "last_seen" {
+		q = `
+			SELECT pd.discord_id
+			FROM sessions s
+			JOIN instances i ON i.id = s.instance_id
+			JOIN player_discord pd ON pd.user_id = s.user_id
+			WHERE s.instance_id = ?
+			  AND i.closed_at IS NOT NULL
+			  AND s.leave_ts = i.closed_at
+			  AND s.is_estimated_leave = 1
+			  AND pd.discord_id IS NOT NULL
+			  AND pd.discord_id <> ''
+			ORDER BY s.internal_id`
+	} else {
+		q = `
+			SELECT pd.discord_id
+			FROM sessions s
+			JOIN player_discord pd ON pd.user_id = s.user_id
+			WHERE s.instance_id = ?
+			  AND s.leave_ts IS NULL
+			  AND pd.discord_id IS NOT NULL
+			  AND pd.discord_id <> ''
+			ORDER BY s.internal_id`
+	}
 	ids := []string{}
 	if err := r.DB.SelectContext(ctx, &ids, q, instanceID); err != nil {
 		return nil, err

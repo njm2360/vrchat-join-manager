@@ -79,9 +79,13 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
   const closeMenu = () => setMenuAnchor(null);
   const { enqueueSnackbar } = useSnackbar();
 
+  const isClosed = Boolean(instance?.closed_at);
+  const mentionScope = isClosed ? "last_seen" : "present";
+  const mentionLabel = isClosed ? "最終在室者のDiscord IDをコピー" : "在室者のDiscord IDをコピー";
+
   const copyDiscordMentions = async () => {
     try {
-      const ids = await fetchInstanceDiscordMentions(instanceId);
+      const ids = await fetchInstanceDiscordMentions(instanceId, mentionScope);
       if (ids.length === 0) {
         enqueueSnackbar("Discord IDが登録されているプレイヤーがいません", { variant: "info" });
         return;
@@ -112,7 +116,7 @@ export default function InstanceDetail({ instanceId, instance, onBack, isMobile 
           <ListItemIcon>
             <ContentCopyIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>在室者のDiscord IDをコピー</ListItemText>
+          <ListItemText>{mentionLabel}</ListItemText>
         </MenuItem>
         {!instance.closed_at && (
           <MenuItem

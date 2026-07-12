@@ -91,9 +91,12 @@ export function useInstanceStats(id: number | null) {
   });
 }
 
-export async function fetchInstanceDiscordMentions(id: number): Promise<string[]> {
+export async function fetchInstanceDiscordMentions(
+  id: number,
+  scope: "present" | "last_seen" = "present",
+): Promise<string[]> {
   const { data, error, response } = await api.GET("/api/instances/{instance_id}/discord-mentions", {
-    params: { path: { instance_id: id } },
+    params: { path: { instance_id: id }, query: { scope } },
   });
   const status = response.status;
   if (error || !data) throw new ApiError(status, "failed to load discord mentions");
