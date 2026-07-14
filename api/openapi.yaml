@@ -459,6 +459,33 @@ paths:
                 items:
                   $ref: '#/components/schemas/SessionOut'
 
+  /api/discord-mentions:
+    get:
+      operationId: listDiscordMentions
+      tags: [instances]
+      parameters:
+        - $ref: '#/components/parameters/StartQuery'
+        - $ref: '#/components/parameters/EndQuery'
+        - $ref: '#/components/parameters/GroupIdQuery'
+        - $ref: '#/components/parameters/WorldIdQuery'
+        - name: region
+          in: query
+          schema: { type: string, nullable: true }
+        - name: instance_id
+          in: query
+          schema: { type: integer, nullable: true }
+        - name: present
+          in: query
+          schema: { type: boolean, nullable: true }
+      responses:
+        '200':
+          description: メンション形式のテキスト（`@id`を半角スペース区切りで連結）
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: '@alice @bob'
+
   /api/players:
     get:
       operationId: listPlayers

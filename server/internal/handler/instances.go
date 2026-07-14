@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strings"
 
 	"github.com/njm2360/vrchat-join-manager/server/internal/gen"
 	"github.com/njm2360/vrchat-join-manager/server/internal/repository"
@@ -222,6 +223,27 @@ func (s *Server) GetInstanceDiscordMentions(ctx context.Context, request gen.Get
 		return nil, err
 	}
 	return gen.GetInstanceDiscordMentions200JSONResponse{DiscordIds: ids}, nil
+}
+
+func (s *Server) ListDiscordMentions(ctx context.Context, request gen.ListDiscordMentionsRequestObject) (gen.ListDiscordMentionsResponseObject, error) {
+	start := timePtrToStrPtr(request.Params.Start)
+	end := timePtrToStrPtr(request.Params.End)
+	ids, err := s.Locations.ListDiscordMentions(ctx,
+		start, end,
+		request.Params.GroupId,
+		request.Params.WorldId,
+		request.Params.Region,
+		request.Params.InstanceId,
+		request.Params.Present,
+	)
+	if err != nil {
+		return nil, err
+	}
+	mentions := make([]string, len(ids))
+	for i, id := range ids {
+		mentions[i] = "@" + id
+	}
+	return gen.ListDiscordMentions200TextResponse(strings.Join(mentions, " ")), nil
 }
 
 func (s *Server) GetInstanceSessions(ctx context.Context, request gen.GetInstanceSessionsRequestObject) (gen.GetInstanceSessionsResponseObject, error) {

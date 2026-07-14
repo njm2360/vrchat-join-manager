@@ -409,3 +409,63 @@ func (r *LocationsRepo) GetInstanceDiscordMentions(ctx context.Context, instance
 	}
 	return ids, nil
 }
+
+func (r *LocationsRepo) ListDiscordMentions(
+	ctx context.Context,
+	start, end *string,
+	groupID, worldID, region *string,
+	instanceID *int,
+	present *bool,
+) ([]string, error) {
+	conditions := []string{
+		"pd.discord_id IS NOT NULL",
+		"pd.discord_id <> ''",
+	}
+	args := map[string]interface{}{}
+	if start != nil {
+		conditions = append(conditions, "s.join_ts >= :start")
+		args["start"] = *start
+	}
+	if end != nil {
+		conditions = append(conditions, "s.join_ts <= :end")
+		args["end"] = *end
+	}
+	if groupID != nil {
+		conditions = append(conditions, "i.group_id = :group_id")
+		args["group_id"] = *groupID
+	}
+	if worldID != nil {
+		conditions = append(conditions, "i.world_id = :world_id")
+		args["world_id"] = *worldID
+	}
+	if region != nil {
+		conditions = append(conditions, "i.region = :region")
+		args["region"] = *region
+	}
+	if instanceID != nil {
+		conditions = append(conditions, "s.instance_id = :instance_id")
+		args["instance_id"] = *instanceID
+	}
+	if present != nil && *present {
+		conditions = append(conditions, "s.leave_ts IS NULL")
+	}
+
+	q := `
+		SELECT DISTINCT pd.discord_id
+		FROM sessions s
+		JOIN instances i ON i.id = s.instance_id
+		JOIN player_discord pd ON pd.user_id = s.user_id
+		WHERE ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		ORDER BY pd.discord_id`
+
+	stmt, err := r.DB.PrepareNamedContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	ids := []string{}
+	if err := stmt.SelectContext(ctx, &ids, args); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
