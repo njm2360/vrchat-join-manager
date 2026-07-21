@@ -425,7 +425,7 @@ func TestOnLine_PlayerLeft_NotRestored_NoLeaveSent(t *testing.T) {
 	}
 	// pendingRestored should no longer contain Bob.
 	for _, n := range p.instance.pendingRestored {
-		if n == "Bob" {
+		if n.name == "Bob" {
 			t.Errorf("Bob still pendingRestored")
 		}
 	}
@@ -653,5 +653,269 @@ func TestOnLine_RestoredWithoutPendingIsNoop(t *testing.T) {
 	)
 	if len(api.sendEvents) != 0 {
 		t.Errorf("no events expected: %+v", api.sendEvents)
+	}
+}
+
+// setupSelf brings the parser to steady state: instance open, self restored.
+func setupSelf(t *testing.T, p *LogParser, api *fakeAPI) {
+	t.Helper()
+	feed(p,
+		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Alice (usr_aaaa)",
+		`2024.01.01 00:00:02 [Behaviour] Initialized PlayerAPI "Alice" is local`,
+		"2024.01.01 00:00:03 [Behaviour] Restored player 1",
+	)
+	if len(api.sendEvents) != 1 || api.sendEvents[0].name != "Alice" {
+		t.Fatalf("setup: self join expected, got %+v", api.sendEvents)
+	}
+}
+
+// 近接入室した2人のRestoredがロード完了順で逆に出ても、pending全員分そろってから
+// 昇順の番号を入室順に割り当てる。即割当だと番号を取り違える。
+func TestOnLine_SteadyOverlap_OutOfOrderRestored_AssignedAscendingByJoinOrder(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		"2024.01.01 00:01:03 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		`2024.01.01 00:01:03 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		"2024.01.01 00:01:04 [Behaviour] Restored player 20",
+	)
+	// 番号1つではどちらのものか確定しないため未送信
+	if len(api.sendEvents) != 1 {
+		t.Fatalf("no join must be sent while ambiguous, got %+v", api.sendEvents)
+	}
+
+	feed(p, "2024.01.01 00:01:20 [Behaviour] Restored player 10")
+
+	if len(api.sendEvents) != 3 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	wantTs := mustTime(t, "2024.01.01 00:01:20")
+	bob := api.sendEvents[1]
+	carol := api.sendEvents[2]
+	if bob.name != "Bob" || bob.internalID != 10 || !bob.ts.Equal(wantTs) || bob.estimated {
+		t.Errorf("bob = %+v want internal_id=10", bob)
+	}
+	if carol.name != "Carol" || carol.internalID != 20 || !carol.ts.Equal(wantTs) || carol.estimated {
+		t.Errorf("carol = %+v want internal_id=20", carol)
+	}
+	if len(p.instance.pendingRestored) != 0 || len(p.instance.restoredBuf) != 0 {
+		t.Errorf("pending/buffer should be drained: %+v %+v", p.instance.pendingRestored, p.instance.restoredBuf)
+	}
+}
+
+// 入場バースト(自分のRestored前の列挙)ではRestoredも列挙順で出るため、位置対応
+// (FIFO)を保ち昇順ソートしない。番号列が非単調でもこれは取り違えではない。
+func TestOnLine_EntryBurst_KeepsPositionalFIFO_NotSorted(t *testing.T) {
+	p, api := newTestParser()
+	api.checkinResumed = nil
+
+	feed(p,
+		"2024.01.01 00:00:00 [Behaviour] Joining wrld_x:1",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Dave (usr_dddd)",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Erin (usr_eeee)",
+		"2024.01.01 00:00:01 [Behaviour] OnPlayerJoined Alice (usr_aaaa)",
+		`2024.01.01 00:00:01 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		`2024.01.01 00:00:01 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		`2024.01.01 00:00:01 [Behaviour] Initialized PlayerAPI "Dave" is remote`,
+		`2024.01.01 00:00:01 [Behaviour] Initialized PlayerAPI "Erin" is remote`,
+		`2024.01.01 00:00:01 [Behaviour] Initialized PlayerAPI "Alice" is local`,
+		"2024.01.01 00:00:02 [Behaviour] Restored player 94",
+		"2024.01.01 00:00:02 [Behaviour] Restored player 96",
+		"2024.01.01 00:00:02 [Behaviour] Restored player 65",
+		"2024.01.01 00:00:02 [Behaviour] Restored player 5",
+		"2024.01.01 00:00:02 [Behaviour] Restored player 100",
+	)
+
+	// 名簿は位置対応(Bob=94, Carol=96, Dave=65, Erin=5)であること
+	if len(api.checkins) != 1 {
+		t.Fatalf("checkins = %+v", api.checkins)
+	}
+	wantRoster := []ObservedPlayer{
+		{UserId: "usr_bbbb", InternalId: 94},
+		{UserId: "usr_cccc", InternalId: 96},
+		{UserId: "usr_dddd", InternalId: 65},
+		{UserId: "usr_eeee", InternalId: 5},
+	}
+	if !reflect.DeepEqual(api.checkins[0].players, wantRoster) {
+		t.Errorf("checkin roster (positional FIFO) mismatch\n got: %+v\nwant: %+v", api.checkins[0].players, wantRoster)
+	}
+	if api.checkins[0].self != (ObservedPlayer{UserId: "usr_aaaa", InternalId: 100}) {
+		t.Errorf("checkin self = %+v", api.checkins[0].self)
+	}
+
+	// joinも位置対応のまま(昇順ソートならBob=5になってしまう)
+	byName := map[string]int{}
+	for _, ev := range api.sendEvents {
+		byName[ev.name] = ev.internalID
+	}
+	want := map[string]int{"Bob": 94, "Carol": 96, "Dave": 65, "Erin": 5, "Alice": 100}
+	for name, id := range want {
+		if byName[name] != id {
+			t.Errorf("%s internal_id = %d want %d (burst must keep FIFO)", name, byName[name], id)
+		}
+	}
+}
+
+// 異常Join(Restoredが出ない)がpendingを塞いでも、その退室でpendingが減れば
+// 保留中の割当が確定すること。
+func TestOnLine_AbnormalJoin_LeaveRebalancesPendingAndFlushes(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		// Carol: 異常Join (Restoredが出ない)
+		"2024.01.01 00:01:02 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		`2024.01.01 00:01:02 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		"2024.01.01 00:01:04 [Behaviour] Restored player 11",
+	)
+	// pending2人に番号1つ → 未送信
+	if len(api.sendEvents) != 1 {
+		t.Fatalf("join must be held while pending unbalanced: %+v", api.sendEvents)
+	}
+
+	// Carol退室でpendingが1人になり割当確定
+	feed(p, "2024.01.01 00:01:20 [Behaviour] OnPlayerLeft Carol (usr_cccc)")
+
+	if len(api.sendEvents) != 2 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	bob := api.sendEvents[1]
+	if bob.event != "join" || bob.name != "Bob" || bob.internalID != 11 ||
+		!bob.ts.Equal(mustTime(t, "2024.01.01 00:01:20")) {
+		t.Errorf("bob = %+v want join internal_id=11 at leave ts", bob)
+	}
+	// 未RestoredのCarolにはjoinもleaveも出ない
+	for _, ev := range api.sendEvents {
+		if ev.userID == "usr_cccc" {
+			t.Errorf("abnormal joiner must not produce events: %+v", ev)
+		}
+	}
+	if len(p.instance.pendingRestored) != 0 || len(p.instance.restoredBuf) != 0 {
+		t.Errorf("pending/buffer should be drained")
+	}
+}
+
+// 異常Joinが退室もしない場合、pendingRestoredTimeoutでグループごと破棄する。番号の
+// 持ち主を特定できないため巻き添えの正常Join(Bob)も欠測になるが、誤った番号を記録
+// するより安全。破棄後の新規Joinは通常どおり処理されること。
+func TestOnLine_AbnormalJoin_NeverLeaves_PendingDroppedAfterTimeout(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		// Carol: 異常Join、退室もしない
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		"2024.01.01 00:01:02 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:02 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		"2024.01.01 00:01:05 [Behaviour] Restored player 11",
+	)
+	if len(api.sendEvents) != 1 {
+		t.Fatalf("join must be held while pending unbalanced: %+v", api.sendEvents)
+	}
+
+	// タイムアウト経過後の行でpendingが破棄され、以降のJoinは正常処理
+	feed(p,
+		"2024.01.01 00:02:10 [Behaviour] OnPlayerJoined Dave (usr_dddd)",
+		`2024.01.01 00:02:10 [Behaviour] Initialized PlayerAPI "Dave" is remote`,
+		"2024.01.01 00:02:11 [Behaviour] Restored player 12",
+	)
+
+	if len(api.sendEvents) != 2 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	dave := api.sendEvents[1]
+	if dave.name != "Dave" || dave.internalID != 12 || !dave.ts.Equal(mustTime(t, "2024.01.01 00:02:11")) {
+		t.Errorf("dave = %+v want join internal_id=12", dave)
+	}
+	// CarolとBob(巻き添え)は送信されない
+	for _, ev := range api.sendEvents {
+		if ev.name == "Carol" || ev.name == "Bob" {
+			t.Errorf("dropped pending must not produce events: %+v", ev)
+		}
+	}
+	if len(p.instance.pendingRestored) != 0 || len(p.instance.restoredBuf) != 0 {
+		t.Errorf("pending/buffer should be drained")
+	}
+}
+
+// タイムアウト未満のロード遅延では破棄せず割り当てること。
+func TestOnLine_SlowRestoreWithinLimit_StillAssigned(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		// 45秒後にRestored
+		"2024.01.01 00:01:45 [Behaviour] Restored player 30",
+	)
+	if len(api.sendEvents) != 2 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	bob := api.sendEvents[1]
+	if bob.name != "Bob" || bob.internalID != 30 || !bob.ts.Equal(mustTime(t, "2024.01.01 00:01:45")) {
+		t.Errorf("bob = %+v want join internal_id=30", bob)
+	}
+}
+
+// 各人のJoin→API→Restoredの3行組ごと遅延して先着分が後から出る場合、各Restoredは
+// その時点で唯一のpendingに確定する。グループをまたいで再ソートしないこと。
+func TestOnLine_TripletShift_ConsecutiveSingles_NotResorted(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		// 後着(番号20)の3行組が先に出る
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		"2024.01.01 00:01:00 [Behaviour] Restored player 20",
+		// 先着(番号10)の3行組が遅れて出る
+		"2024.01.01 00:01:01 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:01 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		"2024.01.01 00:01:01 [Behaviour] Restored player 10",
+	)
+
+	if len(api.sendEvents) != 3 {
+		t.Fatalf("sendEvents = %+v", api.sendEvents)
+	}
+	first := api.sendEvents[1]
+	second := api.sendEvents[2]
+	// Restored 20の時点でpendingはCarolのみ → 強制確定で即送信
+	if first.name != "Carol" || first.internalID != 20 || !first.ts.Equal(mustTime(t, "2024.01.01 00:01:00")) {
+		t.Errorf("first = %+v want Carol=20 (immediate forced assignment)", first)
+	}
+	if second.name != "Bob" || second.internalID != 10 {
+		t.Errorf("second = %+v want Bob=10", second)
+	}
+}
+
+// OnLeftRoom後にpendingが減っても保留中の割当をフラッシュしないこと。
+func TestOnLine_PendingBuffer_NoFlushAfterOnLeftRoom(t *testing.T) {
+	p, api := newTestParser()
+	setupSelf(t, p, api)
+
+	feed(p,
+		"2024.01.01 00:01:00 [Behaviour] OnPlayerJoined Bob (usr_bbbb)",
+		`2024.01.01 00:01:00 [Behaviour] Initialized PlayerAPI "Bob" is remote`,
+		"2024.01.01 00:01:01 [Behaviour] OnPlayerJoined Carol (usr_cccc)",
+		`2024.01.01 00:01:01 [Behaviour] Initialized PlayerAPI "Carol" is remote`,
+		"2024.01.01 00:01:05 [Behaviour] Restored player 11",
+		"2024.01.01 00:02:00 [Behaviour] OnLeftRoom",
+		"2024.01.01 00:02:01 [Behaviour] OnPlayerLeft Bob (usr_bbbb)",
+		"2024.01.01 00:02:02 [Behaviour] OnPlayerLeft Carol (usr_cccc)",
+	)
+
+	// selfのjoin以外は送信されない
+	if len(api.sendEvents) != 1 {
+		t.Errorf("no events expected after OnLeftRoom: %+v", api.sendEvents)
 	}
 }

@@ -19,6 +19,9 @@ var (
 	reOnLeftRoom = regexp.MustCompile(`\[Behaviour\] OnLeftRoom`)
 )
 
+// 異常Joinが退室せず残った場合にpendingを破棄する上限
+const pendingRestoredTimeout = 60 * time.Second
+
 type player struct {
 	name       string
 	userID     string
@@ -26,12 +29,25 @@ type player struct {
 	restored   bool
 }
 
+type pendingRestore struct {
+	name  string
+	since time.Time
+	// 自分のRestored前に現れた人(入場バーストの列挙)。バーストでは位置対応(FIFO)
+	burst bool
+}
+
+type restoredNumber struct {
+	id    int
+	since time.Time
+}
+
 type instance struct {
 	locationID string
 	local      *player
 	players    map[string]*player
 
-	pendingRestored []string
+	pendingRestored []pendingRestore
+	restoredBuf     []restoredNumber
 	preJoins        []*player
 
 	selfLeftRoom bool
@@ -57,13 +73,13 @@ func (s *instance) popPendingRestored() (string, bool) {
 	if len(s.pendingRestored) == 0 {
 		return "", false
 	}
-	name := s.pendingRestored[0]
+	name := s.pendingRestored[0].name
 	s.pendingRestored = s.pendingRestored[1:]
 	return name, true
 }
 
 func (s *instance) removePendingRestored(name string) {
-	if i := slices.Index(s.pendingRestored, name); i >= 0 {
+	if i := slices.IndexFunc(s.pendingRestored, func(e pendingRestore) bool { return e.name == name }); i >= 0 {
 		s.pendingRestored = slices.Delete(s.pendingRestored, i, i+1)
 	}
 }
@@ -112,12 +128,13 @@ func (p *LogParser) OnLine(_ string, line string) {
 	if p.instance == nil {
 		return
 	}
+	p.expireRestoreTracking(ts)
 	if m := rePlayerJoin.FindStringSubmatch(line); m != nil {
 		p.handlePlayerJoin(m[1], m[2])
 		return
 	}
 	if m := rePlayerAPI.FindStringSubmatch(line); m != nil {
-		p.handlePlayerAPI(m[1], m[2] == "local")
+		p.handlePlayerAPI(m[1], m[2] == "local", ts)
 		return
 	}
 	if m := reRestored.FindStringSubmatch(line); m != nil {
@@ -154,43 +171,103 @@ func (p *LogParser) handlePlayerJoin(name, userID string) {
 }
 
 // 2nd [Behaviour] Initialized PlayerAPI {Name} is [local|remote]
-func (p *LogParser) handlePlayerAPI(name string, isLocal bool) {
+func (p *LogParser) handlePlayerAPI(name string, isLocal bool, ts time.Time) {
 	pl := p.instance.player(name)
 	if isLocal {
 		p.instance.local = pl
 	}
-	p.instance.pendingRestored = append(p.instance.pendingRestored, name)
+	p.instance.pendingRestored = append(p.instance.pendingRestored, pendingRestore{
+		name:  name,
+		since: ts,
+		burst: !p.instance.localRestored(),
+	})
 }
 
 // 3rd [Behaviour] Restored player {InternalID}
 // Note: 異常Joinが起きた人はこれは出ない
 func (p *LogParser) handleRestored(internalID int, ts time.Time) {
-	name, ok := p.instance.popPendingRestored()
-	if !ok {
-		return
-	}
-	pl := p.instance.player(name)
-	pl.internalID = internalID
-	pl.restored = true
-
-	// 1stが抜けない限り無いが念のためガード
-	if pl.userID == "" {
-		return
-	}
-
 	s := p.instance
-	switch {
-	case pl == s.local:
-		// 自分自身のイベント
-		p.resolvePreJoins(ts)
-		p.sendJoin(pl, ts)
-	case !s.localRestored():
-		// 自分より前に滞在しているプレイヤー
-		s.preJoins = append(s.preJoins, pl)
-	default:
-		// 自分のRestore後は通常送信
+
+	// 入場バーストでは位置対応(FIFO)
+	if len(s.pendingRestored) > 0 && s.pendingRestored[0].burst {
+		name, _ := s.popPendingRestored()
+		pl := s.player(name)
+		pl.internalID = internalID
+		pl.restored = true
+
+		// 1stが抜けない限り無いが念のためガード
+		if pl.userID == "" {
+			return
+		}
+
+		switch {
+		case pl == s.local:
+			// 自分自身のイベント
+			p.resolvePreJoins(ts)
+			p.sendJoin(pl, ts)
+		case !s.localRestored():
+			// 自分より前に滞在しているプレイヤー
+			s.preJoins = append(s.preJoins, pl)
+		default:
+			// 自分のRestored後に処理される入場バーストの残り
+			p.sendJoin(pl, ts)
+		}
+		return
+	}
+
+	if len(s.pendingRestored) == 0 {
+		return
+	}
+
+	s.restoredBuf = append(s.restoredBuf, restoredNumber{id: internalID, since: ts})
+	p.flushRestored(ts)
+}
+
+func (p *LogParser) flushRestored(ts time.Time) {
+	s := p.instance
+	if s.selfLeftRoom {
+		return
+	}
+	if len(s.restoredBuf) == 0 || len(s.restoredBuf) != len(s.pendingRestored) {
+		return
+	}
+	if s.pendingRestored[0].burst {
+		return
+	}
+
+	ids := make([]int, 0, len(s.restoredBuf))
+	for _, r := range s.restoredBuf {
+		ids = append(ids, r.id)
+	}
+	slices.Sort(ids)
+
+	entries := s.pendingRestored
+	s.pendingRestored = nil
+	s.restoredBuf = nil
+
+	for i, e := range entries {
+		pl := s.player(e.name)
+		pl.internalID = ids[i]
+		pl.restored = true
+		if pl.userID == "" {
+			continue
+		}
 		p.sendJoin(pl, ts)
 	}
+}
+
+func (p *LogParser) expireRestoreTracking(ts time.Time) {
+	s := p.instance
+	stale := (len(s.pendingRestored) > 0 && ts.Sub(s.pendingRestored[0].since) >= pendingRestoredTimeout) ||
+		(len(s.restoredBuf) > 0 && ts.Sub(s.restoredBuf[0].since) >= pendingRestoredTimeout)
+	if !stale {
+		return
+	}
+	for _, e := range s.pendingRestored {
+		log.Printf("DROP  [%s] %s (restore pending timeout)", p.fmtTs(ts), e.name)
+	}
+	s.pendingRestored = nil
+	s.restoredBuf = nil
 }
 
 // 4th [Behaviour] OnPlayerLeft {Name} ({UserID})
@@ -209,6 +286,8 @@ func (p *LogParser) handlePlayerLeft(name string, ts time.Time) {
 	delete(s.players, name)
 	// 自分のRestored前に退室した人はpreJoinsから外す
 	s.preJoins = slices.DeleteFunc(s.preJoins, func(x *player) bool { return x == pl })
+	// 異常Join者の退室でpendingが減ると保留中の割当が確定しうる
+	p.flushRestored(ts)
 	// Restoredしてない異常プレイヤーはLeaveイベントを送信しない
 	if !pl.restored {
 		return
