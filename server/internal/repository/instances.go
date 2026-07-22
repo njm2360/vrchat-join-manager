@@ -149,6 +149,7 @@ func (r *InstancesRepo) Checkin(ctx context.Context, locationID, at string, self
 		sessionID int
 	}
 	witnesses := []witness{}
+	mismatches := 0
 	seen := map[string]struct{}{self.UserID: {}}
 	for _, p := range players {
 		if _, dup := seen[p.UserID]; dup {
@@ -177,7 +178,7 @@ func (r *InstancesRepo) Checkin(ctx context.Context, locationID, at string, self
 			return nil, err
 		}
 
-		// 既知ユーザーの低ID不一致は再採番の証拠なので拒否
+		// 既知ユーザーの低ID不一致は再採番かID取り違えの証拠
 		// ※未知ユーザーは記録漏れがありうるため許容
 		var known int
 		if err := tx.GetContext(ctx, &known,
@@ -187,12 +188,12 @@ func (r *InstancesRepo) Checkin(ctx context.Context, locationID, at string, self
 			return nil, err
 		}
 		if known > 0 {
-			return none()
+			mismatches++
 		}
 	}
 
-	// 証人ゼロなら新規インスタンス扱い
-	if len(witnesses) == 0 {
+	// 一致が不一致を上回る場合のみ復元する（同数は安全側で新規扱い）
+	if mismatches >= len(witnesses) {
 		return none()
 	}
 
