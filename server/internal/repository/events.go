@@ -46,8 +46,6 @@ func (r *EventsRepo) UpsertPlayer(ctx context.Context, tx *sqlx.Tx, userID, name
 	return err
 }
 
-// InsertEvent inserts a (idempotent) event row and returns the new id, or nil
-// if a duplicate row already existed.
 func (r *EventsRepo) InsertEvent(
 	ctx context.Context,
 	tx *sqlx.Tx,
@@ -89,33 +87,33 @@ func (r *EventsRepo) OpenSession(
 	internalID int,
 	isEstimatedJoin bool,
 ) error {
-	// 同一(user_id, internal_id)の推定Leave行が残っていれば推定Leaveを取り消す
 	// 同一ユーザーのopen行が既にある場合はuq_sessions_openを壊さないよう何もしない
-	res, err := tx.ExecContext(ctx,
-		`UPDATE sessions
-		    SET leave_ts           = NULL,
-		        leave_event_id     = NULL,
-		        duration_seconds   = NULL,
-		        is_estimated_leave = 0
-		  WHERE id = (
-		        SELECT id FROM sessions
-		        WHERE instance_id = ? AND user_id = ? AND internal_id = ?
-		          AND is_estimated_leave = 1 AND leave_ts IS NOT NULL
-		        ORDER BY join_ts DESC LIMIT 1
-		    )
-		    AND NOT EXISTS (
-		        SELECT 1 FROM sessions
-		        WHERE user_id = ? AND instance_id = ? AND leave_ts IS NULL
-		    )`,
-		instanceID, userID, internalID, userID, instanceID,
+	var exists int
+	err := tx.GetContext(ctx, &exists,
+		`SELECT 1 FROM sessions
+		 WHERE user_id = ? AND instance_id = ? AND leave_ts IS NULL`,
+		userID, instanceID,
 	)
-	if err != nil {
+	if err == nil {
+		return nil
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	if n, err := res.RowsAffected(); err != nil {
+
+	// 同一(user_id, internal_id)の推定Leave行が残っていれば、Leaveの推定が
+	// 誤りだった(実際には退出していなかった)とみなしてそのセッションを再開する
+	var sessionID int
+	err = tx.GetContext(ctx, &sessionID,
+		`SELECT id FROM sessions
+		 WHERE instance_id = ? AND user_id = ? AND internal_id = ?
+		   AND is_estimated_leave = 1 AND leave_ts IS NOT NULL
+		 ORDER BY join_ts DESC LIMIT 1`,
+		instanceID, userID, internalID,
+	)
+	if err == nil {
+		return resumeSessions(ctx, tx, []int{sessionID})
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
-	} else if n > 0 {
-		return nil
 	}
 
 	_, err = tx.ExecContext(ctx,
@@ -126,6 +124,30 @@ func (r *EventsRepo) OpenSession(
 		 VALUES(?, ?, ?, ?, ?, ?, ?)`,
 		instanceID, worldID, userID, internalID, eventID, ts, isEstimatedJoin,
 	)
+	return err
+}
+
+func (r *EventsRepo) ResumeSessions(ctx context.Context, tx *sqlx.Tx, sessionIDs []int) error {
+	return resumeSessions(ctx, tx, sessionIDs)
+}
+
+func resumeSessions(ctx context.Context, tx *sqlx.Tx, sessionIDs []int) error {
+	if len(sessionIDs) == 0 {
+		return nil
+	}
+	q, args, err := sqlx.In(
+		`UPDATE sessions
+		    SET leave_ts           = NULL,
+		        leave_event_id     = NULL,
+		        duration_seconds   = NULL,
+		        is_estimated_leave = 0
+		  WHERE id IN (?)`,
+		sessionIDs,
+	)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, q, args...)
 	return err
 }
 
