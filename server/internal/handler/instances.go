@@ -216,9 +216,15 @@ func (s *Server) GetInstanceStats(ctx context.Context, request gen.GetInstanceSt
 }
 
 func (s *Server) GetInstanceDiscordMentions(ctx context.Context, request gen.GetInstanceDiscordMentionsRequestObject) (gen.GetInstanceDiscordMentionsResponseObject, error) {
-	ids, err := s.Locations.GetInstanceDiscordMentions(ctx, request.InstanceId,
-		enumStrOr(request.Params.Scope, "present"),
+	var (
+		ids []string
+		err error
 	)
+	if request.Params.Scope != nil && *request.Params.Scope == gen.GetInstanceDiscordMentionsParamsScopeLastSeen {
+		ids, err = s.Locations.DiscordIDsAtClose(ctx, request.InstanceId)
+	} else {
+		ids, err = s.Locations.DiscordIDsPresent(ctx, request.InstanceId)
+	}
 	if err != nil {
 		return nil, err
 	}

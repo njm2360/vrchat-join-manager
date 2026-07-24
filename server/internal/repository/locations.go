@@ -306,7 +306,7 @@ func (r *LocationsRepo) GetLocationSessions(ctx context.Context, instanceID int,
 		"duration_seconds": "duration_seconds",
 	}, "s.join_ts")
 	conditions := []string{"s.instance_id = :instance_id"}
-	args := map[string]interface{}{"instance_id": instanceID}
+	args := map[string]any{"instance_id": instanceID}
 	if start != nil {
 		conditions = append(conditions, "(s.leave_ts IS NULL OR s.leave_ts >= :start)")
 		args["start"] = *start
@@ -377,32 +377,36 @@ func (r *LocationsRepo) GetInstanceStats(ctx context.Context, instanceID int) (*
 	return &row, nil
 }
 
-func (r *LocationsRepo) GetInstanceDiscordMentions(ctx context.Context, instanceID int, scope string) ([]string, error) {
-	var q string
-	if scope == "last_seen" {
-		q = `
-			SELECT pd.discord_id
-			FROM sessions s
-			JOIN instances i ON i.id = s.instance_id
-			JOIN player_discord pd ON pd.user_id = s.user_id
-			WHERE s.instance_id = ?
-			  AND i.closed_at IS NOT NULL
-			  AND s.leave_ts = i.closed_at
-			  AND s.is_estimated_leave = 1
-			  AND pd.discord_id IS NOT NULL
-			  AND pd.discord_id <> ''
-			ORDER BY s.internal_id`
-	} else {
-		q = `
-			SELECT pd.discord_id
-			FROM sessions s
-			JOIN player_discord pd ON pd.user_id = s.user_id
-			WHERE s.instance_id = ?
-			  AND s.leave_ts IS NULL
-			  AND pd.discord_id IS NOT NULL
-			  AND pd.discord_id <> ''
-			ORDER BY s.internal_id`
+func (r *LocationsRepo) DiscordIDsPresent(ctx context.Context, instanceID int) ([]string, error) {
+	q := `
+		SELECT pd.discord_id
+		FROM sessions s
+		JOIN player_discord pd ON pd.user_id = s.user_id
+		WHERE s.instance_id = ?
+		  AND s.leave_ts IS NULL
+		  AND pd.discord_id IS NOT NULL
+		  AND pd.discord_id <> ''
+		ORDER BY s.internal_id`
+	ids := []string{}
+	if err := r.DB.SelectContext(ctx, &ids, q, instanceID); err != nil {
+		return nil, err
 	}
+	return ids, nil
+}
+
+func (r *LocationsRepo) DiscordIDsAtClose(ctx context.Context, instanceID int) ([]string, error) {
+	q := `
+		SELECT pd.discord_id
+		FROM sessions s
+		JOIN instances i ON i.id = s.instance_id
+		JOIN player_discord pd ON pd.user_id = s.user_id
+		WHERE s.instance_id = ?
+		  AND i.closed_at IS NOT NULL
+		  AND s.leave_ts = i.closed_at
+		  AND s.is_estimated_leave = 1
+		  AND pd.discord_id IS NOT NULL
+		  AND pd.discord_id <> ''
+		ORDER BY s.internal_id`
 	ids := []string{}
 	if err := r.DB.SelectContext(ctx, &ids, q, instanceID); err != nil {
 		return nil, err
@@ -421,7 +425,7 @@ func (r *LocationsRepo) ListDiscordMentions(
 		"pd.discord_id IS NOT NULL",
 		"pd.discord_id <> ''",
 	}
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	if start != nil {
 		conditions = append(conditions, "s.join_ts >= :start")
 		args["start"] = *start
