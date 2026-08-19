@@ -115,7 +115,7 @@ var pageTmpl = template.Must(template.New("page").Parse(`<!doctype html>
   .region { background: var(--pill); border-radius: 999px; padding: .1rem .55rem; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
   .join { flex-shrink: 0; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: .9rem; padding: .55rem 1.2rem; border-radius: 8px; }
   .join:hover { background: var(--accent-hover); }
-  .empty { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem 1reSm; text-align: center; color: var(--muted); }
+  .empty { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem 1rem; text-align: center; color: var(--muted); }
   .error { color: #e5484d; }
 </style>
 </head>
