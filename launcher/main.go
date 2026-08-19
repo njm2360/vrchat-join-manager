@@ -20,7 +20,10 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-const cacheTTL = time.Minute
+const (
+	cacheTTL    = time.Minute
+	errCacheTTL = 5 * time.Second
+)
 
 var jst = time.FixedZone("JST", 9*60*60)
 
@@ -142,6 +145,7 @@ var pageTmpl = template.Must(template.New("page").Parse(`<!doctype html>
 
 type cacheEntry struct {
 	views     []instanceView
+	err       error
 	expiresAt time.Time
 }
 
@@ -191,7 +195,7 @@ func (s *server) openInstances(groupID string) ([]instanceView, error) {
 	entry, ok := s.cache[groupID]
 	s.mu.Unlock()
 	if ok && time.Now().Before(entry.expiresAt) {
-		return entry.views, nil
+		return entry.views, entry.err
 	}
 
 	v, err, _ := s.g.Do(groupID, func() (any, error) {
@@ -199,6 +203,10 @@ func (s *server) openInstances(groupID string) ([]instanceView, error) {
 		defer cancel()
 		views, err := s.fetchOpenInstances(ctx, groupID)
 		if err != nil {
+			slog.Error("fetch instances failed", "err", err)
+			s.mu.Lock()
+			s.cache[groupID] = cacheEntry{err: err, expiresAt: time.Now().Add(errCacheTTL)}
+			s.mu.Unlock()
 			return nil, err
 		}
 		s.mu.Lock()
@@ -289,7 +297,6 @@ func (s *server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 
 	views, err := s.openInstances(groupID)
 	if err != nil {
-		slog.Error("fetch instances failed", "err", err)
 		w.WriteHeader(http.StatusBadGateway)
 		_ = pageTmpl.Execute(w, pageData{GroupID: groupID, Error: "インスタンス情報の取得に失敗しました。"})
 		return
