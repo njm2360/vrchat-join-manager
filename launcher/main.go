@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -144,7 +145,7 @@ var pageTmpl = template.Must(template.New("page").Parse(`<!doctype html>
 </html>`))
 
 type cacheEntry struct {
-	views     []instanceView
+	html      []byte
 	err       error
 	expiresAt time.Time
 }
@@ -190,12 +191,12 @@ func joinURL(locationID string) (string, error) {
 	return "https://vrchat.com/home/launch?" + v.Encode(), nil
 }
 
-func (s *server) openInstances(groupID string) ([]instanceView, error) {
+func (s *server) openInstancesPage(groupID string) ([]byte, error) {
 	s.mu.Lock()
 	entry, ok := s.cache[groupID]
 	s.mu.Unlock()
 	if ok && time.Now().Before(entry.expiresAt) {
-		return entry.views, entry.err
+		return entry.html, entry.err
 	}
 
 	v, err, _ := s.g.Do(groupID, func() (any, error) {
@@ -209,15 +210,20 @@ func (s *server) openInstances(groupID string) ([]instanceView, error) {
 			s.mu.Unlock()
 			return nil, err
 		}
+		var buf bytes.Buffer
+		if err := pageTmpl.Execute(&buf, pageData{GroupID: groupID, Instances: views}); err != nil {
+			return nil, err
+		}
+		html := buf.Bytes()
 		s.mu.Lock()
-		s.cache[groupID] = cacheEntry{views: views, expiresAt: time.Now().Add(cacheTTL)}
+		s.cache[groupID] = cacheEntry{html: html, expiresAt: time.Now().Add(cacheTTL)}
 		s.mu.Unlock()
-		return views, nil
+		return html, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return v.([]instanceView), nil
+	return v.([]byte), nil
 }
 
 func (s *server) fetchOpenInstances(ctx context.Context, groupID string) ([]instanceView, error) {
@@ -295,14 +301,15 @@ func (s *server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	views, err := s.openInstances(groupID)
+	page, err := s.openInstancesPage(groupID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		_ = pageTmpl.Execute(w, pageData{GroupID: groupID, Error: "インスタンス情報の取得に失敗しました。"})
 		return
 	}
 
-	_ = pageTmpl.Execute(w, pageData{GroupID: groupID, Instances: views})
+	h.Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(page)
 }
 
 func main() {
